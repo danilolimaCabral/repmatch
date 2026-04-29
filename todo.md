@@ -70,10 +70,29 @@
 - [x] Animações sutis e micro-interações
 
 ## Toggle Mensal/Anual nos Planos
-- [ ] Adicionar toggle mensal/anual na seção de planos da landing page
-- [ ] Calcular preços anuais com 20% de desconto para todos os planos
-- [ ] Mostrar badge "Economize X%" no plano anual
-- [ ] Animação suave na troca de preços
+- [x] Adicionar toggle mensal/anual na seção de planos da landing page
+- [x] Calcular preços anuais com 20% de desconto para todos os planos
+- [x] Mostrar badge "Economize X%" no plano anual
+- [x] Animação suave na troca de preços
+
+## Reestruturação: Autenticação Própria + Preview Inteligente
+- [x] Criar tabela auth_users com email, senha (bcrypt), tipo (empresa/representante), plano
+- [x] Criar endpoints de registro (POST /api/auth/register) e login (POST /api/auth/login) com JWT
+- [ ] Criar endpoint de recuperação de senha (pendente)
+- [x] Remover dependência do OAuth Manus dos fluxos principais
+- [x] Criar página de cadastro dual: Empresa vs Representante com formulários separados
+- [x] Criar página de login própria com email+senha
+- [x] Implementar modelo de preview: empresa vê contador de reps por região/segmento
+- [x] Mostrar dados parciais dos reps (nome parcial, cidade, segmento, experiência) — contato bloqueado
+- [x] Exibir "X representantes disponíveis" com amostra de 3-5 cards antes de pagar
+- [x] Bloquear acesso completo por plano: Free vê 3 reps, Starter vê 10, Pro vê todos
+
+## Importação da Base Excel (EXPORT_20260424_1427502)
+- [x] Analisar estrutura do arquivo Excel e mapear colunas
+- [x] Criar script Python de importação com validação de CNPJ via BrasilAPI
+- [x] Normalizar telefones (DDD + número, descartar inválidos)
+- [x] Executar importação completa para o banco de dados (9.677 registros)
+- [x] Verificar resultados e gerar relatório de importação
 
 ## Seção de Depoimentos Expandida
 - [x] Substituir os 3 depoimentos simples por uma seção "wall of love" com 9 depoimentos em grid masonry

@@ -114,8 +114,9 @@ describe("auth.logout", () => {
     const caller = appRouter.createCaller(ctx);
     const result = await caller.auth.logout();
     expect(result).toEqual({ success: true });
-    expect(clearedCookies).toHaveLength(1);
-    expect(clearedCookies[0]?.name).toBe(COOKIE_NAME);
-    expect(clearedCookies[0]?.options).toMatchObject({ maxAge: -1, httpOnly: true, path: "/" });
+    expect(clearedCookies).toHaveLength(2);
+    const mainCookie = clearedCookies.find(c => c.name === COOKIE_NAME);
+    expect(mainCookie).toBeDefined();
+    expect(mainCookie?.options).toMatchObject({ maxAge: -1, httpOnly: true, path: "/" });
   });
 });

@@ -15,6 +15,13 @@
       "when": 1777499309391,
       "tag": "0001_wide_wendell_vaughn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1777505519389,
+      "tag": "0002_gigantic_hellfire_club",
+      "breakpoints": true
     }
   ]
 }

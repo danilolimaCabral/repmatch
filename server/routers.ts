@@ -31,6 +31,7 @@ import {
   createRepresentative,
   promoteToAdmin,
   listAllUsers,
+  getRepresentativePreview,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
@@ -92,6 +93,7 @@ export const appRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie("rm_session", { path: "/", maxAge: -1 });
       return { success: true } as const;
     }),
   }),
@@ -174,6 +176,17 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    preview: publicProcedure
+      .input(z.object({ region: z.string().optional(), segment: z.string().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        // Get company subscription tier for plan-based gating
+        let subscriptionTier: string | undefined;
+        if (ctx.user) {
+          const company = await getCompanyByUserId(ctx.user.id);
+          subscriptionTier = company?.subscriptionTier ?? 'starter';
+        }
+        return getRepresentativePreview({ ...input, subscriptionTier });
+      }),
     list: publicProcedure
       .input(z.object({ region: z.string().optional(), segment: z.string().optional() }).optional())
       .query(async ({ input }) => {
@@ -240,6 +253,11 @@ export const appRouter = router({
         return job;
       }),
 
+    preview: publicProcedure
+      .input(z.object({ region: z.string().optional(), segment: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        return getRepresentativePreview(input);
+      }),
     list: publicProcedure
       .input(
         z.object({

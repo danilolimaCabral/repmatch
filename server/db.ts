@@ -83,6 +83,12 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result[0];
 }
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result[0];
+}
 
 export async function promoteToAdmin(userId: number): Promise<void> {
   const db = await getDb();
@@ -398,4 +404,56 @@ export async function adminStats() {
     totalApplications: Number(totalApplications?.count ?? 0),
     premiumReps: Number(premiumReps?.count ?? 0),
   };
+}
+
+// ─── Preview Inteligente ──────────────────────────────────────────────────────
+export async function getRepresentativePreview(filters?: { region?: string; segment?: string; subscriptionTier?: string }) {
+  const db = await getDb();
+  if (!db) return { count: 0, previews: [], regions: [], segments: [] };
+  const conditions = [eq(representatives.isActive, true)];
+  if (filters?.region) conditions.push(eq(representatives.region, filters.region));
+  if (filters?.segment) conditions.push(eq(representatives.segment, filters.segment));
+  
+  const allReps = await db
+    .select({
+      id: representatives.id,
+      fullName: representatives.fullName,
+      region: representatives.region,
+      segment: representatives.segment,
+      experienceYears: representatives.experienceYears,
+      subscriptionTier: representatives.subscriptionTier,
+      averageRating: representatives.averageRating,
+    })
+    .from(representatives)
+    .where(and(...conditions))
+    .orderBy(desc(representatives.averageRating))
+    .limit(100);
+
+  // Get all regions and segments for filter options
+  const allActive = await db
+    .select({ region: representatives.region, segment: representatives.segment })
+    .from(representatives)
+    .where(eq(representatives.isActive, true));
+  
+  const regions = Array.from(new Set(allActive.map(r => r.region).filter(Boolean))) as string[];
+  const segments = Array.from(new Set(allActive.map(r => r.segment).filter(Boolean))) as string[];
+
+  // Mask personal data: show only first name, city (from region), segment, experience
+  // Plan-based gating: free=3, starter/pro/enterprise=5
+  const previewLimit = filters?.subscriptionTier && filters.subscriptionTier !== 'free' ? 5 : 3;
+  const previews = allReps.slice(0, previewLimit).map((rep, i) => {
+    const firstName = rep.fullName?.split(" ")[0] ?? "Rep";
+    const maskedName = `${firstName} ${rep.fullName?.split(" ").slice(1).map(() => "●").join("") ?? "●●●"}`;
+    return {
+      id: rep.id,
+      maskedName,
+      region: rep.region ?? "Brasil",
+      segment: rep.segment ?? "Geral",
+      experienceYears: rep.experienceYears ?? 0,
+      subscriptionTier: rep.subscriptionTier,
+      averageRating: rep.averageRating,
+    };
+  });
+
+  return { count: allReps.length, previews, regions, segments };
 }

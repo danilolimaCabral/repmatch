@@ -1,5 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
+
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight, CheckCircle, Star, Users, Building2, Zap, TrendingUp,
@@ -58,7 +58,7 @@ export default function Home() {
       else if (repProfile) navigate("/dashboard/rep");
       else navigate("/onboarding");
     } else {
-      window.location.href = getLoginUrl();
+      navigate("/login");
     }
   };
 
@@ -88,8 +88,8 @@ export default function Home() {
               </button>
             ) : (
               <>
-                <a href={getLoginUrl()} className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">Entrar</a>
-                <a href={getLoginUrl()} className="bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold px-5 py-2.5 rounded-full text-sm transition-colors">
+                <a href="/login" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">Entrar</a>
+                <a href="/register" className="bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold px-5 py-2.5 rounded-full text-sm transition-colors">
                   Começar grátis
                 </a>
               </>
@@ -705,7 +705,7 @@ export default function Home() {
                     ))}
                   </ul>
                    <button
-                    onClick={() => window.location.href = getLoginUrl()}
+                    onClick={() => navigate("/register")}
                     className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-200 ${
                       highlight
                         ? "bg-[#22c55e] text-black hover:bg-[#16a34a] shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:shadow-[0_0_50px_rgba(34,197,94,0.4)]"
@@ -761,7 +761,7 @@ export default function Home() {
                     ))}
                   </ul>
                   <button
-                    onClick={() => window.location.href = getLoginUrl()}
+                    onClick={() => navigate("/register")}
                     className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-200 ${
                       highlight
                         ? "bg-[#22c55e] text-black hover:bg-[#16a34a] shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:shadow-[0_0_50px_rgba(34,197,94,0.4)]"

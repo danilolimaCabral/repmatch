@@ -69,11 +69,13 @@ async function startCheckout(productKey: string, userId: number, userEmail: stri
 export default function CompanyDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile">("jobs");
+  const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile" | "preview">("jobs");
   const [createJobOpen, setCreateJobOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
   const [chatInput, setChatInput] = useState("");
+  const [previewRegion, setPreviewRegion] = useState<string | undefined>(undefined);
+  const [previewSegment, setPreviewSegment] = useState<string | undefined>(undefined);
 
   const [jobForm, setJobForm] = useState({
     title: "",
@@ -93,6 +95,10 @@ export default function CompanyDashboard() {
   const { data: topMatches } = trpc.jobs.topMatches.useQuery(
     { jobId: selectedJobId! },
     { enabled: !!selectedJobId }
+  );
+  const { data: previewData, isLoading: previewLoading } = trpc.representatives.preview.useQuery(
+    { region: previewRegion, segment: previewSegment },
+    { enabled: activeTab === "preview" }
   );
 
   const utils = trpc.useUtils();
@@ -174,6 +180,7 @@ export default function CompanyDashboard() {
             {[
               { id: "jobs", label: "Minhas Vagas", icon: Briefcase },
               { id: "applications", label: "Candidaturas", icon: Users },
+              { id: "preview", label: "Buscar Representantes", icon: Eye },
               { id: "profile", label: "Perfil da Empresa", icon: Building2 },
             ].map((item) => (
               <button
@@ -534,6 +541,97 @@ export default function CompanyDashboard() {
             </div>
           )}
 
+          {/* ─── Preview Tab ─────────────────────────────────────────────── */}
+          {activeTab === "preview" && (
+            <div className="p-8 max-w-4xl">
+              <div className="mb-8">
+                <h1 className="text-2xl font-black mb-2">Buscar Representantes</h1>
+                <p className="text-muted-foreground text-sm">Veja quantos representantes estão disponíveis na sua região e segmento. Desbloqueie o contato completo para negociar diretamente.</p>
+              </div>
+              {/* Filters */}
+              <div className="flex flex-wrap gap-4 mb-8">
+                <Select value={previewRegion ?? "all"} onValueChange={v => setPreviewRegion(v === "all" ? undefined : v)}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="Todas as regiões" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as regiões</SelectItem>
+                    {(previewData?.regions ?? REGIONS).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={previewSegment ?? "all"} onValueChange={v => setPreviewSegment(v === "all" ? undefined : v)}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="Todos os segmentos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os segmentos</SelectItem>
+                    {(previewData?.segments ?? SEGMENTS).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Count banner */}
+              {previewLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground mb-8"><Loader2 className="w-4 h-4 animate-spin" /> Carregando...</div>
+              ) : (
+                <div className="rounded-2xl bg-primary/5 border border-primary/20 p-6 mb-8 flex items-center justify-between">
+                  <div>
+                    <div className="text-4xl font-black text-primary mb-1">{previewData?.count ?? 0}</div>
+                    <div className="text-sm text-muted-foreground">
+                      representantes disponíveis{previewRegion ? ` em ${previewRegion}` : ""}{previewSegment ? ` · ${previewSegment}` : ""}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground mb-2">Plano atual: <span className="font-bold text-foreground">{profile?.subscriptionTier ?? "starter"}</span></div>
+                    <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+                      onClick={() => user && startCheckout("COMPANY_PRO", user.id, user.email ?? "", user.name ?? "")}>
+                      Upgrade para desbloquear contatos
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {/* Preview cards */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(previewData?.previews ?? []).map((rep) => (
+                  <div key={rep.id} className="rounded-xl border border-border bg-card p-5 relative overflow-hidden">
+                    {/* Blur overlay for locked data */}
+                    <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-10 rounded-xl">
+                      <div className="bg-card border border-border rounded-xl px-4 py-3 text-center shadow-lg">
+                        <Eye className="w-5 h-5 text-primary mx-auto mb-1" />
+                        <div className="text-xs font-bold text-foreground">Contato bloqueado</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">R$29 para desbloquear</div>
+                        <Button size="sm" className="mt-2 h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+                          onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: String(rep.id) })}>
+                          Desbloquear
+                        </Button>
+                      </div>
+                    </div>
+                    {/* Partial data */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm">
+                        {rep.maskedName.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm">{rep.maskedName}</div>
+                        <div className="text-xs text-muted-foreground">{rep.segment}</div>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{rep.region}</div>
+                      <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears} anos de experiência</div>
+                      <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{Number(rep.averageRating).toFixed(1)} avaliação</div>
+                    </div>
+                  </div>
+                ))}
+                {(!previewData?.previews?.length && !previewLoading) && (
+                  <div className="col-span-3 text-center py-12 text-muted-foreground">
+                    <Users className="w-8 h-8 mx-auto mb-3 opacity-40" />
+                    <p>Nenhum representante encontrado com esses filtros.</p>
+                    <p className="text-sm mt-1">Tente remover os filtros para ver todos os disponíveis.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {/* ─── Profile Tab ──────────────────────────────────────────────── */}
           {activeTab === "profile" && (
             <div className="p-8 max-w-2xl">

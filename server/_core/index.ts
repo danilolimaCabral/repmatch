@@ -9,6 +9,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { stripeRouter } from "../stripe/stripeRoutes";
+import cookieParser from "cookie-parser";
+import authRouter from "../authRoutes";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -40,8 +42,13 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Cookie parser for custom auth
+  app.use(cookieParser());
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+
+  // Custom auth routes (email+password)
+  app.use("/api/auth", authRouter);
 
   // Stripe routes
   app.use("/api/stripe", stripeRouter);

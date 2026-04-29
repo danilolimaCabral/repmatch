@@ -9,11 +9,15 @@ import Onboarding from "./pages/Onboarding";
 import RepDashboard from "./pages/RepDashboard";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/dashboard/rep" component={RepDashboard} />
       <Route path="/dashboard/company" component={CompanyDashboard} />
