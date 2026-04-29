@@ -165,7 +165,67 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── Stats ──────────────────────────────────────────────────────────── */}
+      {/* ─── Logos Parceiros ──────────────────────────────────────────────────────────── */}
+      <section className="py-14 border-y border-white/5 overflow-hidden bg-white/[0.01]">
+        <div className="mb-6 text-center">
+          <p className="text-xs font-semibold tracking-widest uppercase text-zinc-600">Empresas que já confiam no RepMatch</p>
+        </div>
+        <style>{`
+          @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .marquee-track {
+            display: flex;
+            width: max-content;
+            animation: marquee 28s linear infinite;
+          }
+          .marquee-track:hover {
+            animation-play-state: paused;
+          }
+        `}</style>
+        <div className="overflow-hidden relative">
+          {/* Fade edges */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 z-10 pointer-events-none" style={{ background: "linear-gradient(to right, #080808, transparent)" }} />
+          <div className="absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none" style={{ background: "linear-gradient(to left, #080808, transparent)" }} />
+          <div className="marquee-track">
+            {[
+              { name: "Ambev", abbr: "AB" },
+              { name: "Nestlé", abbr: "NE" },
+              { name: "Unilever", abbr: "UN" },
+              { name: "Boticario", abbr: "BO" },
+              { name: "Natura", abbr: "NA" },
+              { name: "Seara", abbr: "SE" },
+              { name: "Sadia", abbr: "SA" },
+              { name: "Havaianas", abbr: "HV" },
+              { name: "Tramontina", abbr: "TR" },
+              { name: "Votorantim", abbr: "VO" },
+              { name: "Ambev", abbr: "AB" },
+              { name: "Nestlé", abbr: "NE" },
+              { name: "Unilever", abbr: "UN" },
+              { name: "Boticario", abbr: "BO" },
+              { name: "Natura", abbr: "NA" },
+              { name: "Seara", abbr: "SE" },
+              { name: "Sadia", abbr: "SA" },
+              { name: "Havaianas", abbr: "HV" },
+              { name: "Tramontina", abbr: "TR" },
+              { name: "Votorantim", abbr: "VO" },
+            ].map(({ name, abbr }, i) => (
+              <div
+                key={`${name}-${i}`}
+                className="flex items-center gap-3 mx-10 select-none"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-xs font-black text-zinc-400 flex-shrink-0">
+                  {abbr}
+                </div>
+                <span className="text-zinc-500 font-bold text-lg whitespace-nowrap tracking-tight">{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Stats ─────────────────────────────────────────────────────────────────────── */}
       <section className="py-20 border-y border-white/5 bg-white/[0.02]">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">

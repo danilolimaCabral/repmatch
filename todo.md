@@ -87,3 +87,6 @@
 - [x] Criar seção de comparação RepMatch vs. concorrentes (LinkedIn, grupos de WhatsApp, indicação)
 - [x] Atualizar badge do hero (tirar "Match por Inteligência Artificial")
 - [x] Revisar toda a copy da landing para tom mais próximo, real e confiável
+
+## Seção de Logos de Empresas Parceiras
+- [ ] Criar seção de logos de empresas parceiras com carrossel infinito (marquee) abaixo do hero
