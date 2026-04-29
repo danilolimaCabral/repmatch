@@ -56,3 +56,15 @@
 - [x] Testes vitest para routers principais (7 testes passando)
 - [x] Checkpoint final
 - [x] Documentação de uso
+
+## Redesign Landing Page (Premium)
+- [ ] Logo grande e impactante no hero
+- [ ] Visual premium — sem cara de IA, aparência de produto SaaS de alto nível
+- [ ] Copy de alta conversão: headline, subheadline, prova social, urgência
+- [ ] Seção de números/stats (ex: 10k reps, 400k fornecedores, X matches)
+- [ ] Seção de como funciona (passo a passo visual)
+- [ ] Seção de depoimentos/prova social
+- [ ] Seção de planos com preços claros e CTAs fortes
+- [ ] FAQ
+- [ ] Footer profissional
+- [ ] Animações sutis e micro-interações
