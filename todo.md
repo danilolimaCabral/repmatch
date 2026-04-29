@@ -74,3 +74,16 @@
 - [ ] Calcular preços anuais com 20% de desconto para todos os planos
 - [ ] Mostrar badge "Economize X%" no plano anual
 - [ ] Animação suave na troca de preços
+
+## Seção de Depoimentos Expandida
+- [ ] Substituir os 3 depoimentos simples por uma seção "wall of love" com 9 depoimentos em grid masonry
+- [ ] Adicionar avatares com iniciais coloridas, cargo, empresa e cidade de cada depoente
+- [ ] Incluir métricas de resultado em cada depoimento (ex: "fechei 3 contratos em 2 semanas")
+- [ ] Adicionar barra de estatísticas de satisfação acima dos cards
+
+## Humanização e Comparação com Concorrência
+- [x] Remover linguagem de IA/tecnologia do destaque — foco em resultados humanos
+- [x] Reescrever headline, subheadline e CTAs com copy mais humano e direto
+- [x] Criar seção de comparação RepMatch vs. concorrentes (LinkedIn, grupos de WhatsApp, indicação)
+- [x] Atualizar badge do hero (tirar "Match por Inteligência Artificial")
+- [x] Revisar toda a copy da landing para tom mais próximo, real e confiável
