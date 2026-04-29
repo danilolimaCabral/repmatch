@@ -42,6 +42,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(false);
   const { data: repProfile } = trpc.representatives.myProfile.useQuery(undefined, { enabled: isAuthenticated });
   const { data: companyProfile } = trpc.companies.myProfile.useQuery(undefined, { enabled: isAuthenticated });
 
@@ -645,6 +646,26 @@ export default function Home() {
             <p className="text-zinc-500">Sem contrato de fidelidade. Cancele quando quiser.</p>
           </div>
 
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-14">
+            <span className={`text-sm font-semibold transition-colors ${!isAnnual ? "text-white" : "text-zinc-500"}`}>Mensal</span>
+            <button
+              onClick={() => setIsAnnual(a => !a)}
+              aria-label="Alternar entre mensal e anual"
+              className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[#22c55e]/50 ${
+                isAnnual ? "bg-[#22c55e]" : "bg-white/10"
+              }`}
+            >
+              <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300 ${
+                isAnnual ? "translate-x-7" : "translate-x-0"
+              }`} />
+            </button>
+            <span className={`text-sm font-semibold transition-colors ${isAnnual ? "text-white" : "text-zinc-500"}`}>
+              Anual
+              <span className="ml-2 bg-[#22c55e]/20 text-[#22c55e] text-xs font-black px-2 py-0.5 rounded-full">-20%</span>
+            </span>
+          </div>
+
           {/* Representantes */}
           <div className="mb-16">
             <div className="flex items-center gap-3 mb-8">
@@ -652,11 +673,16 @@ export default function Home() {
               <h3 className="text-xl font-black text-white">Para Representantes</h3>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { name: "Free", price: "R$0", period: "para sempre", border: "border-white/10", bg: "bg-white/[0.02]", features: ["Acesso a vagas Bronze e Silver", "Candidaturas ilimitadas", "Chat com empresas", "Perfil básico"], cta: "Começar grátis", highlight: false },
-                { name: "Premium", price: "R$19", period: "/mês", border: "border-[#22c55e]/40", bg: "bg-[#22c55e]/5", features: ["Tudo do Free", "Acesso a vagas Gold", "Score de compatibilidade", "Destaque nas candidaturas", "Notificações em tempo real"], cta: "Assinar Premium", highlight: true },
-                { name: "Elite", price: "R$49", period: "/mês", border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Tudo do Premium", "Acesso a vagas Platinum", "Análise avançada do perfil", "Suporte prioritário", "Badge Elite no perfil"], cta: "Assinar Elite", highlight: false },
-              ].map(({ name, price, period, border, bg, features, cta, highlight }) => (
+              {([
+                { name: "Free", monthly: 0, free: true, border: "border-white/10", bg: "bg-white/[0.02]", features: ["Acesso a vagas Bronze e Silver", "Candidaturas ilimitadas", "Chat com empresas", "Perfil básico"], cta: "Começar grátis", highlight: false },
+                { name: "Premium", monthly: 19, free: false, border: "border-[#22c55e]/40", bg: "bg-[#22c55e]/5", features: ["Tudo do Free", "Acesso a vagas Gold", "Score de compatibilidade", "Destaque nas candidaturas", "Notificações em tempo real"], cta: "Assinar Premium", highlight: true },
+                { name: "Elite", monthly: 49, free: false, border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Tudo do Premium", "Acesso a vagas Platinum", "Análise avançada do perfil", "Suporte prioritário", "Badge Elite no perfil"], cta: "Assinar Elite", highlight: false },
+              ] as const).map(({ name, monthly, free, border, bg, features, cta, highlight }) => {
+                const annualMonthly = Math.round(monthly * 0.8);
+                const price = free ? "R$0" : isAnnual ? `R$${annualMonthly}` : `R$${monthly}`;
+                const period = free ? "para sempre" : isAnnual ? "/mês (anual)" : "/mês";
+                const savings = free ? 0 : (monthly - annualMonthly) * 12;
+                return (
                 <div key={name} className={`relative rounded-2xl border ${border} ${bg} p-7 ${highlight ? "shadow-[0_0_60px_rgba(34,197,94,0.12)]" : ""}`}>
                   {highlight && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
@@ -678,7 +704,7 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <button
+                   <button
                     onClick={() => window.location.href = getLoginUrl()}
                     className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-200 ${
                       highlight
@@ -688,11 +714,14 @@ export default function Home() {
                   >
                     {cta}
                   </button>
+                  {isAnnual && !free && savings > 0 && (
+                    <p className="text-center text-xs text-[#22c55e] mt-3 font-semibold">Economize R${savings}/ano</p>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-
           {/* Empresas */}
           <div>
             <div className="flex items-center gap-3 mb-8">
@@ -700,11 +729,16 @@ export default function Home() {
               <h3 className="text-xl font-black text-white">Para Empresas</h3>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { name: "Starter", price: "R$99", period: "/mês", border: "border-white/10", bg: "bg-white/[0.02]", features: ["Até 3 vagas simultâneas", "Top 10 matches por vaga", "Chat com candidatos", "Ranking Bronze/Silver"], cta: "Começar agora", highlight: false },
-                { name: "Pro", price: "R$299", period: "/mês", border: "border-[#22c55e]/40", bg: "bg-[#22c55e]/5", features: ["Vagas ilimitadas", "Acesso a reps Premium", "Ranking Gold", "Relatórios de performance", "Notificações de candidatos"], cta: "Assinar Pro", highlight: true },
-                { name: "Enterprise", price: "R$999", period: "/mês", border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Tudo do Pro", "Acesso a reps Elite", "Ranking Platinum", "Gerente de conta dedicado", "API de integração", "SLA garantido"], cta: "Falar com vendas", highlight: false },
-              ].map(({ name, price, period, border, bg, features, cta, highlight }) => (
+              {([
+                { name: "Starter", monthly: 99, border: "border-white/10", bg: "bg-white/[0.02]", features: ["Até 3 vagas simultâneas", "Top 10 matches por vaga", "Chat com candidatos", "Ranking Bronze/Silver"], cta: "Começar agora", highlight: false },
+                { name: "Pro", monthly: 299, border: "border-[#22c55e]/40", bg: "bg-[#22c55e]/5", features: ["Vagas ilimitadas", "Acesso a reps Premium", "Ranking Gold", "Relatórios de performance", "Notificações de candidatos"], cta: "Assinar Pro", highlight: true },
+                { name: "Enterprise", monthly: 999, border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Tudo do Pro", "Acesso a reps Elite", "Ranking Platinum", "Gerente de conta dedicado", "API de integração", "SLA garantido"], cta: "Falar com vendas", highlight: false },
+              ] as const).map(({ name, monthly, border, bg, features, cta, highlight }) => {
+                const annualMonthly = Math.round(monthly * 0.8);
+                const price = isAnnual ? `R$${annualMonthly}` : `R$${monthly}`;
+                const period = isAnnual ? "/mês (anual)" : "/mês";
+                const savings = (monthly - annualMonthly) * 12;
+                return (
                 <div key={name} className={`relative rounded-2xl border ${border} ${bg} p-7 ${highlight ? "shadow-[0_0_60px_rgba(34,197,94,0.12)]" : ""}`}>
                   {highlight && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
@@ -736,8 +770,12 @@ export default function Home() {
                   >
                     {cta}
                   </button>
+                  {isAnnual && savings > 0 && (
+                    <p className="text-center text-xs text-[#22c55e] mt-3 font-semibold">Economize R${savings}/ano</p>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

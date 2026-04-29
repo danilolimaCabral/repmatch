@@ -58,16 +58,16 @@
 - [x] Documentação de uso
 
 ## Redesign Landing Page (Premium)
-- [ ] Logo grande e impactante no hero
-- [ ] Visual premium — sem cara de IA, aparência de produto SaaS de alto nível
-- [ ] Copy de alta conversão: headline, subheadline, prova social, urgência
-- [ ] Seção de números/stats (ex: 10k reps, 400k fornecedores, X matches)
-- [ ] Seção de como funciona (passo a passo visual)
-- [ ] Seção de depoimentos/prova social
-- [ ] Seção de planos com preços claros e CTAs fortes
-- [ ] FAQ
-- [ ] Footer profissional
-- [ ] Animações sutis e micro-interações
+- [x] Logo grande e impactante no hero
+- [x] Visual premium — sem cara de IA, aparência de produto SaaS de alto nível
+- [x] Copy de alta conversão: headline, subheadline, prova social, urgência
+- [x] Seção de números/stats (ex: 10k reps, 400k fornecedores, X matches)
+- [x] Seção de como funciona (passo a passo visual)
+- [x] Seção de depoimentos/prova social
+- [x] Seção de planos com preços claros e CTAs fortes
+- [x] FAQ
+- [x] Footer profissional
+- [x] Animações sutis e micro-interações
 
 ## Toggle Mensal/Anual nos Planos
 - [ ] Adicionar toggle mensal/anual na seção de planos da landing page
@@ -76,10 +76,10 @@
 - [ ] Animação suave na troca de preços
 
 ## Seção de Depoimentos Expandida
-- [ ] Substituir os 3 depoimentos simples por uma seção "wall of love" com 9 depoimentos em grid masonry
-- [ ] Adicionar avatares com iniciais coloridas, cargo, empresa e cidade de cada depoente
-- [ ] Incluir métricas de resultado em cada depoimento (ex: "fechei 3 contratos em 2 semanas")
-- [ ] Adicionar barra de estatísticas de satisfação acima dos cards
+- [x] Substituir os 3 depoimentos simples por uma seção "wall of love" com 9 depoimentos em grid masonry
+- [x] Adicionar avatares com iniciais coloridas, cargo, empresa e cidade de cada depoente
+- [x] Incluir métricas de resultado em cada depoimento (ex: "fechei 3 contratos em 2 semanas")
+- [x] Adicionar barra de estatísticas de satisfação acima dos cards
 
 ## Humanização e Comparação com Concorrência
 - [x] Remover linguagem de IA/tecnologia do destaque — foco em resultados humanos
