@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE `users` ADD `userType` enum('representative','company','pending') DEFAULT 'pending' NOT NULL",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user gjuqDE6BkXEJ8aC.c620752b3695 --database JWuAunBcJCdsJnFZZrfG7w --execute ALTER TABLE `users` ADD `userType` enum('representative','company','pending') DEFAULT 'pending' NOT NULL",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 255
+}

@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `jobs` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`companyId` int NOT NULL,\n\t`title` varchar(100) NOT NULL,\n\t`description` text,\n\t`commissionPercentage` decimal(5,2),\n\t`region` varchar(100),\n\t`segment` varchar(100),\n\t`isFeatured` boolean DEFAULT false,\n\t`status` enum('open','closed','paused') NOT NULL DEFAULT 'open',\n\t`minTierRequired` enum('free','premium','elite') NOT NULL DEFAULT 'free',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `jobs_id` PRIMARY KEY(`id`)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user gjuqDE6BkXEJ8aC.c620752b3695 --database JWuAunBcJCdsJnFZZrfG7w --execute CREATE TABLE `jobs` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`companyId` int NOT NULL,\n\t`title` varchar(100) NOT NULL,\n\t`description` text,\n\t`commissionPercentage` decimal(5,2),\n\t`region` varchar(100),\n\t`segment` varchar(100),\n\t`isFeatured` boolean DEFAULT false,\n\t`status` enum('open','closed','paused') NOT NULL DEFAULT 'open',\n\t`minTierRequired` enum('free','premium','elite') NOT NULL DEFAULT 'free',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `jobs_id` PRIMARY KEY(`id`)\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 144
+}

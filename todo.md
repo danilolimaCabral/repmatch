@@ -1,0 +1,58 @@
+# RepMatch — TODO
+
+## Fase 1: Banco de Dados
+- [x] Criar schema: representatives, companies, jobs, applications, messages, unlocked_contacts
+- [x] Adicionar campos de subscription_tier, dynamic_rank, rank_score nas tabelas
+- [x] Gerar e aplicar migração SQL
+
+## Fase 2: Backend (tRPC Routers)
+- [x] Router: representatives (CRUD, perfil, plano)
+- [x] Router: companies (CRUD, perfil, plano, ranking)
+- [x] Router: jobs (criar, listar, filtrar por tier, fechar)
+- [x] Router: applications/candidaturas (candidatar, listar por vaga, atualizar status)
+- [x] Router: match (algoritmo de score por região, segmento, experiência, ativo)
+- [x] Router: admin (importação de dados, gestão de usuários)
+
+## Fase 3: Landing Page e Autenticação
+- [x] Landing page com identidade RepMatch (preto, branco, verde vibrante)
+- [x] Headline: "Conectamos Empresas e Representantes. Gerando Resultados."
+- [x] CTAs: "Sou Empresa" e "Sou Representante"
+- [x] Seção de features (Match IA, Ranking, Tier, Score, Notificações, Base 400k)
+- [x] Seção de planos e preços (Representantes e Empresas)
+- [x] Fluxo de onboarding pós-login: seleção de tipo de usuário (Empresa / Representante)
+- [x] Formulário de perfil do Representante (região, segmento, experiência)
+- [x] Formulário de perfil da Empresa (CNPJ, segmento, nome)
+
+## Fase 4: Dashboards
+- [x] Dashboard do Representante: listar vagas compatíveis por tier
+- [x] Dashboard do Representante: candidatar-se a vagas
+- [x] Dashboard do Representante: histórico de candidaturas com score e análise LLM
+- [x] Dashboard da Empresa: criar vagas
+- [x] Dashboard da Empresa: listar candidatos por vaga com match score
+- [x] Dashboard da Empresa: desbloquear contato de representante (R$29)
+- [x] Dashboard da Empresa: destacar vaga (R$49)
+- [x] Painel Admin: visualizar todos os usuários, vagas e importações
+
+## Fase 5: Importação Excel + Validação
+- [x] Script de importação do arquivo Excel (representantes e empresas)
+- [x] Validação e normalização de telefones (DDD + número)
+- [x] Integração com BrasilAPI para enriquecimento de CNPJs
+- [x] Rota de importação no painel admin
+
+## Fase 6: Stripe
+- [x] Configurar produtos e preços no Stripe (products.ts)
+- [x] Assinaturas Representante: Premium R$19/mês, Elite R$49/mês
+- [x] Assinaturas Empresa: Starter R$99/mês, Pro R$299/mês, Enterprise R$999/mês
+- [x] Cobrança avulsa: contato desbloqueado R$29
+- [x] Cobrança avulsa: vaga em destaque R$49
+- [x] Webhook Stripe para atualizar tier no banco de dados
+
+## Fase 7: LLM Match + Notificações
+- [x] Match semântico com LLM: analisar descrição da vaga vs. perfil do representante
+- [x] Score combinado: 60% critérios fixos + 40% LLM semântico
+- [x] Notificação automática para empresa quando candidato de alto score se candidata
+
+## Fase 8: Entrega
+- [x] Testes vitest para routers principais (7 testes passando)
+- [x] Checkpoint final
+- [x] Documentação de uso

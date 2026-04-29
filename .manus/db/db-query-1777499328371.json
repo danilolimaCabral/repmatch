@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `applications` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`jobId` int NOT NULL,\n\t`representativeId` int NOT NULL,\n\t`matchScore` int DEFAULT 0,\n\t`llmScore` int DEFAULT 0,\n\t`totalScore` int DEFAULT 0,\n\t`llmAnalysis` text,\n\t`status` enum('pending','viewed','accepted','rejected','hired') NOT NULL DEFAULT 'pending',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `applications_id` PRIMARY KEY(`id`)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user gjuqDE6BkXEJ8aC.c620752b3695 --database JWuAunBcJCdsJnFZZrfG7w --execute CREATE TABLE `applications` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`jobId` int NOT NULL,\n\t`representativeId` int NOT NULL,\n\t`matchScore` int DEFAULT 0,\n\t`llmScore` int DEFAULT 0,\n\t`totalScore` int DEFAULT 0,\n\t`llmAnalysis` text,\n\t`status` enum('pending','viewed','accepted','rejected','hired') NOT NULL DEFAULT 'pending',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `applications_id` PRIMARY KEY(`id`)\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 163
+}

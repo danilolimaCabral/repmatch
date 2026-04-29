@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `import_logs` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`filename` varchar(200),\n\t`totalRecords` int DEFAULT 0,\n\t`importedRecords` int DEFAULT 0,\n\t`failedRecords` int DEFAULT 0,\n\t`status` enum('pending','processing','completed','failed') NOT NULL DEFAULT 'pending',\n\t`errorLog` text,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`completedAt` timestamp,\n\tCONSTRAINT `import_logs_id` PRIMARY KEY(`id`)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user gjuqDE6BkXEJ8aC.c620752b3695 --database JWuAunBcJCdsJnFZZrfG7w --execute CREATE TABLE `import_logs` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`filename` varchar(200),\n\t`totalRecords` int DEFAULT 0,\n\t`importedRecords` int DEFAULT 0,\n\t`failedRecords` int DEFAULT 0,\n\t`status` enum('pending','processing','completed','failed') NOT NULL DEFAULT 'pending',\n\t`errorLog` text,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`completedAt` timestamp,\n\tCONSTRAINT `import_logs_id` PRIMARY KEY(`id`)\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 120
+}

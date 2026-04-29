@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `representatives` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`fullName` varchar(100) NOT NULL,\n\t`phone` varchar(20),\n\t`region` varchar(100),\n\t`segment` varchar(100),\n\t`experienceYears` int DEFAULT 0,\n\t`bio` text,\n\t`subscriptionTier` enum('free','premium','elite') NOT NULL DEFAULT 'free',\n\t`stripeCustomerId` varchar(100),\n\t`stripeSubscriptionId` varchar(100),\n\t`isActive` boolean NOT NULL DEFAULT true,\n\t`responseRate` decimal(5,2) DEFAULT '0',\n\t`averageRating` decimal(3,2) DEFAULT '0',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `representatives_id` PRIMARY KEY(`id`)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user gjuqDE6BkXEJ8aC.c620752b3695 --database JWuAunBcJCdsJnFZZrfG7w --execute CREATE TABLE `representatives` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`fullName` varchar(100) NOT NULL,\n\t`phone` varchar(20),\n\t`region` varchar(100),\n\t`segment` varchar(100),\n\t`experienceYears` int DEFAULT 0,\n\t`bio` text,\n\t`subscriptionTier` enum('free','premium','elite') NOT NULL DEFAULT 'free',\n\t`stripeCustomerId` varchar(100),\n\t`stripeSubscriptionId` varchar(100),\n\t`isActive` boolean NOT NULL DEFAULT true,\n\t`responseRate` decimal(5,2) DEFAULT '0',\n\t`averageRating` decimal(3,2) DEFAULT '0',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `representatives_id` PRIMARY KEY(`id`)\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 119
+}

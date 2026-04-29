@@ -1,28 +1,539 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import {
+  adminStats,
+  calculateMatchScore,
+  createApplication,
+  createCompany,
+  createImportLog,
+  createJob,
+  createMessage,
+  getApplicationsByJob,
+  getApplicationsByRep,
+  getCompanyById,
+  getCompanyByUserId,
+  getExistingApplication,
+  getJobById,
+  getMessagesByApplication,
+  getRepresentativeByUserId,
+  getTopMatchesForJob,
+  isContactUnlocked,
+  listImportLogs,
+  listJobs,
+  listRepresentatives,
+  unlockContact,
+  updateApplication,
+  updateCompany,
+  updateImportLog,
+  updateJob,
+  updateRepresentative,
+  updateUserType,
+  createRepresentative,
+} from "./db";
+import { invokeLLM } from "./_core/llm";
+import { notifyOwner } from "./_core/notification";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { systemRouter } from "./_core/systemRouter";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+
+/// ─── Helpers ──────────────────────────────────────────────────────────────────
+const TIER_ORDER = { free: 0, premium: 1, elite: 2 } as const;
+
+function normalizePhone(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  // Brazilian phone: 10 digits (landline) or 11 digits (mobile with 9)
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  // Invalid phone — discard
+  return null;
+}
+
+async function enrichCNPJ(cnpj: string): Promise<{ companyName?: string; segment?: string; phone?: string; region?: string; situation?: string } | null> {
+  try {
+    const digits = cnpj.replace(/\D/g, "");
+    if (digits.length !== 14) return null;
+    const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const data = await res.json() as Record<string, unknown>;
+    return {
+      companyName: (data.razao_social as string) ?? undefined,
+      segment: (data.cnae_fiscal_descricao as string) ?? undefined,
+      phone: data.ddd_telefone_1 ? `(${data.ddd_telefone_1}) ${data.telefone_1}` : undefined,
+      region: (data.uf as string) ?? undefined,
+      situation: (data.descricao_situacao_cadastral as string) ?? undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+const RANK_ORDER = { bronze: 0, silver: 1, gold: 2, platinum: 3 } as const;
+
+function tierAllowsRank(repTier: "free" | "premium" | "elite", companyRank: "bronze" | "silver" | "gold" | "platinum"): boolean {
+  if (repTier === "elite") return true;
+  if (repTier === "premium") return RANK_ORDER[companyRank] <= RANK_ORDER["gold"];
+  return RANK_ORDER[companyRank] <= RANK_ORDER["silver"];
+}
+
+// ─── Router ───────────────────────────────────────────────────────────────────
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // ─── Onboarding ─────────────────────────────────────────────────────────────
+  onboarding: router({
+    setUserType: protectedProcedure
+      .input(z.object({ userType: z.enum(["representative", "company"]) }))
+      .mutation(async ({ ctx, input }) => {
+        await updateUserType(ctx.user.id, input.userType);
+        return { success: true };
+      }),
+
+    completeRepProfile: protectedProcedure
+      .input(
+        z.object({
+          fullName: z.string().min(2),
+          phone: z.string().optional(),
+          region: z.string().min(2),
+          segment: z.string().min(2),
+          experienceYears: z.number().min(0).max(50),
+          bio: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const existing = await getRepresentativeByUserId(ctx.user.id);
+        if (existing) {
+          await updateRepresentative(existing.id, input);
+          return { success: true };
+        }
+        await createRepresentative({ ...input, userId: ctx.user.id });
+        await updateUserType(ctx.user.id, "representative");
+        return { success: true };
+      }),
+
+    completeCompanyProfile: protectedProcedure
+      .input(
+        z.object({
+          companyName: z.string().min(2),
+          cnpj: z.string().optional(),
+          segment: z.string().min(2),
+          region: z.string().optional(),
+          phone: z.string().optional(),
+          description: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const existing = await getCompanyByUserId(ctx.user.id);
+        if (existing) {
+          await updateCompany(existing.id, input);
+          return { success: true };
+        }
+        await createCompany({ ...input, userId: ctx.user.id });
+        await updateUserType(ctx.user.id, "company");
+        return { success: true };
+      }),
+  }),
+
+  // ─── Representatives ────────────────────────────────────────────────────────
+  representatives: router({
+    myProfile: protectedProcedure.query(async ({ ctx }) => {
+      return (await getRepresentativeByUserId(ctx.user.id)) ?? null;
+    }),
+
+    updateProfile: protectedProcedure
+      .input(
+        z.object({
+          fullName: z.string().min(2).optional(),
+          phone: z.string().optional(),
+          region: z.string().optional(),
+          segment: z.string().optional(),
+          experienceYears: z.number().min(0).max(50).optional(),
+          bio: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const rep = await getRepresentativeByUserId(ctx.user.id);
+        if (!rep) throw new TRPCError({ code: "NOT_FOUND", message: "Perfil não encontrado" });
+        await updateRepresentative(rep.id, input);
+        return { success: true };
+      }),
+
+    list: publicProcedure
+      .input(z.object({ region: z.string().optional(), segment: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        return listRepresentatives(input);
+      }),
+  }),
+
+  // ─── Companies ──────────────────────────────────────────────────────────────
+  companies: router({
+    myProfile: protectedProcedure.query(async ({ ctx }) => {
+      return (await getCompanyByUserId(ctx.user.id)) ?? null;
+    }),
+
+    updateProfile: protectedProcedure
+      .input(
+        z.object({
+          companyName: z.string().min(2).optional(),
+          cnpj: z.string().optional(),
+          segment: z.string().optional(),
+          region: z.string().optional(),
+          phone: z.string().optional(),
+          description: z.string().optional(),
+          website: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const company = await getCompanyByUserId(ctx.user.id);
+        if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada" });
+        await updateCompany(company.id, input);
+        return { success: true };
+      }),
+
+    getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      return getCompanyById(input.id);
+    }),
+  }),
+
+  // ─── Jobs ────────────────────────────────────────────────────────────────────
+  jobs: router({
+    create: protectedProcedure
+      .input(
+        z.object({
+          title: z.string().min(3),
+          description: z.string().optional(),
+          commissionPercentage: z.number().min(0).max(100).optional(),
+          region: z.string().optional(),
+          segment: z.string().optional(),
+          minTierRequired: z.enum(["free", "premium", "elite"]).default("free"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const company = await getCompanyByUserId(ctx.user.id);
+        if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Crie seu perfil de empresa primeiro" });
+
+        const job = await createJob({
+          ...input,
+          companyId: company.id,
+          commissionPercentage: input.commissionPercentage ? String(input.commissionPercentage) : undefined,
+        });
+
+        // Notify owner
+        await notifyOwner({ title: "Nova Vaga Publicada", content: `${company.companyName} publicou: ${input.title}` });
+
+        return job;
+      }),
+
+    list: publicProcedure
+      .input(
+        z.object({
+          region: z.string().optional(),
+          segment: z.string().optional(),
+          repTier: z.enum(["free", "premium", "elite"]).optional(),
+        }).optional()
+      )
+      .query(async ({ input }) => {
+        return listJobs(input);
+      }),
+
+    myJobs: protectedProcedure.query(async ({ ctx }) => {
+      const company = await getCompanyByUserId(ctx.user.id);
+      if (!company) return [];
+      return listJobs({ companyId: company.id });
+    }),
+
+    getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      return getJobById(input.id);
+    }),
+
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().optional(),
+          description: z.string().optional(),
+          status: z.enum(["open", "closed", "paused"]).optional(),
+          isFeatured: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const company = await getCompanyByUserId(ctx.user.id);
+        if (!company) throw new TRPCError({ code: "FORBIDDEN" });
+        const job = await getJobById(input.id);
+        if (!job || job.companyId !== company.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const { id, ...data } = input;
+        await updateJob(id, data);
+        return { success: true };
+      }),
+
+    topMatches: protectedProcedure.input(z.object({ jobId: z.number() })).query(async ({ ctx, input }) => {
+      const company = await getCompanyByUserId(ctx.user.id);
+      if (!company) throw new TRPCError({ code: "FORBIDDEN" });
+      const job = await getJobById(input.jobId);
+      if (!job || job.companyId !== company.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getTopMatchesForJob(input.jobId);
+    }),
+  }),
+
+  // ─── Applications ────────────────────────────────────────────────────────────
+  candidaturas: router({
+    submit: protectedProcedure
+      .input(z.object({ jobId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const rep = await getRepresentativeByUserId(ctx.user.id);
+        if (!rep) throw new TRPCError({ code: "NOT_FOUND", message: "Complete seu perfil de representante primeiro" });
+
+        const existing = await getExistingApplication(input.jobId, rep.id);
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "Você já se candidatou a esta vaga" });
+
+        const job = await getJobById(input.jobId);
+        if (!job) throw new TRPCError({ code: "NOT_FOUND", message: "Vaga não encontrada" });
+
+        // Check tier access
+        if (job.minTierRequired === "premium" && rep.subscriptionTier === "free") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Esta vaga requer plano Premium ou superior" });
+        }
+        if (job.minTierRequired === "elite" && rep.subscriptionTier !== "elite") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Esta vaga requer plano Elite" });
+        }
+
+        const matchScore = calculateMatchScore(rep, job);
+
+        // LLM semantic analysis
+        let llmScore = 0;
+        let llmAnalysis = "";
+        try {
+          const llmResponse = await invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: `Você é um especialista em recrutamento de representantes comerciais. Analise a compatibilidade entre o perfil do representante e a vaga. Retorne um JSON com: score (0-100) e analysis (string em português, máximo 200 caracteres).`,
+              },
+              {
+                role: "user",
+                content: `Vaga: ${job.title} - ${job.description ?? ""} - Região: ${job.region} - Segmento: ${job.segment}
+Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segment} - Experiência: ${rep.experienceYears} anos - Bio: ${rep.bio ?? ""}`,
+              },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "match_analysis",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    score: { type: "integer" },
+                    analysis: { type: "string" },
+                  },
+                  required: ["score", "analysis"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+          const rawContent = llmResponse.choices[0]?.message?.content;
+          const contentStr = typeof rawContent === 'string' ? rawContent : '{}';
+          const parsed = JSON.parse(contentStr);
+          llmScore = Math.min(100, Math.max(0, Number(parsed.score ?? 0)));
+          llmAnalysis = parsed.analysis ?? "";
+        } catch (e) {
+          console.warn("LLM match failed, using base score only", e);
+        }
+
+        const totalScore = Math.round(matchScore * 0.6 + llmScore * 0.4);
+
+        const application = await createApplication({
+          jobId: input.jobId,
+          representativeId: rep.id,
+          matchScore,
+          llmScore,
+          totalScore,
+          llmAnalysis,
+        });
+
+        // Notify company if high score
+        if (totalScore >= 70) {
+          const company = await getCompanyById(job.companyId);
+          if (company) {
+            await notifyOwner({
+              title: "Candidato de Alto Score!",
+              content: `${rep.fullName} se candidatou à vaga "${job.title}" com score ${totalScore}/100`,
+            });
+          }
+        }
+
+        return application;
+      }),
+
+    myApplications: protectedProcedure.query(async ({ ctx }) => {
+      const rep = await getRepresentativeByUserId(ctx.user.id);
+      if (!rep) return [];
+      return getApplicationsByRep(rep.id);
+    }),
+
+    byJob: protectedProcedure.input(z.object({ jobId: z.number() })).query(async ({ ctx, input }) => {
+      const company = await getCompanyByUserId(ctx.user.id);
+      if (!company) throw new TRPCError({ code: "FORBIDDEN" });
+      const job = await getJobById(input.jobId);
+      if (!job || job.companyId !== company.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getApplicationsByJob(input.jobId);
+    }),
+
+    updateStatus: protectedProcedure
+      .input(z.object({ id: z.number(), status: z.enum(["pending", "viewed", "accepted", "rejected", "hired"]) }))
+      .mutation(async ({ ctx, input }) => {
+        await updateApplication(input.id, { status: input.status });
+        return { success: true };
+      }),
+  }),
+
+  // ─── Messages ────────────────────────────────────────────────────────────────
+  messages: router({
+    send: protectedProcedure
+      .input(z.object({ applicationId: z.number(), content: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        return createMessage({ applicationId: input.applicationId, senderUserId: ctx.user.id, content: input.content });
+      }),
+
+    list: protectedProcedure.input(z.object({ applicationId: z.number() })).query(async ({ input }) => {
+      return getMessagesByApplication(input.applicationId);
+    }),
+  }),
+
+  // ─── Contacts ────────────────────────────────────────────────────────────────
+  contacts: router({
+    isUnlocked: protectedProcedure
+      .input(z.object({ representativeId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const company = await getCompanyByUserId(ctx.user.id);
+        if (!company) return false;
+        return isContactUnlocked(company.id, input.representativeId);
+      }),
+
+    unlock: protectedProcedure
+      .input(z.object({ representativeId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const company = await getCompanyByUserId(ctx.user.id);
+        if (!company) throw new TRPCError({ code: "NOT_FOUND" });
+        const alreadyUnlocked = await isContactUnlocked(company.id, input.representativeId);
+        if (alreadyUnlocked) return { success: true, alreadyUnlocked: true };
+        // In production, Stripe payment would be triggered here
+        await unlockContact({ companyId: company.id, representativeId: input.representativeId, pricePaid: "29.00" });
+        return { success: true, alreadyUnlocked: false };
+      }),
+  }),
+
+  // ─── Admin ───────────────────────────────────────────────────────────────────
+  admin: router({
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return adminStats();
+    }),
+
+    importLogs: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return listImportLogs();
+    }),
+
+    importData: protectedProcedure
+      .input(
+        z.object({
+          records: z.array(
+            z.object({
+              type: z.enum(["representative", "company"]),
+              fullName: z.string().optional(),
+              companyName: z.string().optional(),
+              phone: z.string().optional(),
+              email: z.string().optional(),
+              region: z.string().optional(),
+              segment: z.string().optional(),
+              cnpj: z.string().optional(),
+              experienceYears: z.number().optional(),
+            })
+          ),
+          filename: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+
+        const log = await createImportLog({
+          filename: input.filename ?? "manual_import",
+          totalRecords: input.records.length,
+          status: "processing",
+        });
+        if (!log) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        let imported = 0;
+        let failed = 0;
+        const errors: string[] = [];
+
+        for (const record of input.records) {
+          try {
+            if (record.type === "representative" && record.fullName) {
+              // Create a placeholder user for imported reps
+              const repPhone = normalizePhone(record.phone);
+              await createRepresentative({
+                userId: 0, // placeholder for imported data without OAuth
+                fullName: record.fullName,
+                phone: repPhone ?? undefined,
+                region: record.region,
+                segment: record.segment,
+                experienceYears: record.experienceYears ?? 0,
+              });
+              imported++;
+            } else if (record.type === "company" && record.companyName) {
+              // Enrich with CNPJ data from BrasilAPI
+              let enriched: Awaited<ReturnType<typeof enrichCNPJ>> = null;
+              if (record.cnpj) {
+                enriched = await enrichCNPJ(record.cnpj);
+              }
+              const compPhone = normalizePhone(record.phone ?? enriched?.phone);
+              await createCompany({
+                userId: 0, // placeholder for imported data without OAuth
+                companyName: enriched?.companyName ?? record.companyName,
+                cnpj: record.cnpj,
+                phone: compPhone ?? undefined,
+                segment: record.segment ?? enriched?.segment,
+                region: record.region ?? enriched?.region,
+              });
+              imported++;
+            } else {
+              failed++;
+              errors.push(`Registro inválido: ${JSON.stringify(record)}`);
+            }
+          } catch (e) {
+            failed++;
+            errors.push(`Erro ao importar: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
+
+        await updateImportLog(log.id, {
+          importedRecords: imported,
+          failedRecords: failed,
+          status: failed === input.records.length ? "failed" : "completed",
+          errorLog: errors.length > 0 ? errors.slice(0, 50).join("\n") : null,
+          completedAt: new Date(),
+        });
+
+        return { imported, failed, logId: log.id };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

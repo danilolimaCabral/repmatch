@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `unlocked_contacts` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`companyId` int NOT NULL,\n\t`representativeId` int NOT NULL,\n\t`pricePaid` decimal(10,2) NOT NULL,\n\t`stripePaymentId` varchar(100),\n\t`unlockedAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `unlocked_contacts_id` PRIMARY KEY(`id`)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user gjuqDE6BkXEJ8aC.c620752b3695 --database JWuAunBcJCdsJnFZZrfG7w --execute CREATE TABLE `unlocked_contacts` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`companyId` int NOT NULL,\n\t`representativeId` int NOT NULL,\n\t`pricePaid` decimal(10,2) NOT NULL,\n\t`stripePaymentId` varchar(100),\n\t`unlockedAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `unlocked_contacts_id` PRIMARY KEY(`id`)\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 126
+}
