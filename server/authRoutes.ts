@@ -6,6 +6,7 @@ import { getDb } from "./db";
 import { users } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { ENV } from "./_core/env";
+import { notifyOwner } from "./_core/notification";
 
 const router = Router();
 const COOKIE_NAME = "rm_session";
@@ -187,8 +188,18 @@ router.post("/forgot-password", async (req: Request, res: Response) => {
 
     await db.update(users).set({ resetToken, resetTokenExpiry }).where(eq(users.email, email));
 
-    // In production, send email here. For now, return token in response (dev only).
-    console.log(`[Auth] Reset token for ${email}: ${resetToken}`);
+    // Send reset link via owner notification (acts as email delivery proxy)
+    const origin = req.headers.origin || `${req.protocol}://${req.headers.host}`;
+    const resetLink = `${origin}/reset-password?token=${resetToken}`;
+    try {
+      await notifyOwner({
+        title: `Recuperação de Senha — ${email}`,
+        content: `O usuário ${email} solicitou redefinição de senha.\n\nLink de redefinição (válido por 1 hora):\n${resetLink}\n\nSe você não solicitou isso, ignore esta mensagem.`,
+      });
+    } catch (notifyErr) {
+      console.error("[Auth] Failed to send reset notification:", notifyErr);
+    }
+    console.log(`[Auth] Reset link for ${email}: ${resetLink}`);
     return res.json({ success: true, message: "Se o e-mail existir, você receberá as instruções em breve." });
   } catch (err) {
     console.error("[Auth] Forgot password error:", err);

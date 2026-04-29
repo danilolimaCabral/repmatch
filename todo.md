@@ -78,7 +78,7 @@
 ## Reestruturação: Autenticação Própria + Preview Inteligente
 - [x] Criar tabela auth_users com email, senha (bcrypt), tipo (empresa/representante), plano
 - [x] Criar endpoints de registro (POST /api/auth/register) e login (POST /api/auth/login) com JWT
-- [ ] Criar endpoint de recuperação de senha (pendente)
+- [x] Criar endpoint de recuperação de senha (implementado: /api/auth/forgot-password + /api/auth/reset-password, páginas /forgot-password e /reset-password, notificação via notifyOwner)
 - [x] Remover dependência do OAuth Manus dos fluxos principais
 - [x] Criar página de cadastro dual: Empresa vs Representante com formulários separados
 - [x] Criar página de login própria com email+senha
