@@ -10,7 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 
-const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
+const LOGO_URL = "/manus-storage/repmatch-logo-clean_68a7f78f.png";
 
 function AnimatedCounter({ end, suffix = "", duration = 2000 }: { end: number; suffix?: string; duration?: number }) {
   const [count, setCount] = useState(0);
@@ -67,7 +67,7 @@ export default function Home() {
       {/* ─── Navbar ─────────────────────────────────────────────────────────── */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-[#080808]/95 backdrop-blur-md border-b border-white/5 shadow-2xl" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <img src={LOGO_URL} alt="RepMatch" className="h-10 object-contain" />
+          <img src={LOGO_URL} alt="RepMatch" className="h-9 object-contain" />
           <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
             <a href="#como-funciona" className="hover:text-white transition-colors">Como funciona</a>
             <a href="#planos" className="hover:text-white transition-colors">Planos</a>
@@ -115,7 +115,7 @@ export default function Home() {
 
           {/* Logo grande */}
           <div className="flex justify-center mb-10">
-            <img src={LOGO_URL} alt="RepMatch" className="h-28 md:h-36 lg:h-44 object-contain drop-shadow-[0_0_60px_rgba(34,197,94,0.3)]" />
+            <img src={LOGO_URL} alt="RepMatch" className="w-72 md:w-96 lg:w-[480px] object-contain drop-shadow-[0_0_80px_rgba(34,197,94,0.4)]" />
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.92] tracking-tight mb-8">
@@ -529,7 +529,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">
-              <img src={LOGO_URL} alt="RepMatch" className="h-9 object-contain" />
+              <img src={LOGO_URL} alt="RepMatch" className="h-8 object-contain" />
               <span className="text-zinc-600 text-sm">Conectando empresas e representantes. Gerando resultados.</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-zinc-600">

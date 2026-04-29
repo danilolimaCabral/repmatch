@@ -68,3 +68,9 @@
 - [ ] FAQ
 - [ ] Footer profissional
 - [ ] Animações sutis e micro-interações
+
+## Toggle Mensal/Anual nos Planos
+- [ ] Adicionar toggle mensal/anual na seção de planos da landing page
+- [ ] Calcular preços anuais com 20% de desconto para todos os planos
+- [ ] Mostrar badge "Economize X%" no plano anual
+- [ ] Animação suave na troca de preços
