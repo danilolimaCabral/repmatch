@@ -72,6 +72,8 @@ export default function CompanyDashboard() {
   const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile">("jobs");
   const [createJobOpen, setCreateJobOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [openChatId, setOpenChatId] = useState<number | null>(null);
+  const [chatInput, setChatInput] = useState("");
 
   const [jobForm, setJobForm] = useState({
     title: "",
@@ -105,6 +107,14 @@ export default function CompanyDashboard() {
     onError: (e) => toast.error(e.message),
   });
 
+  const { data: chatMessages, refetch: refetchChat } = trpc.messages.list.useQuery(
+    { applicationId: openChatId! },
+    { enabled: !!openChatId, refetchInterval: openChatId ? 3000 : false }
+  );
+  const sendMessageMutation = trpc.messages.send.useMutation({
+    onSuccess: () => { setChatInput(""); refetchChat(); },
+    onError: (e) => toast.error(e.message),
+  });
   const updateStatusMutation = trpc.candidaturas.updateStatus.useMutation({
     onSuccess: () => {
       toast.success("Status atualizado!");
@@ -423,7 +433,7 @@ export default function CompanyDashboard() {
                                 <StatusIcon className="w-3 h-3 mr-1" />
                                 {status.label}
                               </Badge>
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 flex-wrap">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -440,8 +450,49 @@ export default function CompanyDashboard() {
                                 >
                                   Recusar
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-primary/40 text-primary hover:bg-primary/10 text-xs"
+                                  onClick={() => { setOpenChatId(openChatId === application.id ? null : application.id); setChatInput(""); }}
+                                >
+                                  {openChatId === application.id ? "Fechar Chat" : "Chat"}
+                                </Button>
                               </div>
                             </div>
+                            {openChatId === application.id && (
+                              <div className="mt-3 pt-3 border-t border-border">
+                                <div className="h-40 overflow-y-auto space-y-2 mb-2 pr-1">
+                                  {!chatMessages?.length && (
+                                    <div className="text-xs text-muted-foreground text-center py-4">Nenhuma mensagem ainda. Inicie a conversa!</div>
+                                  )}
+                                  {chatMessages?.map((msg) => (
+                                    <div key={msg.id} className={`flex ${msg.senderUserId === user?.id ? "justify-end" : "justify-start"}`}>
+                                      <div className={`max-w-[80%] rounded-lg px-3 py-1.5 text-xs ${msg.senderUserId === user?.id ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+                                        {msg.content}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="flex gap-2">
+                                  <input
+                                    className="flex-1 text-xs rounded-lg border border-border bg-secondary px-3 py-1.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                    placeholder="Digite uma mensagem..."
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === "Enter" && chatInput.trim()) sendMessageMutation.mutate({ applicationId: application.id, content: chatInput.trim() }); }}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    className="bg-primary text-primary-foreground text-xs px-3"
+                                    disabled={!chatInput.trim() || sendMessageMutation.isPending}
+                                    onClick={() => sendMessageMutation.mutate({ applicationId: application.id, content: chatInput.trim() })}
+                                  >
+                                    Enviar
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}

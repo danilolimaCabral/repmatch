@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut } from "lucide-react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck } from "lucide-react";
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -21,13 +21,18 @@ function normalizePhone(raw: string): string | null {
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"stats" | "import">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "import" | "users">("stats");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; failed: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: stats, isLoading: statsLoading } = trpc.admin.stats.useQuery();
   const { data: importLogs } = trpc.admin.importLogs.useQuery();
+  const { data: allUsers, refetch: refetchUsers } = trpc.admin.listUsers.useQuery();
+  const promoteMutation = trpc.admin.promoteUser.useMutation({
+    onSuccess: () => { toast.success("Usuário promovido a admin!"); refetchUsers(); },
+    onError: () => toast.error("Erro ao promover usuário"),
+  });
   const importMutation = trpc.admin.importData.useMutation({
     onSuccess: (result) => {
       setImportResult(result);
@@ -123,6 +128,7 @@ export default function AdminDashboard() {
             {[
               { id: "stats", label: "Dashboard", icon: TrendingUp },
               { id: "import", label: "Importar Dados", icon: Upload },
+              { id: "users", label: "Usuários", icon: Users },
             ].map((item) => (
               <button
                 key={item.id}
@@ -146,29 +152,119 @@ export default function AdminDashboard() {
         <main className="flex-1 overflow-auto p-8">
           {activeTab === "stats" && (
             <div>
-              <h1 className="text-2xl font-black mb-8">Dashboard Administrativo</h1>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-2xl font-black">Dashboard Administrativo</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Visão geral da plataforma RepMatch em tempo real</p>
+                </div>
+                <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 px-3 py-1">Admin</Badge>
+              </div>
               {statsLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[
-                    { label: "Representantes", value: stats?.totalReps ?? 0, icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
-                    { label: "Empresas", value: stats?.totalCompanies ?? 0, icon: Building2, color: "text-primary", bg: "bg-primary/10" },
-                    { label: "Vagas Publicadas", value: stats?.totalJobs ?? 0, icon: Briefcase, color: "text-purple-400", bg: "bg-purple-400/10" },
-                    { label: "Candidaturas", value: stats?.totalApplications ?? 0, icon: TrendingUp, color: "text-yellow-400", bg: "bg-yellow-400/10" },
-                    { label: "Reps Premium/Elite", value: stats?.premiumReps ?? 0, icon: TrendingUp, color: "text-green-400", bg: "bg-green-400/10" },
-                  ].map((stat) => (
-                    <div key={stat.label} className="rounded-xl border border-border bg-card p-6">
-                      <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center mb-4`}>
-                        <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                <>
+                  {/* KPI Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    {[
+                      { label: "Representantes", value: stats?.totalReps ?? 0, icon: Users, color: "text-blue-400", bg: "bg-blue-400/10", sub: `${stats?.premiumReps ?? 0} premium/elite` },
+                      { label: "Empresas", value: stats?.totalCompanies ?? 0, icon: Building2, color: "text-primary", bg: "bg-primary/10", sub: "cadastradas" },
+                      { label: "Vagas Ativas", value: stats?.totalJobs ?? 0, icon: Briefcase, color: "text-purple-400", bg: "bg-purple-400/10", sub: "publicadas" },
+                      { label: "Candidaturas", value: stats?.totalApplications ?? 0, icon: TrendingUp, color: "text-yellow-400", bg: "bg-yellow-400/10", sub: "total" },
+                    ].map((stat) => (
+                      <div key={stat.label} className="rounded-xl border border-border bg-card p-5">
+                        <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center mb-3`}>
+                          <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                        </div>
+                        <div className="text-3xl font-black text-foreground">{stat.value.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground mt-0.5">{stat.label}</div>
+                        <div className="text-xs text-muted-foreground/60 mt-0.5">{stat.sub}</div>
                       </div>
-                      <div className="text-3xl font-black text-foreground">{stat.value.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+                    ))}
+                  </div>
+
+                  {/* Rank Distribution + Rep Tiers */}
+                  <div className="grid lg:grid-cols-2 gap-6 mb-8">
+                    <div className="rounded-xl border border-border bg-card p-6">
+                      <h2 className="font-bold mb-5 text-sm uppercase tracking-wide text-muted-foreground">Ranking das Empresas</h2>
+                      <div className="space-y-4">
+                        {[
+                          { label: "Platinum", value: (stats as Record<string, unknown> & { rankDistribution?: Record<string, number> })?.rankDistribution?.platinum ?? 0, color: "bg-zinc-300" },
+                          { label: "Gold", value: (stats as Record<string, unknown> & { rankDistribution?: Record<string, number> })?.rankDistribution?.gold ?? 0, color: "bg-yellow-400" },
+                          { label: "Silver", value: (stats as Record<string, unknown> & { rankDistribution?: Record<string, number> })?.rankDistribution?.silver ?? 0, color: "bg-zinc-400" },
+                          { label: "Bronze", value: (stats as Record<string, unknown> & { rankDistribution?: Record<string, number> })?.rankDistribution?.bronze ?? 0, color: "bg-amber-600" },
+                        ].map((item) => {
+                          const total = stats?.totalCompanies ?? 1;
+                          const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
+                          return (
+                            <div key={item.label}>
+                              <div className="flex items-center justify-between text-sm mb-1.5">
+                                <span className="font-medium">{item.label}</span>
+                                <span className="text-muted-foreground">{item.value} ({pct}%)</span>
+                              </div>
+                              <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                                <div className={`h-full rounded-full ${item.color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="rounded-xl border border-border bg-card p-6">
+                      <h2 className="font-bold mb-5 text-sm uppercase tracking-wide text-muted-foreground">Planos dos Representantes</h2>
+                      <div className="space-y-4">
+                        {[
+                          { label: "Elite", value: (stats as Record<string, unknown> & { tierDistribution?: Record<string, number> })?.tierDistribution?.elite ?? 0, color: "bg-yellow-400" },
+                          { label: "Premium", value: (stats as Record<string, unknown> & { tierDistribution?: Record<string, number> })?.tierDistribution?.premium ?? 0, color: "bg-primary" },
+                          { label: "Free", value: (stats as Record<string, unknown> & { tierDistribution?: Record<string, number> })?.tierDistribution?.free ?? 0, color: "bg-zinc-500" },
+                        ].map((item) => {
+                          const total = stats?.totalReps ?? 1;
+                          const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
+                          return (
+                            <div key={item.label}>
+                              <div className="flex items-center justify-between text-sm mb-1.5">
+                                <span className="font-medium">{item.label}</span>
+                                <span className="text-muted-foreground">{item.value} ({pct}%)</span>
+                              </div>
+                              <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                                <div className={`h-full rounded-full ${item.color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recent Import Logs */}
+                  {importLogs && importLogs.length > 0 && (
+                    <div className="rounded-xl border border-border bg-card p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold text-sm uppercase tracking-wide text-muted-foreground">Últimas Importações</h2>
+                        <Button size="sm" variant="ghost" className="text-xs text-primary" onClick={() => setActiveTab("import")}>Ver todas</Button>
+                      </div>
+                      <div className="space-y-2">
+                        {importLogs.slice(0, 5).map((log) => {
+                          const statusCfg = STATUS_LOG[log.status as keyof typeof STATUS_LOG] ?? STATUS_LOG.pending;
+                          const StatusIcon = statusCfg.icon;
+                          return (
+                            <div key={log.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+                              <div>
+                                <div className="text-sm font-medium">{log.filename}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {log.importedRecords}/{log.totalRecords} registros · {new Date(log.createdAt).toLocaleString("pt-BR")}
+                                </div>
+                              </div>
+                              <Badge className={statusCfg.color}><StatusIcon className="w-3 h-3 mr-1" />{statusCfg.label}</Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -261,6 +357,75 @@ export default function AdminDashboard() {
                   <p className="text-xs mt-3 text-muted-foreground/70">O sistema detecta automaticamente o tipo pelo campo CNPJ. Telefones são normalizados para o formato (XX) XXXXX-XXXX.</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === "users" && (
+            <div>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-2xl font-black">Gerenciar Usuários</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Todos os usuários cadastrados na plataforma</p>
+                </div>
+                <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 px-3 py-1">Admin</Badge>
+              </div>
+              {!allUsers ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : allUsers.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">Nenhum usuário encontrado</div>
+              ) : (
+                <div className="rounded-xl border border-border bg-card overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/30">
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">ID</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Email</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Tipo</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Role</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cadastro</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allUsers.map((u) => (
+                        <tr key={u.id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
+                          <td className="px-4 py-3 text-muted-foreground">#{u.id}</td>
+                          <td className="px-4 py-3 font-medium">{u.name ?? "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{u.email ?? "—"}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant="outline" className="text-xs capitalize">{(u as Record<string, unknown> & { userType?: string }).userType ?? "pending"}</Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            {u.role === "admin" ? (
+                              <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 text-xs">Admin</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">User</Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
+                          <td className="px-4 py-3">
+                            {u.role !== "admin" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs border-primary/30 text-primary hover:bg-primary/10"
+                                onClick={() => promoteMutation.mutate({ userId: u.id })}
+                                disabled={promoteMutation.isPending}
+                              >
+                                <ShieldCheck className="w-3 h-3 mr-1" />
+                                Promover Admin
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </main>

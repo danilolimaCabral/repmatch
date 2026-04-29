@@ -89,4 +89,19 @@
 - [x] Revisar toda a copy da landing para tom mais próximo, real e confiável
 
 ## Seção de Logos de Empresas Parceiras
-- [ ] Criar seção de logos de empresas parceiras com carrossel infinito (marquee) abaixo do hero
+- [x] Criar seção de logos de empresas parceiras com carrossel infinito (marquee) abaixo do hero
+
+## Testes e Correções dos Fluxos
+- [x] Testar fluxo completo do Representante (onboarding, dashboard, vagas, candidaturas)
+- [x] Testar fluxo completo da Empresa (onboarding, dashboard, vagas, match)
+- [x] Testar fluxo completo do Admin (importação, estatísticas, gestão)
+- [x] Corrigir bugs encontrados nos testes
+
+## Correções de Bugs Identificados
+- [x] Adicionar chat interno nas candidaturas (Rep Dashboard e Company Dashboard)
+- [x] Adicionar botão de editar perfil no dashboard do Representante
+- [x] Adicionar botão de editar perfil no dashboard da Empresa
+- [x] Melhorar Admin Dashboard com mais métricas e gráficos (barras de ranking e planos, últimas importações)
+- [x] Adicionar rota de promoção de usuário para admin no backend
+- [x] Adicionar aba de "Propostas" no Rep Dashboard
+- [x] Adicionar aba de "Histórico de Contratações" no Company Dashboard

@@ -29,6 +29,8 @@ import {
   updateRepresentative,
   updateUserType,
   createRepresentative,
+  promoteToAdmin,
+  listAllUsers,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
@@ -532,6 +534,17 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         });
 
         return { imported, failed, logId: log.id };
+      }),
+    listUsers: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return listAllUsers(100);
+    }),
+    promoteUser: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        await promoteToAdmin(input.userId);
+        return { success: true };
       }),
   }),
 });

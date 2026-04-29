@@ -84,6 +84,18 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+export async function promoteToAdmin(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ role: "admin" }).where(eq(users.id, userId));
+}
+
+export async function listAllUsers(limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users).orderBy(users.createdAt).limit(limit);
+}
+
 export async function updateUserType(userId: number, userType: "representative" | "company" | "pending") {
   const db = await getDb();
   if (!db) return;

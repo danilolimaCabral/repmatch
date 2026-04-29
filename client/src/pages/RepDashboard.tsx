@@ -2,17 +2,32 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import {
-  Briefcase, User, Bell, LogOut, Search, MapPin, DollarSign,
+  Briefcase, User, LogOut, Search, MapPin, DollarSign,
   ChevronRight, Loader2, Star, Lock, CheckCircle, Clock, XCircle,
-  TrendingUp, Building2, Filter
+  TrendingUp, Building2, Filter, MessageCircle, Send, Edit2, Bell
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
 const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
+
+const REGIONS = [
+  "São Paulo - Capital", "São Paulo - Interior", "Rio de Janeiro", "Minas Gerais",
+  "Paraná", "Santa Catarina", "Rio Grande do Sul", "Bahia", "Pernambuco",
+  "Ceará", "Goiás", "Distrito Federal", "Nacional (Todo Brasil)",
+];
+const SEGMENTS = [
+  "Alimentos e Bebidas", "Farmacêutico", "Cosméticos e Higiene", "Tecnologia",
+  "Construção Civil", "Têxtil e Moda", "Automotivo", "Agronegócio",
+  "Saúde e Médico", "Eletroeletrônicos", "Móveis e Decoração", "Outros",
+];
 
 const STATUS_CONFIG = {
   pending: { label: "Aguardando", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
@@ -28,6 +43,12 @@ const TIER_CONFIG = {
   elite: { label: "Elite", color: "bg-yellow-900 text-yellow-300", upgrade: null },
 };
 
+const RANK_TIER_MAP: Record<string, string[]> = {
+  free: ["bronze", "silver"],
+  premium: ["bronze", "silver", "gold"],
+  elite: ["bronze", "silver", "gold", "platinum"],
+};
+
 async function startCheckout(productKey: string, userId: number, userEmail: string, userName: string) {
   try {
     const res = await fetch("/api/stripe/checkout", {
@@ -36,20 +57,97 @@ async function startCheckout(productKey: string, userId: number, userEmail: stri
       body: JSON.stringify({ productKey, userId, userEmail, userName }),
     });
     const data = await res.json() as { url?: string; error?: string };
-    if (data.url) window.open(data.url, "_blank");
+    if (data.url) { toast.info("Redirecionando para o pagamento..."); window.open(data.url, "_blank"); }
     else toast.error(data.error ?? "Erro ao iniciar pagamento");
   } catch {
     toast.error("Erro ao conectar com o servidor de pagamento");
   }
 }
 
+// ─── Chat Component ──────────────────────────────────────────────────────────
+function ChatPanel({ applicationId, currentUserId }: { applicationId: number; currentUserId: number }) {
+  const [message, setMessage] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const utils = trpc.useUtils();
+  const { data: messages, isLoading } = trpc.messages.list.useQuery({ applicationId }, { refetchInterval: 4000 });
+  const sendMutation = trpc.messages.send.useMutation({
+    onSuccess: () => {
+      setMessage("");
+      utils.messages.list.invalidate({ applicationId });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  return (
+    <div className="flex flex-col h-72 border border-border rounded-xl overflow-hidden bg-background mt-4">
+      <div className="px-4 py-2.5 border-b border-border flex items-center gap-2 bg-secondary/50">
+        <MessageCircle className="w-4 h-4 text-primary" />
+        <span className="text-sm font-semibold">Chat com a empresa</span>
+        <span className="text-xs text-muted-foreground ml-auto">Atualiza automaticamente</span>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {isLoading ? (
+          <div className="flex justify-center pt-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+        ) : !messages?.length ? (
+          <p className="text-center text-muted-foreground text-sm pt-8">Nenhuma mensagem ainda. Inicie a conversa!</p>
+        ) : (
+          messages.map((msg) => {
+            const isMe = msg.senderUserId === currentUserId;
+            return (
+              <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-secondary text-foreground rounded-bl-sm"}`}>
+                  <p>{msg.content}</p>
+                  <p className={`text-xs mt-1 ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                    {new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={bottomRef} />
+      </div>
+      <div className="p-3 border-t border-border flex gap-2">
+        <Input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Digite sua mensagem..."
+          className="bg-secondary border-border text-sm"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && message.trim()) {
+              e.preventDefault();
+              sendMutation.mutate({ applicationId, content: message.trim() });
+            }
+          }}
+        />
+        <Button
+          size="sm"
+          className="bg-primary text-primary-foreground px-3 shrink-0"
+          disabled={!message.trim() || sendMutation.isPending}
+          onClick={() => sendMutation.mutate({ applicationId, content: message.trim() })}
+        >
+          {sendMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 export default function RepDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile">("jobs");
   const [searchRegion, setSearchRegion] = useState("");
   const [searchSegment, setSearchSegment] = useState("");
+  const [openChatId, setOpenChatId] = useState<number | null>(null);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({ fullName: "", phone: "", region: "", segment: "", experienceYears: 0, bio: "" });
 
+  const utils = trpc.useUtils();
   const { data: profile, isLoading: profileLoading } = trpc.representatives.myProfile.useQuery();
   const { data: jobs, isLoading: jobsLoading } = trpc.jobs.list.useQuery({
     region: searchRegion || undefined,
@@ -66,7 +164,14 @@ export default function RepDashboard() {
     onError: (e) => toast.error(e.message),
   });
 
-  const utils = trpc.useUtils();
+  const updateProfileMutation = trpc.representatives.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("Perfil atualizado com sucesso!");
+      setEditProfileOpen(false);
+      utils.representatives.myProfile.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   if (profileLoading) {
     return (
@@ -75,7 +180,6 @@ export default function RepDashboard() {
       </div>
     );
   }
-
   if (!profile) {
     navigate("/onboarding");
     return null;
@@ -83,12 +187,25 @@ export default function RepDashboard() {
 
   const tier = profile.subscriptionTier as keyof typeof TIER_CONFIG;
   const tierConfig = TIER_CONFIG[tier] ?? TIER_CONFIG.free;
-  const appliedJobIds = new Set(myApplications?.map((a) => a.application.jobId) ?? []);
+  const allowedRanks = RANK_TIER_MAP[tier] ?? ["bronze", "silver"];
+  const acceptedApps = myApplications?.filter(a => a.application.status === "accepted" || a.application.status === "hired") ?? [];
+
+  const openEditProfile = () => {
+    setProfileForm({
+      fullName: profile.fullName ?? "",
+      phone: profile.phone ?? "",
+      region: profile.region ?? "",
+      segment: profile.segment ?? "",
+      experienceYears: profile.experienceYears ?? 0,
+      bio: profile.bio ?? "",
+    });
+    setEditProfileOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Sidebar */}
       <div className="flex h-screen">
+        {/* ─── Sidebar ─────────────────────────────────────────────────── */}
         <aside className="w-64 border-r border-border bg-card flex flex-col">
           <div className="p-6 border-b border-border">
             <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-4" />
@@ -102,169 +219,125 @@ export default function RepDashboard() {
               </div>
             </div>
           </div>
-
           <nav className="flex-1 p-4 space-y-1">
             {[
-              { id: "jobs", label: "Vagas", icon: Briefcase },
-              { id: "applications", label: "Minhas Candidaturas", icon: CheckCircle },
+              { id: "jobs", label: "Oportunidades", icon: Briefcase, badge: jobs?.length },
+              { id: "applications", label: "Candidaturas", icon: Bell, badge: myApplications?.length },
               { id: "profile", label: "Meu Perfil", icon: User },
             ].map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as typeof activeTab)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === item.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  activeTab === item.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
               >
                 <item.icon className="w-4 h-4" />
-                {item.label}
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className="bg-primary/20 text-primary text-xs font-bold rounded-full px-1.5 py-0.5">{item.badge}</span>
+                )}
               </button>
             ))}
           </nav>
-
           <div className="p-4 border-t border-border space-y-2">
             {tierConfig.upgrade && (
               <Button
                 size="sm"
                 className="w-full bg-primary text-primary-foreground text-xs font-bold"
-                onClick={() => {
-                  const productKey = tier === "free" ? "REP_PREMIUM" : "REP_ELITE";
-                  startCheckout(productKey, user?.id ?? 0, user?.email ?? "", user?.name ?? "");
-                }}
+                onClick={() => startCheckout(tier === "free" ? "REP_PREMIUM" : "REP_ELITE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}
               >
-                <Star className="w-3 h-3 mr-1" />
-                {tierConfig.upgrade}
+                <Star className="w-3 h-3 mr-1" />{tierConfig.upgrade}
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="w-full text-muted-foreground hover:text-foreground"
-              onClick={() => { logout(); navigate("/"); }}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
+            <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={() => { logout(); navigate("/"); }}>
+              <LogOut className="w-4 h-4 mr-2" />Sair
             </Button>
           </div>
         </aside>
 
-        {/* Main Content */}
+        {/* ─── Main Content ─────────────────────────────────────────────── */}
         <main className="flex-1 overflow-auto">
-          {/* ─── Jobs Tab ─────────────────────────────────────────────────── */}
+
+          {/* Jobs Tab */}
           {activeTab === "jobs" && (
             <div className="p-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-black">Vagas disponíveis</h1>
+                  <h1 className="text-2xl font-black">Oportunidades</h1>
                   <p className="text-muted-foreground text-sm mt-1">
-                    {tier === "free" ? "Plano Free: acesso a vagas Bronze/Silver" :
-                     tier === "premium" ? "Plano Premium: acesso a vagas até Gold" :
-                     "Plano Elite: acesso a TODAS as vagas"}
+                    Plano <span className="text-primary font-semibold">{tierConfig.label}</span> — {
+                      tier === "free" ? "vagas Bronze e Silver" :
+                      tier === "premium" ? "vagas até Gold" : "todas as vagas, incluindo Platinum"
+                    }
                   </p>
                 </div>
                 <Badge className={tierConfig.color}>{tierConfig.label}</Badge>
               </div>
 
-              {/* Filters */}
-              <div className="flex gap-3 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Filtrar por região..."
-                    value={searchRegion}
-                    onChange={(e) => setSearchRegion(e.target.value)}
-                    className="pl-9 bg-secondary border-border"
-                  />
+              {tier === "free" && (
+                <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 px-5 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Lock className="w-4 h-4 text-primary" />
+                    <span>Plano Free — vagas Gold e Platinum estão bloqueadas.</span>
+                  </div>
+                  <Button size="sm" className="bg-primary text-primary-foreground text-xs font-bold" onClick={() => startCheckout("REP_PREMIUM", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
+                    Fazer Upgrade
+                  </Button>
                 </div>
-                <div className="relative flex-1">
+              )}
+
+              <div className="flex gap-3 mb-6">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="Filtrar por região..." value={searchRegion} onChange={(e) => setSearchRegion(e.target.value)} className="pl-9 bg-secondary border-border" />
+                </div>
+                <div className="relative flex-1 max-w-xs">
                   <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Filtrar por segmento..."
-                    value={searchSegment}
-                    onChange={(e) => setSearchSegment(e.target.value)}
-                    className="pl-9 bg-secondary border-border"
-                  />
+                  <Input placeholder="Filtrar por segmento..." value={searchSegment} onChange={(e) => setSearchSegment(e.target.value)} className="pl-9 bg-secondary border-border" />
                 </div>
               </div>
 
               {jobsLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
-              ) : jobs?.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">
+                <div className="flex justify-center pt-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+              ) : !jobs?.length ? (
+                <div className="text-center pt-16 text-muted-foreground">
                   <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p>Nenhuma vaga encontrada com esses filtros.</p>
+                  <p className="font-semibold">Nenhuma vaga encontrada</p>
+                  <p className="text-sm mt-1">Tente ajustar os filtros</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {jobs?.map((job) => {
-                    const alreadyApplied = appliedJobIds.has(job.id);
+                  {jobs.map((job) => {
                     const isLocked = (job.minTierRequired === "premium" && tier === "free") ||
                                      (job.minTierRequired === "elite" && tier !== "elite");
+                    const alreadyApplied = myApplications?.some(a => a.job?.id === job.id);
                     return (
-                      <div
-                        key={job.id}
-                        className={`rounded-xl border bg-card p-6 transition-all ${
-                          isLocked ? "opacity-60 border-border" : "border-border hover:border-primary/40"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              {job.isFeatured && (
-                                <Badge className="bg-yellow-500/20 text-yellow-400 text-xs">
-                                  <Star className="w-3 h-3 mr-1" />Destaque
-                                </Badge>
-                              )}
-                              {isLocked && (
-                                <Badge className="bg-zinc-700 text-zinc-300 text-xs">
-                                  <Lock className="w-3 h-3 mr-1" />
-                                  Requer {job.minTierRequired === "premium" ? "Premium" : "Elite"}
-                                </Badge>
-                              )}
+                      <div key={job.id} className={`rounded-xl border p-5 transition-all ${isLocked ? "border-border opacity-60 bg-card" : "border-border bg-card hover:border-primary/40"}`}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              {job.isFeatured && <Badge className="bg-yellow-500/20 text-yellow-400 text-xs"><Star className="w-3 h-3 mr-1" />Destaque</Badge>}
+                              {isLocked && <Badge className="bg-zinc-700 text-zinc-300 text-xs"><Lock className="w-3 h-3 mr-1" />Bloqueado</Badge>}
                             </div>
-                            <h3 className="font-bold text-lg">{job.title}</h3>
-                            <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{job.description}</p>
-                            <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                              {job.region && (
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-3.5 h-3.5" />{job.region}
-                                </span>
-                              )}
-                              {job.commissionPercentage && (
-                                <span className="flex items-center gap-1 text-primary font-semibold">
-                                  <DollarSign className="w-3.5 h-3.5" />{job.commissionPercentage}% comissão
-                                </span>
-                              )}
-                              {job.segment && (
-                                <span className="flex items-center gap-1">
-                                  <Building2 className="w-3.5 h-3.5" />{job.segment}
-                                </span>
-                              )}
+                            <h3 className="font-bold text-base">{job.title}</h3>
+                            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
+                              {job.region && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.region}</span>}
+                              {job.commissionPercentage && <span className="flex items-center gap-1 text-primary font-semibold"><DollarSign className="w-3 h-3" />{job.commissionPercentage}% comissão</span>}
+                              {job.segment && <span className="text-xs text-muted-foreground">{job.segment}</span>}
                             </div>
+                            {job.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{job.description}</p>}
                           </div>
-
-                          <div className="ml-4 flex-shrink-0">
-                            {alreadyApplied ? (
-                              <Badge className="bg-green-500/20 text-green-400">
-                                <CheckCircle className="w-3 h-3 mr-1" />Candidatado
-                              </Badge>
-                            ) : isLocked ? (
-                              <Button size="sm" variant="outline" className="border-border text-muted-foreground" disabled>
-                                <Lock className="w-3 h-3 mr-1" />Bloqueado
+                          <div className="shrink-0">
+                            {isLocked ? (
+                              <Button size="sm" className="bg-primary text-primary-foreground text-xs font-bold" onClick={() => startCheckout(tier === "free" ? "REP_PREMIUM" : "REP_ELITE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
+                                <Lock className="w-3 h-3 mr-1" />Desbloquear
                               </Button>
+                            ) : alreadyApplied ? (
+                              <Badge className="bg-green-900/30 text-green-400 text-xs"><CheckCircle className="w-3 h-3 mr-1" />Candidatado</Badge>
                             ) : (
-                              <Button
-                                size="sm"
-                                className="bg-primary text-primary-foreground"
-                                onClick={() => applyMutation.mutate({ jobId: job.id })}
-                                disabled={applyMutation.isPending}
-                              >
-                                {applyMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Candidatar-se"}
-                                <ChevronRight className="w-3 h-3 ml-1" />
+                              <Button size="sm" className="bg-primary text-primary-foreground font-bold" disabled={applyMutation.isPending} onClick={() => applyMutation.mutate({ jobId: job.id })}>
+                                <ChevronRight className="w-4 h-4 mr-1" />Candidatar
                               </Button>
                             )}
                           </div>
@@ -277,64 +350,82 @@ export default function RepDashboard() {
             </div>
           )}
 
-          {/* ─── Applications Tab ─────────────────────────────────────────── */}
+          {/* Applications Tab */}
           {activeTab === "applications" && (
             <div className="p-8">
-              <h1 className="text-2xl font-black mb-6">Minhas Candidaturas</h1>
+              <h1 className="text-2xl font-black mb-2">Minhas Candidaturas</h1>
+              <p className="text-muted-foreground text-sm mb-6">Acompanhe o status e negocie diretamente com as empresas via chat</p>
 
               {appsLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
-              ) : myApplications?.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">
-                  <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p>Você ainda não se candidatou a nenhuma vaga.</p>
-                  <Button className="mt-4 bg-primary text-primary-foreground" onClick={() => setActiveTab("jobs")}>
-                    Ver vagas disponíveis
-                  </Button>
+                <div className="flex justify-center pt-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+              ) : !myApplications?.length ? (
+                <div className="text-center pt-16 text-muted-foreground">
+                  <Bell className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                  <p className="font-semibold">Nenhuma candidatura ainda</p>
+                  <p className="text-sm mt-1">Explore as oportunidades e candidate-se</p>
+                  <Button className="mt-4 bg-primary text-primary-foreground" onClick={() => setActiveTab("jobs")}>Ver Oportunidades</Button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {myApplications?.map(({ application, job }) => {
+                    {myApplications.map(({ application, job }) => {
                     const status = STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
                     const StatusIcon = status.icon;
+                    const chatOpen = openChatId === application.id;
                     return (
-                      <div key={application.id} className="rounded-xl border border-border bg-card p-6">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-bold">{job.title}</h3>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                              {job.region && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.region}</span>}
-                              {job.commissionPercentage && <span className="text-primary font-semibold">{job.commissionPercentage}% comissão</span>}
+                      <div key={application.id} className="rounded-xl border border-border bg-card p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-base">{job?.title ?? "Vaga"}</h3>
+                            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
+                              {job?.region && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.region}</span>}
+                              {job?.segment && <span className="text-xs">{job.segment}</span>}
                             </div>
-                            {application.llmAnalysis && (
-                              <p className="text-xs text-muted-foreground mt-2 italic">"{application.llmAnalysis}"</p>
-                            )}
-                          </div>
-                          <div className="text-right ml-4">
-                            <Badge className={status.color}>
-                              <StatusIcon className="w-3 h-3 mr-1" />
-                              {status.label}
-                            </Badge>
-                            <div className="mt-2 text-xs text-muted-foreground">
-                              Score: <span className="text-primary font-bold">{application.totalScore}/100</span>
+                            <div className="flex items-center gap-3 mt-2">
+                              <Badge className={status.color}><StatusIcon className="w-3 h-3 mr-1" />{status.label}</Badge>
+                              <span className="text-xs text-muted-foreground">Score: <span className="text-primary font-bold">{application.totalScore}/100</span></span>
                             </div>
                           </div>
+                          <Button size="sm" variant="outline" className="shrink-0 border-border" onClick={() => setOpenChatId(chatOpen ? null : application.id)}>
+                            <MessageCircle className="w-4 h-4 mr-1.5" />{chatOpen ? "Fechar" : "Chat"}
+                          </Button>
                         </div>
+                        {chatOpen && <ChatPanel applicationId={application.id} currentUserId={user?.id ?? 0} />}
                       </div>
                     );
                   })}
                 </div>
               )}
+
+              {acceptedApps.length > 0 && (
+                <div className="mt-10">
+                  <h2 className="text-lg font-black mb-4 flex items-center gap-2">
+                    <Star className="w-5 h-5 text-primary" />Propostas Aceitas
+                  </h2>
+                  <div className="space-y-3">
+                    {acceptedApps.map(({ application, job }) => (
+                      <div key={application.id} className="rounded-xl border border-green-700/40 bg-green-900/10 p-4 flex items-center justify-between">
+                        <div>
+                          <div className="font-bold">{job?.title}</div>
+                          <div className="text-sm text-muted-foreground">{job?.segment ?? "—"}</div>
+                        </div>
+                        <Badge className="bg-green-900/30 text-green-400">{application.status === "hired" ? "Contratado" : "Aceito"}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* ─── Profile Tab ──────────────────────────────────────────────── */}
+          {/* Profile Tab */}
           {activeTab === "profile" && (
             <div className="p-8 max-w-2xl">
-              <h1 className="text-2xl font-black mb-6">Meu Perfil</h1>
-
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl font-black">Meu Perfil</h1>
+                <Button variant="outline" size="sm" className="border-border" onClick={openEditProfile}>
+                  <Edit2 className="w-4 h-4 mr-2" />Editar Perfil
+                </Button>
+              </div>
               <div className="rounded-xl border border-border bg-card p-6 space-y-4">
                 <div className="flex items-center gap-4 pb-4 border-b border-border">
                   <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-2xl">
@@ -345,7 +436,6 @@ export default function RepDashboard() {
                     <Badge className={`mt-1 ${tierConfig.color}`}>{tierConfig.label}</Badge>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {[
                     { label: "Região", value: profile.region },
@@ -359,14 +449,12 @@ export default function RepDashboard() {
                     </div>
                   ))}
                 </div>
-
                 {profile.bio && (
                   <div className="pt-2">
                     <div className="text-muted-foreground text-sm mb-1">Bio</div>
                     <p className="text-sm leading-relaxed">{profile.bio}</p>
                   </div>
                 )}
-
                 <div className="pt-4 border-t border-border">
                   <div className="grid grid-cols-3 gap-4 text-center">
                     {[
@@ -382,7 +470,6 @@ export default function RepDashboard() {
                   </div>
                 </div>
               </div>
-
               {tierConfig.upgrade && (
                 <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-6">
                   <div className="flex items-center gap-3 mb-3">
@@ -390,17 +477,9 @@ export default function RepDashboard() {
                     <h3 className="font-bold">Desbloqueie mais oportunidades</h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {tier === "free"
-                      ? "Com o Premium (R$ 19/mês) você acessa vagas de empresas Gold e tem perfil em destaque."
-                      : "Com o Elite (R$ 49/mês) você acessa TODAS as vagas, incluindo empresas Platinum."}
+                    {tier === "free" ? "Com o Premium (R$ 19/mês) você acessa vagas de empresas Gold e tem perfil em destaque." : "Com o Elite (R$ 49/mês) você acessa TODAS as vagas, incluindo empresas Platinum."}
                   </p>
-                  <Button
-                    className="bg-primary text-primary-foreground font-bold"
-                    onClick={() => {
-                      const productKey = tier === "free" ? "REP_PREMIUM" : "REP_ELITE";
-                      startCheckout(productKey, user?.id ?? 0, user?.email ?? "", user?.name ?? "");
-                    }}
-                  >
+                  <Button className="bg-primary text-primary-foreground font-bold" onClick={() => startCheckout(tier === "free" ? "REP_PREMIUM" : "REP_ELITE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
                     {tierConfig.upgrade}
                   </Button>
                 </div>
@@ -409,6 +488,57 @@ export default function RepDashboard() {
           )}
         </main>
       </div>
+
+      {/* ─── Edit Profile Dialog ─────────────────────────────────────────── */}
+      <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
+        <DialogContent className="bg-card border-border max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Perfil</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4 mt-2" onSubmit={(e) => { e.preventDefault(); updateProfileMutation.mutate(profileForm); }}>
+            <div>
+              <Label>Nome completo</Label>
+              <Input value={profileForm.fullName} onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })} className="mt-1 bg-secondary border-border" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Região</Label>
+                <Select value={profileForm.region} onValueChange={(v) => setProfileForm({ ...profileForm, region: v })}>
+                  <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Segmento</Label>
+                <Select value={profileForm.segment} onValueChange={(v) => setProfileForm({ ...profileForm, segment: v })}>
+                  <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Telefone</Label>
+                <Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} placeholder="(11) 99999-9999" className="mt-1 bg-secondary border-border" />
+              </div>
+              <div>
+                <Label>Anos de experiência</Label>
+                <Input type="number" min={0} max={50} value={profileForm.experienceYears} onChange={(e) => setProfileForm({ ...profileForm, experienceYears: Number(e.target.value) })} className="mt-1 bg-secondary border-border" />
+              </div>
+            </div>
+            <div>
+              <Label>Bio</Label>
+              <Textarea value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} placeholder="Conte sobre sua experiência..." className="mt-1 bg-secondary border-border" rows={3} />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" className="flex-1 border-border" onClick={() => setEditProfileOpen(false)}>Cancelar</Button>
+              <Button type="submit" className="flex-1 bg-primary text-primary-foreground font-bold" disabled={updateProfileMutation.isPending}>
+                {updateProfileMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Alterações"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
