@@ -285,3 +285,9 @@
 - [x] BuscarRepresentantes: adicionar selos "Identidade Verificada" e "CORE Ativo" nos cards
 - [x] CompanyDashboard: adicionar selos nos cards da aba de busca
 - [x] RepDashboard: exibir selos no perfil próprio do representante
+
+## Sprint: Admin PIX + Notificações
+- [x] Painel admin /admin/pagamentos — listar usuários com tier "free", botão para ativar plano manualmente
+- [x] Backend: procedure adminProcedure admin.activatePlan(userId, tier) para atualizar subscriptionTier
+- [x] Notificação de boas-vindas no onboarding — notifyOwner com nome, tipo (rep/empresa) e região ao completar cadastro
+- [ ] Publicar site no domínio repmarket-jwuaunbc.manus.space

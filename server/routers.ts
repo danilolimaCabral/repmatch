@@ -35,6 +35,8 @@ import {
   getRepresentativePreview,
   listRepresentativesForCompany,
   listPublicJobs,
+  listPendingPayments,
+  activateRepPlan,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
@@ -139,6 +141,11 @@ export const appRouter = router({
         }
         await createRepresentative({ ...input, userId: ctx.user.id });
         await updateUserType(ctx.user.id, "representative");
+        // Notify owner of new representative registration
+        await notifyOwner({
+          title: "👤 Novo Representante Cadastrado",
+          content: `${input.fullName} (${input.region} • ${input.segment}) acabou de completar o cadastro. Telefone: ${input.phone ?? "não informado"}. Plano: Pendente.`,
+        });
         return { success: true };
       }),
 
@@ -161,6 +168,11 @@ export const appRouter = router({
         }
         await createCompany({ ...input, userId: ctx.user.id });
         await updateUserType(ctx.user.id, "company");
+        // Notify owner of new company registration
+        await notifyOwner({
+          title: "🏢 Nova Empresa Cadastrada",
+          content: `${input.companyName} (${input.segment} • ${input.region ?? "região não informada"}) acabou de completar o cadastro. CNPJ: ${input.cnpj ?? "não informado"}. Telefone: ${input.phone ?? "não informado"}.`,
+        });
         return { success: true };
       }),
   }),
@@ -660,6 +672,21 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         await toggleUserActive(input.userId, input.isActive);
+        return { success: true };
+      }),
+    listPendingPayments: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return listPendingPayments();
+    }),
+    activatePlan: protectedProcedure
+      .input(z.object({ repId: z.number(), tier: z.enum(["bronze", "prata", "ouro"]) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        await activateRepPlan(input.repId, input.tier);
+        await notifyOwner({
+          title: "Plano Ativado Manualmente",
+          content: `Admin ativou plano ${input.tier} para representante #${input.repId}`,
+        });
         return { success: true };
       }),
   }),

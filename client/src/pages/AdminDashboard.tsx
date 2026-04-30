@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck } from "lucide-react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search } from "lucide-react";
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -21,7 +21,9 @@ function normalizePhone(raw: string): string | null {
 export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"stats" | "import" | "users" | "jobs">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "import" | "users" | "jobs" | "pagamentos">("stats");
+  const [pixSearch, setPixSearch] = useState("");
+  const [activatingId, setActivatingId] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; failed: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -29,6 +31,11 @@ export default function AdminDashboard() {
   const { data: stats, isLoading: statsLoading } = trpc.admin.stats.useQuery();
   const { data: importLogs } = trpc.admin.importLogs.useQuery();
   const { data: allUsers, refetch: refetchUsers } = trpc.admin.listUsers.useQuery();
+  const { data: pendingPayments, refetch: refetchPending, isLoading: pendingLoading } = trpc.admin.listPendingPayments.useQuery();
+  const activatePlanMutation = trpc.admin.activatePlan.useMutation({
+    onSuccess: () => { toast.success("Plano ativado com sucesso!"); setActivatingId(null); refetchPending(); },
+    onError: (e) => { toast.error(e.message); setActivatingId(null); },
+  });
   const promoteMutation = trpc.admin.promoteUser.useMutation({
     onSuccess: () => { toast.success("Usuário promovido a admin!"); refetchUsers(); },
     onError: () => toast.error("Erro ao promover usuário"),
@@ -139,6 +146,7 @@ export default function AdminDashboard() {
           <nav className="flex-1 p-4 space-y-1">
             {[
               { id: "stats", label: "Dashboard", icon: TrendingUp },
+              { id: "pagamentos", label: "Pagamentos PIX", icon: CreditCard },
               { id: "jobs", label: "Vagas", icon: Briefcase },
               { id: "import", label: "Importar Dados", icon: Upload },
               { id: "users", label: "Usuários", icon: Users },
@@ -519,6 +527,120 @@ export default function AdminDashboard() {
                           </td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+          {activeTab === "pagamentos" && (
+            <div>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-2xl font-black">Pagamentos PIX Pendentes</h1>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Representantes com pagamento pendente — ative o plano após confirmar o comprovante no WhatsApp
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 px-3 py-1">
+                    {pendingPayments?.length ?? 0} pendentes
+                  </Badge>
+                  <Button size="sm" variant="outline" onClick={() => refetchPending()} className="border-border">
+                    Atualizar
+                  </Button>
+                </div>
+              </div>
+
+              {/* Search */}
+              <div className="relative mb-5">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome, telefone ou região..."
+                  value={pixSearch}
+                  onChange={(e) => setPixSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              {pendingLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : !pendingPayments || pendingPayments.length === 0 ? (
+                <div className="text-center py-16">
+                  <CheckCheck className="w-12 h-12 text-primary mx-auto mb-3 opacity-60" />
+                  <p className="text-muted-foreground">Nenhum pagamento pendente. Todos os planos estão ativos!</p>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border bg-card overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/30">
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Rep #</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Telefone</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Região</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Segmento</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cadastro</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ativar Plano</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(pendingPayments ?? [])
+                        .filter((r) => {
+                          if (!pixSearch) return true;
+                          const q = pixSearch.toLowerCase();
+                          return (
+                            (r.fullName ?? "").toLowerCase().includes(q) ||
+                            (r.phone ?? "").includes(q) ||
+                            (r.region ?? "").toLowerCase().includes(q)
+                          );
+                        })
+                        .map((rep) => (
+                          <tr key={rep.repId} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
+                            <td className="px-4 py-3 text-muted-foreground">#{rep.repId}</td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium">{rep.fullName ?? "—"}</div>
+                              {rep.userEmail && <div className="text-xs text-muted-foreground">{rep.userEmail}</div>}
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground">{rep.phone ?? "—"}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{rep.region ?? "—"}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{rep.segment ?? "—"}</td>
+                            <td className="px-4 py-3 text-muted-foreground text-xs">
+                              {rep.createdAt ? new Date(rep.createdAt).toLocaleDateString("pt-BR") : "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1.5">
+                                {(["bronze", "prata", "ouro"] as const).map((tier) => (
+                                  <Button
+                                    key={tier}
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={activatePlanMutation.isPending && activatingId === rep.repId}
+                                    onClick={() => {
+                                      setActivatingId(rep.repId);
+                                      activatePlanMutation.mutate({ repId: rep.repId, tier });
+                                    }}
+                                    className={`text-xs capitalize ${
+                                      tier === "bronze" ? "border-orange-700/40 text-orange-400 hover:bg-orange-900/20" :
+                                      tier === "prata" ? "border-primary/40 text-primary hover:bg-primary/10" :
+                                      "border-amber-600/40 text-amber-400 hover:bg-amber-900/20"
+                                    }`}
+                                  >
+                                    {activatePlanMutation.isPending && activatingId === rep.repId ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <CheckCheck className="w-3 h-3 mr-1" />
+                                    )}
+                                    {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                                  </Button>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>

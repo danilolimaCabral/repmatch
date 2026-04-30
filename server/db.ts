@@ -107,6 +107,37 @@ export async function listAllUsers(limit = 50) {
   return db.select().from(users).orderBy(users.createdAt).limit(limit);
 }
 
+export async function listPendingPayments() {
+  const db = await getDb();
+  if (!db) return [];
+  // Returns representatives with free tier joined with their user info
+  const rows = await db
+    .select({
+      repId: representatives.id,
+      userId: representatives.userId,
+      fullName: representatives.fullName,
+      phone: representatives.phone,
+      region: representatives.region,
+      segment: representatives.segment,
+      subscriptionTier: representatives.subscriptionTier,
+      createdAt: representatives.createdAt,
+      userName: users.name,
+      userEmail: users.email,
+    })
+    .from(representatives)
+    .leftJoin(users, eq(representatives.userId, users.id))
+    .where(eq(representatives.subscriptionTier, "free"))
+    .orderBy(desc(representatives.createdAt))
+    .limit(200);
+  return rows;
+}
+
+export async function activateRepPlan(repId: number, tier: "bronze" | "prata" | "ouro"): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(representatives).set({ subscriptionTier: tier }).where(eq(representatives.id, repId));
+}
+
 export async function updateUserType(userId: number, userType: "representative" | "company" | "pending") {
   const db = await getDb();
   if (!db) return;
