@@ -212,24 +212,24 @@
 
 ## Representante Encontra Empresa Rápido (A+B+C)
 
-- [ ] Backend: criar procedure pública `jobs.listPublic` com filtros de região/segmento e paginação
-- [ ] Landing page: adicionar seção "Vagas em Destaque" com cards de vagas reais abertas
-- [ ] Criar página pública /vagas com feed completo, filtros e CTA de cadastro
-- [ ] Adicionar link "Vagas" no header da landing page
-- [ ] Dashboard do Representante: melhorar feed de vagas com filtro rápido por região/segmento e visual mais atrativo
-- [ ] Registrar rota /vagas no App.tsx
+- [x] Backend: criar procedure pública `jobs.listPublic` com filtros de região/segmento e paginação
+- [x] Landing page: adicionar seção "Vagas em Destaque" com cards de vagas reais abertas
+- [x] Criar página pública /vagas com feed completo, filtros e CTA de cadastro
+- [x] Adicionar link "Vagas" no header da landing page
+- [x] Dashboard do Representante: melhorar feed de vagas com filtro rápido por região/segmento e visual mais atrativo
+- [x] Registrar rota /vagas no App.tsx
 
 ## Pagamento PIX Obrigatório
-- [ ] Criar página /planos com todos os planos e opção PIX + Cartão
-- [ ] Remover plano Free — todos os planos exigem pagamento
-- [ ] Gerar QR Code PIX para chave telefone 41999499815
-- [ ] Botão WhatsApp para envio de comprovante após PIX
-- [ ] Fluxo: usuário paga PIX → manda comprovante no WhatsApp → admin libera acesso
-- [ ] Cartão via Stripe como alternativa ao PIX
+- [x] Criar página /planos com todos os planos e opção PIX + Cartão
+- [ ] Remover plano Free — todos os planos exigem pagamento (pendente decisão do usuário)
+- [x] Chave PIX telefone 41999499815 exibida na página /planos
+- [x] Botão WhatsApp para envio de comprovante após PIX
+- [x] Fluxo: usuário paga PIX → manda comprovante no WhatsApp → admin libera acesso
+- [x] Cartão via Stripe como alternativa ao PIX
 
 ## Landing Page — Seções Inovadoras
-- [ ] Remover logos de empresas parceiras (fictícias)
-- [ ] Remover seção de depoimentos (fictícios)
-- [ ] Criar simulador de match interativo (segmento + região → reps disponíveis em tempo real)
-- [ ] Criar seção contador ao vivo de matches e base de reps
-- [ ] Criar seção Antes x Depois (vida sem RepMatch vs com RepMatch)
+- [x] Remover logos de empresas parceiras (fictícias)
+- [x] Remover seção de depoimentos (fictícios) — substituída por Antes x Depois + Simulador
+- [x] Criar simulador de match interativo (segmento + região → reps disponíveis em tempo real)
+- [x] Criar seção contador ao vivo de representantes e vagas
+- [x] Criar seção Antes x Depois (vida sem RepMatch vs com RepMatch)

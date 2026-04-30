@@ -11,8 +11,9 @@ const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
 
 const TIER_BADGE: Record<string, { label: string; color: string }> = {
   free: { label: "Free", color: "bg-zinc-700 text-zinc-300" },
-  premium: { label: "Premium", color: "bg-green-900/60 text-green-300" },
-  elite: { label: "Elite", color: "bg-yellow-900/60 text-yellow-300" },
+  bronze: { label: "Bronze", color: "bg-amber-900/60 text-amber-300" },
+  prata: { label: "Prata", color: "bg-slate-700/60 text-slate-300" },
+  ouro: { label: "Ouro", color: "bg-yellow-900/60 text-yellow-300" },
 };
 
 export default function BuscarRepresentantes() {
@@ -210,7 +211,7 @@ export default function BuscarRepresentantes() {
                 Pronto para contratar o representante ideal?
               </h3>
               <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-                Cadastre sua empresa gratuitamente e tenha acesso completo ao perfil, contato e histórico de todos os {count.toLocaleString("pt-BR")} representantes disponíveis.
+                Cadastre sua empresa e tenha acesso completo ao perfil, contato e histórico de todos os {count.toLocaleString("pt-BR")} representantes disponíveis.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button
@@ -231,7 +232,7 @@ export default function BuscarRepresentantes() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
-                Sem cartão de crédito · Plano gratuito disponível · Cancele quando quiser
+                Plano Starter a partir de R$49/mês · Cancele quando quiser
               </p>
             </div>
           </>

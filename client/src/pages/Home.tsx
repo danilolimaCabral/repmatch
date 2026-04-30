@@ -4,7 +4,8 @@ import {
   ArrowRight, CheckCircle, Star, Users, Building2, Zap, TrendingUp,
   Shield, Award, ChevronDown, BarChart3, MessageSquare,
   Target, Sparkles, Clock, MapPin, Briefcase, DollarSign, Lock,
-  Search, LockOpen, UserPlus, Eye, FileText, Crown, Gem
+  Search, LockOpen, UserPlus, Eye, FileText, Crown, Gem,
+  ThumbsUp, ThumbsDown, Frown, Smile, ChevronRight, Filter
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
@@ -78,6 +79,274 @@ function VagasDestaque() {
 }
 
 const LOGO_URL = "/manus-storage/repmatch-logo-clean_68a7f78f.png";
+
+// ─── Live Counter Section ────────────────────────────────────────────────────
+function LiveCounterSection() {
+  const { data } = trpc.representatives.preview.useQuery({ region: "", segment: "" });
+  const { data: jobsData } = trpc.jobs.listPublic.useQuery({ page: 1, limit: 1 });
+  const totalReps = data?.count ?? 9677;
+  const totalJobs = jobsData?.total ?? 0;
+  const [pulse, setPulse] = useState(false);
+  useEffect(() => {
+    const t = setInterval(() => setPulse(p => !p), 3000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <section className="py-10 border-y border-border bg-card/40">
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+          <div className="flex items-center gap-4">
+            <div className={`w-3 h-3 rounded-full bg-primary transition-opacity duration-700 ${pulse ? "opacity-100" : "opacity-40"}`} style={{ boxShadow: "0 0 8px oklch(0.62 0.18 152 / 0.8)" }} />
+            <div>
+              <div className="text-3xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                {totalReps.toLocaleString("pt-BR")}+
+              </div>
+              <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Representantes cadastrados</div>
+            </div>
+          </div>
+          <div className="w-px h-12 bg-border hidden md:block" />
+          <div className="flex items-center gap-4">
+            <div className={`w-3 h-3 rounded-full bg-primary transition-opacity duration-700 ${!pulse ? "opacity-100" : "opacity-40"}`} style={{ boxShadow: "0 0 8px oklch(0.62 0.18 152 / 0.8)" }} />
+            <div>
+              <div className="text-3xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                {totalJobs > 0 ? totalJobs.toLocaleString("pt-BR") : "—"}
+              </div>
+              <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Vagas abertas agora</div>
+            </div>
+          </div>
+          <div className="w-px h-12 bg-border hidden md:block" />
+          <div className="flex items-center gap-4">
+            <div className={`w-3 h-3 rounded-full bg-primary transition-opacity duration-700 ${pulse ? "opacity-40" : "opacity-100"}`} style={{ boxShadow: "0 0 8px oklch(0.62 0.18 152 / 0.8)" }} />
+            <div>
+              <div className="text-3xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>27</div>
+              <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Segmentos cobertos</div>
+            </div>
+          </div>
+          <div className="w-px h-12 bg-border hidden md:block" />
+          <div className="flex items-center gap-4">
+            <div className={`w-3 h-3 rounded-full bg-primary transition-opacity duration-700 ${!pulse ? "opacity-40" : "opacity-100"}`} style={{ boxShadow: "0 0 8px oklch(0.62 0.18 152 / 0.8)" }} />
+            <div>
+              <div className="text-3xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>27</div>
+              <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Estados atendidos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Match Simulator ─────────────────────────────────────────────────────────
+function MatchSimulator() {
+  const [region, setRegion] = useState("");
+  const [segment, setSegment] = useState("");
+  const [searched, setSearched] = useState(false);
+  const [, navigate] = useLocation();
+  const { data, isFetching } = trpc.representatives.preview.useQuery(
+    { region, segment },
+    { enabled: searched }
+  );
+  const regions = [
+    "SP Capital", "SP Interior", "RJ", "MG", "RS", "PR", "SC", "BA", "PE", "CE", "GO", "DF", "ES", "MT", "MS", "PA"
+  ];
+  const segments = [
+    "Alimentos e Bebidas", "Confecção e Têxtil", "Construção Civil", "Autopeças",
+    "Cosméticos e Higiene", "Tecnologia", "Agronegócio", "Móveis e Decoração",
+    "Farmacêutico", "Eletrodomésticos", "Utilidades Domésticas", "Saúde"
+  ];
+  return (
+    <section className="py-24 px-6 border-t border-border">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Simulador de Match</Badge>
+          <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+            Quantos representantes<br />
+            <span className="text-gradient-green">existem para a sua vaga?</span>
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+            Selecione a região e o segmento e veja quantos representantes qualificados estão disponíveis agora.
+          </p>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-8">
+          <div className="grid sm:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Região</label>
+              <select
+                value={region}
+                onChange={e => { setRegion(e.target.value); setSearched(false); }}
+                className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Todas as regiões</option>
+                {regions.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Segmento</label>
+              <select
+                value={segment}
+                onChange={e => { setSegment(e.target.value); setSearched(false); }}
+                className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Todos os segmentos</option>
+                {segments.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          <button
+            onClick={() => setSearched(true)}
+            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl text-base transition-colors"
+          >
+            <Search className="w-5 h-5" />
+            Ver representantes disponíveis
+          </button>
+
+          {searched && (
+            <div className="mt-8">
+              {isFetching ? (
+                <div className="text-center py-8 text-muted-foreground">Buscando...</div>
+              ) : data ? (
+                <div>
+                  <div className="text-center mb-6">
+                    <div className="text-6xl font-black text-primary mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                      {data.count.toLocaleString("pt-BR")}
+                    </div>
+                    <div className="text-muted-foreground">
+                      representantes {region || segment ? `em ${[region, segment].filter(Boolean).join(" · ")}` : "na base do RepMatch"}
+                    </div>
+                  </div>
+                  {data.previews.length > 0 && (
+                    <div className="grid sm:grid-cols-3 gap-3 mb-6">
+                      {data.previews.slice(0, 3).map((rep, i) => (
+                        <div key={i} className="rounded-xl border border-border bg-secondary/50 p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm flex-shrink-0">
+                              {rep.maskedName.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-sm truncate">{rep.maskedName}</div>
+                              <div className="text-xs text-muted-foreground truncate">{rep.region}</div>
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            {rep.segment && <div className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{rep.segment}</div>}
+                            {rep.experienceYears && <div className="flex items-center gap-1"><Award className="w-3 h-3" />{rep.experienceYears} anos de exp.</div>}
+                          </div>
+                          <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                            <Lock className="w-3 h-3" />
+                            <span>Contato bloqueado</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => navigate("/register")}
+                    className="w-full flex items-center justify-center gap-2 border border-primary/40 hover:bg-primary/10 text-primary font-semibold py-3 rounded-xl text-sm transition-colors"
+                  >
+                    Ver todos os {data.count.toLocaleString("pt-BR")} representantes <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Antes x Depois ──────────────────────────────────────────────────────────
+function AntesDepois() {
+  const [, navigate] = useLocation();
+  const scenarios = [
+    {
+      before: { icon: Frown, title: "Antes do RepMatch", color: "text-red-400", bg: "bg-red-500/5 border-red-500/20", items: [
+        "Semanas postando em grupos de WhatsApp sem retorno",
+        "Candidatos sem qualificação, sem histórico, sem compromisso",
+        "R$3.000–R$8.000 pagos a headhunter por contratação",
+        "Sem filtro por região ou segmento — tudo manual",
+        "Contato perdido após a primeira conversa",
+      ]},
+      after: { icon: Smile, title: "Com o RepMatch", color: "text-primary", bg: "bg-primary/5 border-primary/20", items: [
+        "Representantes qualificados em menos de 48 horas",
+        "Score de compatibilidade por região, segmento e experiência",
+        "A partir de R$49/mês para acesso ilimitado à base",
+        "Filtros automáticos — você vê apenas quem faz sentido",
+        "Chat integrado e histórico de candidaturas na plataforma",
+      ]}
+    }
+  ];
+  return (
+    <section className="py-24 px-6 bg-card/30 border-y border-border">
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-14">
+          <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Antes x Depois</Badge>
+          <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+            Como era antes.<br />
+            <span className="text-gradient-green">Como é agora.</span>
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+            O mercado de representação comercial não mudou em 20 anos. O RepMatch mudou.
+          </p>
+        </div>
+
+        {scenarios.map((s, idx) => (
+          <div key={idx} className="grid md:grid-cols-2 gap-5">
+            {/* Antes */}
+            <div className={`rounded-2xl border p-7 ${s.before.bg}`}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
+                  <s.before.icon className={`w-5 h-5 ${s.before.color}`} />
+                </div>
+                <h3 className={`font-bold text-lg ${s.before.color}`}>{s.before.title}</h3>
+              </div>
+              <ul className="space-y-4">
+                {s.before.items.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-red-400 text-xs font-bold">✕</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Depois */}
+            <div className={`rounded-2xl border p-7 ${s.after.bg}`}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                  <s.after.icon className={`w-5 h-5 ${s.after.color}`} />
+                </div>
+                <h3 className={`font-bold text-lg ${s.after.color}`}>{s.after.title}</h3>
+              </div>
+              <ul className="space-y-4">
+                {s.after.items.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                    <span className="text-sm text-foreground/80">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ))}
+
+        <div className="mt-10 text-center">
+          <button
+            onClick={() => navigate("/register")}
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-10 py-4 rounded-xl text-base transition-colors shadow-lg"
+          >
+            Quero o depois <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function AnimatedCounter({ end, suffix = "", duration = 2000 }: { end: number; suffix?: string; duration?: number }) {
   const [count, setCount] = useState(0);
@@ -236,49 +505,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── Logos Parceiros ──────────────────────────────────────────────────────────── */}
-      <section className="py-12 border-y border-border overflow-hidden bg-card/30">
-        <div className="mb-5 text-center">
-          <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground/50">Empresas que já confiam no RepMatch</p>
-        </div>
-        <style>{`
-          @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .marquee-track {
-            display: flex;
-            width: max-content;
-            animation: marquee 30s linear infinite;
-          }
-          .marquee-track:hover {
-            animation-play-state: paused;
-          }
-        `}</style>
-        <div className="overflow-hidden relative">
-          <div className="absolute left-0 top-0 bottom-0 w-24 z-10 pointer-events-none" style={{ background: "linear-gradient(to right, var(--background), transparent)" }} />
-          <div className="absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none" style={{ background: "linear-gradient(to left, var(--background), transparent)" }} />
-          <div className="marquee-track">
-            {[
-              { name: "Ambev", abbr: "AB" }, { name: "Nestlé", abbr: "NE" }, { name: "Unilever", abbr: "UN" },
-              { name: "Boticario", abbr: "BO" }, { name: "Natura", abbr: "NA" }, { name: "Seara", abbr: "SE" },
-              { name: "Sadia", abbr: "SA" }, { name: "Havaianas", abbr: "HV" }, { name: "Tramontina", abbr: "TR" },
-              { name: "Votorantim", abbr: "VO" },
-              { name: "Ambev", abbr: "AB" }, { name: "Nestlé", abbr: "NE" }, { name: "Unilever", abbr: "UN" },
-              { name: "Boticario", abbr: "BO" }, { name: "Natura", abbr: "NA" }, { name: "Seara", abbr: "SE" },
-              { name: "Sadia", abbr: "SA" }, { name: "Havaianas", abbr: "HV" }, { name: "Tramontina", abbr: "TR" },
-              { name: "Votorantim", abbr: "VO" },
-            ].map(({ name, abbr }, i) => (
-              <div key={`${name}-${i}`} className="flex items-center gap-3 mx-10 select-none">
-                <div className="w-9 h-9 rounded-lg bg-secondary border border-border flex items-center justify-center text-xs font-black text-muted-foreground flex-shrink-0">
-                  {abbr}
-                </div>
-                <span className="text-muted-foreground font-semibold text-base whitespace-nowrap">{name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ─── Contador ao Vivo ─────────────────────────────────────────────────────── */}
+      <LiveCounterSection />
 
       {/* ─── Stats ─────────────────────────────────────────────────────────────────────── */}
       <section className="py-20 border-b border-border">
@@ -538,68 +766,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── Social Proof ───────────────────────────────────────────────────── */}
-      <section className="py-28 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Depoimentos</Badge>
-            <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-              Quem já usa<br />
-              <span className="text-gradient-green">não volta atrás.</span>
-            </h2>
-          </div>
+      {/* ─── Simulador de Match ─────────────────────────────────────────────── */}
+      <MatchSimulator />
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              { name: "Carlos Mendes", initials: "CM", color: "from-emerald-600 to-teal-700", role: "Diretor Comercial", company: "Distribuidora Mendes", city: "São Paulo, SP", tier: "Pro", stars: 5, text: "Contratamos 3 representantes em 6 semanas. Antes levávamos meses buscando no LinkedIn e em grupos de WhatsApp. A qualidade dos candidatos é muito superior.", metric: "3 contratos fechados em 6 semanas" },
-              { name: "Ricardo Souza", initials: "RS", color: "from-violet-600 to-purple-700", role: "CEO", company: "TechDistrib Ltda.", city: "Curitiba, PR", tier: "Enterprise", stars: 5, text: "Os representantes têm histórico, avaliação e score. Não é mais um site de anúncio — é um sistema de match real. Nossa equipe de vendas cresceu 40% em 4 meses.", metric: "Equipe de vendas +40% em 4 meses" },
-              { name: "Juliana Rocha", initials: "JR", color: "from-orange-600 to-amber-700", role: "Gerente de Expansão", company: "Grupo Saúde Total", city: "Rio de Janeiro, RJ", tier: "Pro", stars: 5, text: "Precisávamos cobrir 5 estados com representantes de saúde. Em 2 semanas o RepMatch entregou 12 candidatos com score acima de 85%. Contratamos 6.", metric: "12 candidatos qualificados em 2 semanas" },
-              { name: "Marcos Oliveira", initials: "MO", color: "from-rose-600 to-pink-700", role: "Representante Comercial", company: "Autônomo · Agronegócio", city: "Ribeirão Preto, SP", tier: "Premium", stars: 5, text: "Trabalho com agronegócio há 12 anos e nunca tinha uma plataforma que entendesse meu perfil. O RepMatch me conectou com 3 empresas do meu segmento exato.", metric: "3 conexões no segmento exato" },
-              { name: "Ana Paula Ferreira", initials: "AF", color: "from-teal-600 to-green-700", role: "Diretora de Vendas", company: "Cosméticos Natureza Viva", city: "Florianópolis, SC", tier: "Pro", stars: 5, text: "O ranking das empresas foi o que me convenceu. Saber que somos Gold dá credibilidade para atrair os melhores reps. Nossa taxa de resposta subiu 3x.", metric: "Taxa de resposta 3x maior" },
-              { name: "Paulo Henrique Costa", initials: "PH", color: "from-blue-600 to-indigo-700", role: "Representante Comercial", company: "Autônomo · Tecnologia", city: "Porto Alegre, RS", tier: "Elite", stars: 5, text: "Migrei do LinkedIn para o RepMatch e a diferença é absurda. Aqui as empresas são verificadas, as vagas têm comissão clara e o chat interno evita aquela dança de WhatsApp.", metric: "2x mais propostas que no LinkedIn" },
-            ].map(({ name, initials, color, role, company, city, tier, stars, text, metric }) => (
-              <div key={name} className="rounded-2xl bg-card border border-border p-6 hover:border-primary/25 transition-all duration-200 hover:-translate-y-0.5 flex flex-col gap-4">
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: stars }).map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="text-foreground/80 text-sm leading-relaxed flex-1">"{text}"</p>
-                <div className="flex items-center gap-2 bg-primary/8 border border-primary/15 rounded-xl px-3 py-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span className="text-xs font-semibold text-primary">{metric}</span>
-                </div>
-                <div className="flex items-center justify-between pt-3 border-t border-border">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white text-xs font-black shrink-0`}>
-                      {initials}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-foreground text-sm">{name}</div>
-                      <div className="text-xs text-muted-foreground">{role} · {company}</div>
-                      <div className="text-xs text-muted-foreground/60">{city}</div>
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-full shrink-0">{tier}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-8 text-sm text-muted-foreground">
-            {[
-              { icon: CheckCircle, text: "Depoimentos verificados por usuários reais" },
-              { icon: Shield, text: "Plataforma com CNPJ validado e dados seguros" },
-              { icon: Award, text: "+2.400 matches realizados em 2025" },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2">
-                <Icon className="w-4 h-4 text-primary" />
-                <span>{text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ─── Antes x Depois ─────────────────────────────────────────────────── */}
+      <AntesDepois />
 
       {/* ─── Vagas em Destaque ─────────────────────────────────────────── */}
       <VagasDestaque />

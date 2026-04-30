@@ -34,8 +34,9 @@ const RANK_LABELS: Record<string, { label: string; color: string }> = {
 
 const TIER_LABELS: Record<string, string> = {
   free: "Acesso Free",
-  premium: "Acesso Premium",
-  elite: "Acesso Elite",
+  bronze: "Acesso Bronze",
+  prata: "Acesso Prata",
+  ouro: "Acesso Ouro",
 };
 
 function maskCompanyName(name: string): string {
@@ -336,7 +337,7 @@ export default function Vagas() {
             </div>
             <h2 className="text-2xl font-black mb-2">Pronto para se candidatar?</h2>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Crie sua conta gratuita, monte seu perfil e candidate-se às vagas que combinam com você. Sem taxa de cadastro.
+              Crie sua conta, monte seu perfil e candidate-se às vagas que combinam com você. Plano Free disponível.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
@@ -355,7 +356,7 @@ export default function Vagas() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-4">
-              Plano Free gratuito para sempre · Upgrade para Premium a partir de R$19/mês
+              Plano Free disponível · Upgrade para Prata a partir de R$19,90/mês
             </p>
           </div>
         )}
