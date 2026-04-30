@@ -290,4 +290,9 @@
 - [x] Painel admin /admin/pagamentos — listar usuários com tier "free", botão para ativar plano manualmente
 - [x] Backend: procedure adminProcedure admin.activatePlan(userId, tier) para atualizar subscriptionTier
 - [x] Notificação de boas-vindas no onboarding — notifyOwner com nome, tipo (rep/empresa) e região ao completar cadastro
-- [ ] Publicar site no domínio repmarket-jwuaunbc.manus.space
+- [x] Publicar site no domínio repmarket-jwuaunbc.manus.space
+
+## Filtro de Disponibilidade
+- [x] Backend: adicionar parâmetro availability em listRepresentativesForCompany e getRepresentativePreview
+- [x] Frontend CompanyDashboard: select de disponibilidade na aba "Buscar Representantes"
+- [x] Frontend BuscarRepresentantes: select de disponibilidade nos filtros públicos

@@ -30,12 +30,13 @@ export default function BuscarRepresentantes() {
   const [segment, setSegment] = useState("");
   const [kycApproved, setKycApproved] = useState(false);
   const [coreActive, setCoreActive] = useState(false);
+  const [availability, setAvailability] = useState<string | undefined>(undefined);
 
   const regionFilter = region === "all" ? undefined : region || undefined;
   const segmentFilter = segment === "all" ? undefined : segment || undefined;
 
   const { data, isLoading } = trpc.representatives.preview.useQuery(
-    { region: regionFilter, segment: segmentFilter, kycApproved: kycApproved || undefined, coreActive: coreActive || undefined }
+    { region: regionFilter, segment: segmentFilter, kycApproved: kycApproved || undefined, coreActive: coreActive || undefined, availability }
   );
 
   const count = data?.count ?? 0;
@@ -135,9 +136,25 @@ export default function BuscarRepresentantes() {
               CORE Ativo
               {coreActive && <span className="ml-1 text-xs bg-white/20 px-1.5 py-0.5 rounded-full">✓ Ativo</span>}
             </button>
-            {(kycApproved || coreActive) && (
+            {/* Availability filter */}
+            {(["imediata", "30dias", "60dias", "negociavel"] as const).map((av) => (
               <button
-                onClick={() => { setKycApproved(false); setCoreActive(false); }}
+                key={av}
+                onClick={() => setAvailability(availability === av ? undefined : av)}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                  availability === av
+                    ? "bg-primary text-primary-foreground border-primary shadow-[0_0_12px_rgba(34,197,94,0.3)]"
+                    : "bg-secondary text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
+                }`}
+              >
+                {av === "imediata" ? "🟢" : av === "30dias" ? "🟡" : av === "60dias" ? "🟠" : "⚪"}
+                {av === "imediata" ? "Imediata" : av === "30dias" ? "30 dias" : av === "60dias" ? "60 dias" : "Negociável"}
+                {availability === av && <span className="ml-1 text-xs bg-white/20 px-1.5 py-0.5 rounded-full">✓</span>}
+              </button>
+            ))}
+            {(kycApproved || coreActive || availability) && (
+              <button
+                onClick={() => { setKycApproved(false); setCoreActive(false); setAvailability(undefined); }}
                 className="text-xs text-muted-foreground hover:text-foreground underline"
               >
                 Limpar filtros

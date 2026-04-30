@@ -76,6 +76,7 @@ export default function CompanyDashboard() {
   const [searchTier, setSearchTier] = useState<"bronze" | "prata" | "ouro" | undefined>(undefined);
   const [searchKycApproved, setSearchKycApproved] = useState(false);
   const [searchCoreActive, setSearchCoreActive] = useState(false);
+  const [searchAvailability, setSearchAvailability] = useState<string | undefined>(undefined);
   const [createJobOpen, setCreateJobOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
@@ -109,7 +110,7 @@ export default function CompanyDashboard() {
     { enabled: !!selectedJobId }
   );
   const { data: searchData, isLoading: searchLoading } = trpc.representatives.listForCompany.useQuery(
-    { region: searchRegion, segment: searchSegment, tier: searchTier, page: searchPage, limit: 20, kycApproved: searchKycApproved || undefined, coreActive: searchCoreActive || undefined },
+    { region: searchRegion, segment: searchSegment, tier: searchTier, page: searchPage, limit: 20, kycApproved: searchKycApproved || undefined, coreActive: searchCoreActive || undefined, availability: searchAvailability },
     { enabled: activeTab === "search" }
   );
 
@@ -682,8 +683,20 @@ export default function CompanyDashboard() {
                     <SelectItem value="ouro">Ouro</SelectItem>
                   </SelectContent>
                 </Select>
-                {(searchRegion || searchSegment || searchTier || searchKycApproved || searchCoreActive) && (
-                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { setSearchRegion(undefined); setSearchSegment(undefined); setSearchTier(undefined); setSearchKycApproved(false); setSearchCoreActive(false); setSearchPage(1); }}>
+                <Select value={searchAvailability ?? "all"} onValueChange={v => { setSearchAvailability(v === "all" ? undefined : v); setSearchPage(1); }}>
+                  <SelectTrigger className="w-52">
+                    <SelectValue placeholder="Qualquer disponibilidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Qualquer disponibilidade</SelectItem>
+                    <SelectItem value="imediata">🟢 Disponível imediatamente</SelectItem>
+                    <SelectItem value="30dias">🟡 Disponível em 30 dias</SelectItem>
+                    <SelectItem value="60dias">🟠 Disponível em 60 dias</SelectItem>
+                    <SelectItem value="negociavel">⚪ Negociável</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(searchRegion || searchSegment || searchTier || searchKycApproved || searchCoreActive || searchAvailability) && (
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { setSearchRegion(undefined); setSearchSegment(undefined); setSearchTier(undefined); setSearchKycApproved(false); setSearchCoreActive(false); setSearchAvailability(undefined); setSearchPage(1); }}>
                     Limpar filtros
                   </Button>
                 )}

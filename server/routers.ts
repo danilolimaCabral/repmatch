@@ -207,7 +207,7 @@ export const appRouter = router({
       }),
 
     preview: publicProcedure
-      .input(z.object({ region: z.string().optional(), segment: z.string().optional(), kycApproved: z.boolean().optional(), coreActive: z.boolean().optional() }).optional())
+      .input(z.object({ region: z.string().optional(), segment: z.string().optional(), kycApproved: z.boolean().optional(), coreActive: z.boolean().optional(), availability: z.string().optional() }).optional())
       .query(async ({ ctx, input }) => {
         // Get company subscription tier for plan-based gating
         let subscriptionTier: string | undefined;
@@ -232,6 +232,7 @@ export const appRouter = router({
           limit: z.number().min(1).max(50).default(20),
           kycApproved: z.boolean().optional(),
           coreActive: z.boolean().optional(),
+          availability: z.string().optional(),
         }).optional()
       )
       .query(async ({ ctx, input }) => {
