@@ -64,6 +64,13 @@
       "when": 1777569913805,
       "tag": "0008_jazzy_overlord",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1777592209142,
+      "tag": "0009_late_squadron_sinister",
+      "breakpoints": true
     }
   ]
 }

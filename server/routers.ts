@@ -46,8 +46,7 @@ import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
-import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
+
 
 /// ─── Helpers ──────────────────────────────────────────────────────────────────
 const TIER_ORDER = { free: 0, bronze: 1, prata: 2, ouro: 3 } as const;
@@ -101,8 +100,6 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       ctx.res.clearCookie("rm_session", { path: "/", maxAge: -1 });
       return { success: true } as const;
     }),

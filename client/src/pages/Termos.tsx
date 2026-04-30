@@ -65,7 +65,7 @@ export default function Termos() {
               <li>Pessoas jurídicas devem ser representadas por pessoa física autorizada</li>
               <li>Cada usuário pode ter apenas <strong>uma conta ativa</strong></li>
               <li>Você é responsável pela veracidade e atualização das informações cadastradas</li>
-              <li>O cadastro é feito via autenticação Manus OAuth — você é responsável pela segurança da sua conta</li>
+              <li>O cadastro é feito com e-mail e senha — você é responsável pela segurança e sigilo da sua senha</li>
               <li>Informações falsas ou enganosas resultam em suspensão imediata da conta</li>
             </ul>
           </Section>

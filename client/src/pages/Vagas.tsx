@@ -97,10 +97,10 @@ export default function Vagas() {
               </Button>
             ) : (
               <>
-                <Button size="sm" variant="ghost" onClick={() => window.location.href = getLoginUrl()}>
+                <Button size="sm" variant="ghost" onClick={() => window.location.href = '/login'}>
                   Entrar
                 </Button>
-                <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => window.location.href = getLoginUrl()}>
+                <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => window.location.href = '/login'}>
                   Criar conta
                 </Button>
               </>
@@ -350,7 +350,7 @@ export default function Vagas() {
               <Button
                 variant="outline"
                 className="border-border"
-                onClick={() => window.location.href = getLoginUrl()}
+                onClick={() => window.location.href = '/login'}
                 >
                   Já tenho conta
               </Button>
@@ -369,7 +369,7 @@ export default function Vagas() {
         <div className="flex justify-center gap-4 mt-2">
           <Link href="/" className="hover:text-foreground transition-colors">Início</Link>
           <a href="/" className="hover:text-foreground transition-colors">Cadastrar</a>
-          <a href={getLoginUrl()} className="hover:text-foreground transition-colors">Entrar</a>
+          <a href="/login" className="hover:text-foreground transition-colors">Entrar</a>
         </div>
       </footer>
     </div>

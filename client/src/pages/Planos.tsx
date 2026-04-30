@@ -171,8 +171,8 @@ export default function Planos() {
       setSelectedPlan(plan);
       setPaymentMethod("pix");
     } else {
-      // Redirect to Manus OAuth then onboarding will handle plan selection
-      window.location.href = getLoginUrl();
+      // Redirect to login, then onboarding will handle plan selection
+      window.location.href = '/login';
     }
   };
 
@@ -186,7 +186,7 @@ export default function Planos() {
           </a>
           <div className="flex items-center gap-4">
             <a href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Início</a>
-            <a href={getLoginUrl()} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">
+            <a href="/login" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">
               Entrar / Cadastrar
             </a>
           </div>

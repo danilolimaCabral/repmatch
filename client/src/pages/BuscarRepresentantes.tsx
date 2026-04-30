@@ -53,10 +53,10 @@ export default function BuscarRepresentantes() {
             <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
           </button>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => window.location.href = getLoginUrl()}>
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => window.location.href = '/login'}>
               Entrar
             </Button>
-            <Button size="sm" className="bg-primary text-primary-foreground font-semibold" onClick={() => window.location.href = getLoginUrl()}>
+            <Button size="sm" className="bg-primary text-primary-foreground font-semibold" onClick={() => window.location.href = '/login'}>
               Cadastrar
             </Button>
           </div>
@@ -329,7 +329,7 @@ export default function BuscarRepresentantes() {
                   size="lg"
                   variant="outline"
                   className="border-border"
-                  onClick={() => window.location.href = getLoginUrl()}
+                  onClick={() => window.location.href = '/login'}
                 >
                   Já tenho conta
                 </Button>

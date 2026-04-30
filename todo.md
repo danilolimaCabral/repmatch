@@ -300,3 +300,21 @@
 ## Ordenação por Disponibilidade
 - [x] Backend: adicionar sortBy em listRepresentativesForCompany (availability, rating, tier)
 - [x] Frontend CompanyDashboard: select de ordenação (Mais disponíveis / Melhor avaliados / Plano)
+
+## Badge Disponibilidade + Contador + Job Agendado
+- [ ] Badge de disponibilidade nos cards do CompanyDashboard e BuscarRepresentantes
+- [ ] Contador "X disponíveis agora" no topo da aba de busca
+- [ ] Backend: countAvailableNow procedure + /api/scheduled/availability-reminder endpoint
+- [ ] Job agendado mensal para lembrar reps de atualizar disponibilidade
+
+## Substituição Auth Manus → Auth Própria (email/senha)
+- [x] Schema: adicionar campo passwordHash na tabela users
+- [x] Backend: criar rotas auth próprias (POST /api/auth/register, /api/auth/login, /api/auth/logout, GET /api/auth/me)
+- [x] Backend: atualizar context.ts para ler JWT do cookie em vez de OAuth session
+- [x] Backend: remover rotas OAuth (/api/oauth/*)
+- [x] Frontend: criar página /login com formulário email+senha
+- [x] Frontend: criar página /register com formulário email+senha+tipo
+- [x] Frontend: atualizar useAuth() para usar /api/auth/me
+- [x] Frontend: remover todos os botões/links de login Manus (getLoginUrl)
+- [x] Frontend: remover callback OAuth do App.tsx
+- [x] Remover dependências OAuth do package.json se houver

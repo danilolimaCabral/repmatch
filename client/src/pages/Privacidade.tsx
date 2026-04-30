@@ -64,7 +64,7 @@ export default function Privacidade() {
 
             <SubTitle>2.1 Representantes Comerciais</SubTitle>
             <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
-              <li>Nome completo e e-mail (via autenticação Manus OAuth)</li>
+              <li>Nome completo e e-mail (fornecidos no cadastro)</li>
               <li>Telefone de contato</li>
               <li>Região de atuação e segmentos de mercado</li>
               <li>Tempo de experiência e portfólio</li>
@@ -129,7 +129,7 @@ export default function Privacidade() {
             <ul className="list-disc pl-6 space-y-2 text-muted-foreground mt-3">
               <li><strong>Stripe Inc.</strong> — processamento de pagamentos com cartão. Política: <a href="https://stripe.com/br/privacy" className="text-green-400 hover:underline" target="_blank" rel="noopener noreferrer">stripe.com/br/privacy</a></li>
               <li><strong>BrasilAPI / Receita Federal</strong> — consulta pública de CNPJ (dados já públicos)</li>
-              <li><strong>Manus OAuth</strong> — autenticação de identidade</li>
+              <li><strong>Autenticação própria</strong> — e-mail e senha com JWT</li>
               <li><strong>Empresas contratantes</strong> — apenas os dados do perfil que o representante optou por tornar visível</li>
               <li><strong>Autoridades públicas</strong> — quando exigido por lei ou ordem judicial</li>
             </ul>
@@ -191,7 +191,7 @@ export default function Privacidade() {
             <p>Adotamos as seguintes medidas técnicas e organizacionais para proteger seus dados:</p>
             <ul className="list-disc pl-6 space-y-2 text-muted-foreground mt-3">
               <li><strong>Criptografia em trânsito:</strong> HTTPS/TLS em todas as comunicações</li>
-              <li><strong>Autenticação segura:</strong> OAuth 2.0 via Manus — sem senhas armazenadas localmente</li>
+              <li><strong>Autenticação segura:</strong> senhas armazenadas com hash bcrypt — nunca em texto simples</li>
               <li><strong>Sessões assinadas:</strong> cookies HttpOnly + SameSite + Secure com JWT</li>
               <li><strong>Dados de pagamento:</strong> processados exclusivamente pelo Stripe (PCI DSS Level 1)</li>
               <li><strong>Banco de dados:</strong> acesso restrito com credenciais rotacionadas</li>

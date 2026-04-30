@@ -3,12 +3,12 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { stripeRouter } from "../stripe/stripeRoutes";
+import { registerAuthRoutes } from "../authRoutes";
 import cookieParser from "cookie-parser";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -43,7 +43,7 @@ async function startServer() {
 
   app.use(cookieParser());
   registerStorageProxy(app);
-  registerOAuthRoutes(app);
+  registerAuthRoutes(app);
 
   // Stripe routes
   app.use("/api/stripe", stripeRouter);

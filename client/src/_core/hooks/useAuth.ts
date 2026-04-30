@@ -2,7 +2,6 @@
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
-import { getLoginUrl } from "@/const";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -10,7 +9,7 @@ type UseAuthOptions = {
 };
 
 export function useAuth(options?: UseAuthOptions) {
-  const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
+  const { redirectOnUnauthenticated = false, redirectPath = "/login" } =
     options ?? {};
   const utils = trpc.useUtils();
 
@@ -66,7 +65,7 @@ export function useAuth(options?: UseAuthOptions) {
     if (meQuery.isLoading || logoutMutation.isPending) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
-    // Don't redirect if already on the OAuth portal
+    // Don't redirect if already on the login page
     if (window.location.href.startsWith(redirectPath)) return;
 
     window.location.href = redirectPath

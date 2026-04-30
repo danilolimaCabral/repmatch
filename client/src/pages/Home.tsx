@@ -462,7 +462,7 @@ export default function Home() {
       else if (repProfile) navigate("/dashboard/rep");
       else navigate("/onboarding");
     } else {
-      window.location.href = getLoginUrl();
+      window.location.href = '/login';
     }
   };
 
@@ -494,8 +494,8 @@ export default function Home() {
               </button>
             ) : (
               <>
-                <a href={getLoginUrl()} className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Entrar</a>
-                <a href={getLoginUrl()} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">
+                <a href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Entrar</a>
+                <a href="/register" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">
                   Cadastrar agora
                 </a>
               </>

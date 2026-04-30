@@ -15,6 +15,8 @@ import Planos from "./pages/Planos";
 import Privacidade from "./pages/Privacidade";
 import Termos from "./pages/Termos";
 import VerificacaoKYC from "./pages/VerificacaoKYC";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import CookieConsent from "./components/CookieConsent";
 
 function Router() {
@@ -31,6 +33,8 @@ function Router() {
       <Route path="/privacidade" component={Privacidade} />
       <Route path="/termos" component={Termos} />
       <Route path="/verificacao" component={VerificacaoKYC} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

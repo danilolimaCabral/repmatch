@@ -75,9 +75,8 @@ describe("calculateMatchScore", () => {
   });
 });
 
-// ─── Auth Logout Tests (inherited from template) ──────────────────────────────
+// ─── Auth Logout Tests ───────────────────────────────────────────────────────
 import { appRouter } from "./routers";
-import { COOKIE_NAME } from "../shared/const";
 import type { TrpcContext } from "./_core/context";
 
 type CookieCall = { name: string; options: Record<string, unknown> };
@@ -87,11 +86,13 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
   const clearedCookies: CookieCall[] = [];
   const user: AuthenticatedUser = {
     id: 1,
-    openId: "test-user",
+    openId: "email:test@repmatch.com",
     email: "test@repmatch.com",
     name: "Test User",
-    loginMethod: "manus",
+    passwordHash: null,
     role: "user",
+    userType: "pending",
+    isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     lastSignedIn: new Date(),
@@ -109,14 +110,15 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
 }
 
 describe("auth.logout", () => {
-  it("clears session cookie and reports success", async () => {
+  it("clears rm_session cookie and reports success", async () => {
     const { ctx, clearedCookies } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
     const result = await caller.auth.logout();
     expect(result).toEqual({ success: true });
-    expect(clearedCookies).toHaveLength(2);
-    const mainCookie = clearedCookies.find(c => c.name === COOKIE_NAME);
-    expect(mainCookie).toBeDefined();
-    expect(mainCookie?.options).toMatchObject({ maxAge: -1, httpOnly: true, path: "/" });
+    // Only rm_session is cleared (own auth — no Manus OAuth cookie)
+    expect(clearedCookies).toHaveLength(1);
+    const rmCookie = clearedCookies.find(c => c.name === "rm_session");
+    expect(rmCookie).toBeDefined();
+    expect(rmCookie?.options).toMatchObject({ path: "/", maxAge: -1 });
   });
 });
