@@ -88,48 +88,46 @@ function LiveCounterSection() {
   const totalJobs = jobsData?.total ?? 0;
   const [pulse, setPulse] = useState(false);
   useEffect(() => {
-    const t = setInterval(() => setPulse(p => !p), 3000);
+    const t = setInterval(() => setPulse(p => !p), 2000);
     return () => clearInterval(t);
   }, []);
+
+  const stats = [
+    { value: totalReps, suffix: "+", label: "Representantes cadastrados", sublabel: "Base verificada e ativa", icon: Users, pulsed: pulse },
+    { value: totalJobs, suffix: "", label: "Vagas abertas agora", sublabel: "Atualizado em tempo real", icon: Briefcase, pulsed: !pulse },
+    { value: 12, suffix: "", label: "Segmentos cobertos", sublabel: "Do agro ao tech", icon: BarChart3, pulsed: pulse },
+    { value: 13, suffix: "", label: "Estados atendidos", sublabel: "Cobertura nacional", icon: MapPin, pulsed: !pulse },
+  ];
+
   return (
-    <section className="py-10 border-y border-border bg-card/40">
-      <div className="max-w-5xl mx-auto px-6">
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
-          <div className="flex items-center gap-4">
-            <div className={`w-3 h-3 rounded-full bg-primary transition-opacity duration-700 ${pulse ? "opacity-100" : "opacity-40"}`} style={{ boxShadow: "0 0 8px oklch(0.62 0.18 152 / 0.8)" }} />
-            <div>
-              <div className="text-3xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-                {totalReps.toLocaleString("pt-BR")}+
+    <section className="py-14 border-y border-border" style={{ background: "linear-gradient(180deg, oklch(0.14 0.01 152 / 0.5) 0%, transparent 100%)" }}>
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-widest">
+            <span className={`w-2 h-2 rounded-full bg-primary transition-opacity duration-1000 ${pulse ? "opacity-100" : "opacity-30"}`}
+              style={{ boxShadow: "0 0 6px oklch(0.62 0.18 152 / 0.9)" }} />
+            Dados em tempo real
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          {stats.map((stat, i) => (
+            <div key={i} className="relative rounded-2xl border border-border bg-card/60 p-6 text-center overflow-hidden group">
+              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: "radial-gradient(ellipse at 50% 0%, oklch(0.62 0.18 152 / 0.08) 0%, transparent 70%)" }} />
+              <div className="flex justify-center mb-4">
+                <div className="relative">
+                  <stat.icon className="w-6 h-6 text-primary" />
+                  <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary transition-opacity duration-1000 ${stat.pulsed ? "opacity-100" : "opacity-20"}`}
+                    style={{ boxShadow: "0 0 5px oklch(0.62 0.18 152 / 0.9)" }} />
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Representantes cadastrados</div>
-            </div>
-          </div>
-          <div className="w-px h-12 bg-border hidden md:block" />
-          <div className="flex items-center gap-4">
-            <div className={`w-3 h-3 rounded-full bg-primary transition-opacity duration-700 ${!pulse ? "opacity-100" : "opacity-40"}`} style={{ boxShadow: "0 0 8px oklch(0.62 0.18 152 / 0.8)" }} />
-            <div>
-              <div className="text-3xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-                {totalJobs > 0 ? totalJobs.toLocaleString("pt-BR") : "—"}
+              <div className="text-4xl font-black text-foreground mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                <AnimatedCounter end={stat.value} suffix={stat.suffix} />
               </div>
-              <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Vagas abertas agora</div>
+              <div className="text-sm font-semibold text-foreground/80 mb-1">{stat.label}</div>
+              <div className="text-xs text-muted-foreground">{stat.sublabel}</div>
             </div>
-          </div>
-          <div className="w-px h-12 bg-border hidden md:block" />
-          <div className="flex items-center gap-4">
-            <div className={`w-3 h-3 rounded-full bg-primary transition-opacity duration-700 ${pulse ? "opacity-40" : "opacity-100"}`} style={{ boxShadow: "0 0 8px oklch(0.62 0.18 152 / 0.8)" }} />
-            <div>
-              <div className="text-3xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>27</div>
-              <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Segmentos cobertos</div>
-            </div>
-          </div>
-          <div className="w-px h-12 bg-border hidden md:block" />
-          <div className="flex items-center gap-4">
-            <div className={`w-3 h-3 rounded-full bg-primary transition-opacity duration-700 ${!pulse ? "opacity-40" : "opacity-100"}`} style={{ boxShadow: "0 0 8px oklch(0.62 0.18 152 / 0.8)" }} />
-            <div>
-              <div className="text-3xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>27</div>
-              <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Estados atendidos</div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
@@ -146,17 +144,22 @@ function MatchSimulator() {
     { region, segment },
     { enabled: searched }
   );
+  // Exact region names from the database
   const regions = [
-    "SP Capital", "SP Interior", "RJ", "MG", "RS", "PR", "SC", "BA", "PE", "CE", "GO", "DF", "ES", "MT", "MS", "PA"
+    "Paraná", "Rio de Janeiro", "Distrito Federal", "Ceará",
+    "São Paulo - Interior", "Pernambuco", "São Paulo - Capital",
+    "Bahia", "Nacional (Todo Brasil)", "Goiás", "Rio Grande do Sul",
+    "Santa Catarina", "Minas Gerais",
   ];
   const segments = [
-    "Alimentos e Bebidas", "Confecção e Têxtil", "Construção Civil", "Autopeças",
-    "Cosméticos e Higiene", "Tecnologia", "Agronegócio", "Móveis e Decoração",
-    "Farmacêutico", "Eletrodomésticos", "Utilidades Domésticas", "Saúde"
+    "Automotivo", "Tecnologia", "Eletroeletrônicos", "Agronegócio",
+    "Construção Civil", "Farmacêutico", "Alimentos e Bebidas",
+    "Móveis e Decoração", "Têxtil e Moda", "Saúde e Médico",
+    "Cosméticos e Higiene", "Outros",
   ];
   return (
     <section className="py-24 px-6 border-t border-border">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
           <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Simulador de Match</Badge>
           <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
@@ -168,10 +171,13 @@ function MatchSimulator() {
           </p>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-8">
+        <div className="bg-card border border-border rounded-2xl p-8 shadow-xl">
+          {/* Filters */}
           <div className="grid sm:grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Região</label>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">
+                <MapPin className="w-3.5 h-3.5 inline mr-1.5 text-primary" />Região
+              </label>
               <select
                 value={region}
                 onChange={e => { setRegion(e.target.value); setSearched(false); }}
@@ -182,7 +188,9 @@ function MatchSimulator() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Segmento</label>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">
+                <Briefcase className="w-3.5 h-3.5 inline mr-1.5 text-primary" />Segmento
+              </label>
               <select
                 value={segment}
                 onChange={e => { setSegment(e.target.value); setSearched(false); }}
@@ -198,29 +206,56 @@ function MatchSimulator() {
             className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl text-base transition-colors"
           >
             <Search className="w-5 h-5" />
-            Ver representantes disponíveis
+            Ver representantes disponíveis agora
           </button>
 
+          {/* Results */}
           {searched && (
-            <div className="mt-8">
+            <div className="mt-8 border-t border-border pt-8">
               {isFetching ? (
-                <div className="text-center py-8 text-muted-foreground">Buscando...</div>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="rounded-xl border border-border bg-secondary/30 p-4 animate-pulse">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-9 h-9 rounded-full bg-secondary" />
+                        <div className="flex-1">
+                          <div className="h-3 bg-secondary rounded w-3/4 mb-2" />
+                          <div className="h-2 bg-secondary rounded w-1/2" />
+                        </div>
+                      </div>
+                      <div className="h-2 bg-secondary rounded w-full mb-2" />
+                      <div className="h-2 bg-secondary rounded w-2/3" />
+                    </div>
+                  ))}
+                </div>
               ) : data ? (
                 <div>
-                  <div className="text-center mb-6">
-                    <div className="text-6xl font-black text-primary mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                  {/* Big number */}
+                  <div className="text-center mb-8">
+                    <div className="text-7xl font-black text-primary mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
                       {data.count.toLocaleString("pt-BR")}
                     </div>
-                    <div className="text-muted-foreground">
-                      representantes {region || segment ? `em ${[region, segment].filter(Boolean).join(" · ")}` : "na base do RepMatch"}
+                    <div className="text-muted-foreground text-base">
+                      representantes{" "}
+                      {region || segment
+                        ? <><span className="text-foreground font-semibold">{[region, segment].filter(Boolean).join(" · ")}</span></>
+                        : "na base do RepMatch"}
                     </div>
+                    {data.count > 0 && (
+                      <div className="inline-flex items-center gap-1.5 mt-3 bg-primary/10 text-primary text-xs font-semibold px-3 py-1.5 rounded-full">
+                        <Zap className="w-3.5 h-3.5" />
+                        Disponíveis para contato agora
+                      </div>
+                    )}
                   </div>
+
+                  {/* Preview cards */}
                   {data.previews.length > 0 && (
                     <div className="grid sm:grid-cols-3 gap-3 mb-6">
                       {data.previews.slice(0, 3).map((rep, i) => (
-                        <div key={i} className="rounded-xl border border-border bg-secondary/50 p-4">
+                        <div key={i} className="rounded-xl border border-border bg-secondary/40 p-4">
                           <div className="flex items-center gap-3 mb-3">
-                            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm flex-shrink-0">
                               {rep.maskedName.charAt(0)}
                             </div>
                             <div className="min-w-0">
@@ -228,23 +263,33 @@ function MatchSimulator() {
                               <div className="text-xs text-muted-foreground truncate">{rep.region}</div>
                             </div>
                           </div>
-                          <div className="text-xs text-muted-foreground space-y-1">
-                            {rep.segment && <div className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{rep.segment}</div>}
-                            {rep.experienceYears && <div className="flex items-center gap-1"><Award className="w-3 h-3" />{rep.experienceYears} anos de exp.</div>}
+                          <div className="text-xs text-muted-foreground space-y-1.5 mb-3">
+                            {rep.segment && (
+                              <div className="flex items-center gap-1.5">
+                                <Briefcase className="w-3 h-3 text-primary" />{rep.segment}
+                              </div>
+                            )}
+                            {rep.experienceYears && (
+                              <div className="flex items-center gap-1.5">
+                                <Award className="w-3 h-3 text-primary" />{rep.experienceYears} anos de experiência
+                              </div>
+                            )}
                           </div>
-                          <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground/50 bg-secondary/60 rounded-lg px-2.5 py-1.5">
                             <Lock className="w-3 h-3" />
-                            <span>Contato bloqueado</span>
+                            <span className="blur-sm select-none">+55 (41) 9●●●●●-●●●●</span>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+
                   <button
                     onClick={() => navigate("/register")}
-                    className="w-full flex items-center justify-center gap-2 border border-primary/40 hover:bg-primary/10 text-primary font-semibold py-3 rounded-xl text-sm transition-colors"
+                    className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3.5 rounded-xl text-sm transition-colors"
                   >
-                    Ver todos os {data.count.toLocaleString("pt-BR")} representantes <ArrowRight className="w-4 h-4" />
+                    Cadastrar e ver todos os {data.count.toLocaleString("pt-BR")} representantes
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               ) : null}
@@ -259,26 +304,25 @@ function MatchSimulator() {
 // ─── Antes x Depois ──────────────────────────────────────────────────────────
 function AntesDepois() {
   const [, navigate] = useLocation();
-  const scenarios = [
-    {
-      before: { icon: Frown, title: "Antes do RepMatch", color: "text-red-400", bg: "bg-red-500/5 border-red-500/20", items: [
-        "Semanas postando em grupos de WhatsApp sem retorno",
-        "Candidatos sem qualificação, sem histórico, sem compromisso",
-        "R$3.000–R$8.000 pagos a headhunter por contratação",
-        "Sem filtro por região ou segmento — tudo manual",
-        "Contato perdido após a primeira conversa",
-      ]},
-      after: { icon: Smile, title: "Com o RepMatch", color: "text-primary", bg: "bg-primary/5 border-primary/20", items: [
-        "Representantes qualificados em menos de 48 horas",
-        "Score de compatibilidade por região, segmento e experiência",
-        "A partir de R$49/mês para acesso ilimitado à base",
-        "Filtros automáticos — você vê apenas quem faz sentido",
-        "Chat integrado e histórico de candidaturas na plataforma",
-      ]}
-    }
+
+  const before_items = [
+    { icon: "✕", text: "Semanas postando em grupos de WhatsApp sem retorno" },
+    { icon: "✕", text: "Candidatos sem qualificação, sem histórico, sem compromisso" },
+    { icon: "✕", text: "R$3.000–R$8.000 pagos a headhunter por contratação" },
+    { icon: "✕", text: "Sem filtro por região ou segmento — tudo manual" },
+    { icon: "✕", text: "Contato perdido após a primeira conversa" },
   ];
+
+  const after_items = [
+    { text: "Representantes qualificados em menos de 48 horas" },
+    { text: "Score de compatibilidade por região, segmento e experiência" },
+    { text: "A partir de R$49/mês para acesso ilimitado à base" },
+    { text: "Filtros automáticos — você vê apenas quem faz sentido" },
+    { text: "Chat integrado e histórico de candidaturas na plataforma" },
+  ];
+
   return (
-    <section className="py-24 px-6 bg-card/30 border-y border-border">
+    <section className="py-24 px-6 border-y border-border" style={{ background: "linear-gradient(135deg, oklch(0.12 0.01 0) 0%, oklch(0.11 0.02 152 / 0.3) 100%)" }}>
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Antes x Depois</Badge>
@@ -291,57 +335,80 @@ function AntesDepois() {
           </p>
         </div>
 
-        {scenarios.map((s, idx) => (
-          <div key={idx} className="grid md:grid-cols-2 gap-5">
-            {/* Antes */}
-            <div className={`rounded-2xl border p-7 ${s.before.bg}`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
-                  <s.before.icon className={`w-5 h-5 ${s.before.color}`} />
-                </div>
-                <h3 className={`font-bold text-lg ${s.before.color}`}>{s.before.title}</h3>
+        <div className="grid md:grid-cols-2 gap-5 mb-10">
+          {/* ANTES */}
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-7">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
+                <Frown className="w-5 h-5 text-red-400" />
               </div>
-              <ul className="space-y-4">
-                {s.before.items.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-red-400 text-xs font-bold">✕</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{item}</span>
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <h3 className="font-bold text-base text-red-400">Antes do RepMatch</h3>
+                <p className="text-xs text-muted-foreground">Processo manual, caro e lento</p>
+              </div>
             </div>
-
-            {/* Depois */}
-            <div className={`rounded-2xl border p-7 ${s.after.bg}`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
-                  <s.after.icon className={`w-5 h-5 ${s.after.color}`} />
-                </div>
-                <h3 className={`font-bold text-lg ${s.after.color}`}>{s.after.title}</h3>
-              </div>
-              <ul className="space-y-4">
-                {s.after.items.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-3.5 h-3.5 text-primary" />
-                    </div>
-                    <span className="text-sm text-foreground/80">{item}</span>
-                  </li>
-                ))}
-              </ul>
+            <ul className="space-y-4">
+              {before_items.map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-red-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-red-400 text-xs font-black">{item.icon}</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground leading-relaxed">{item.text}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 pt-5 border-t border-red-500/15">
+              <div className="text-xs text-red-400/70 font-semibold uppercase tracking-widest">Custo médio por contratação</div>
+              <div className="text-2xl font-black text-red-400 mt-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$3.000–R$8.000</div>
             </div>
           </div>
-        ))}
 
-        <div className="mt-10 text-center">
+          {/* DEPOIS */}
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-7 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-primary/5 -translate-y-1/2 translate-x-1/2" />
+            <div className="flex items-center gap-3 mb-6 relative">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Smile className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-primary">Com o RepMatch</h3>
+                <p className="text-xs text-muted-foreground">Rápido, filtrado e acessível</p>
+              </div>
+            </div>
+            <ul className="space-y-4 relative">
+              {after_items.map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <span className="text-sm text-foreground/80 leading-relaxed">{item.text}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 pt-5 border-t border-primary/20 relative">
+              <div className="text-xs text-primary/70 font-semibold uppercase tracking-widest">Custo médio por contratação</div>
+              <div className="text-2xl font-black text-primary mt-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>A partir de R$49/mês</div>
+            </div>
+          </div>
+        </div>
+
+        {/* VS divider callout */}
+        <div className="flex items-center justify-center gap-6 mb-10">
+          <div className="flex-1 h-px bg-border" />
+          <div className="text-center">
+            <div className="text-4xl font-black text-foreground/20" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>VS</div>
+          </div>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        <div className="text-center">
           <button
             onClick={() => navigate("/register")}
             className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-10 py-4 rounded-xl text-base transition-colors shadow-lg"
           >
             Quero o depois <ArrowRight className="w-5 h-5" />
           </button>
+          <p className="text-xs text-muted-foreground mt-3">Sem contrato de fidelidade · Cancele quando quiser</p>
         </div>
       </div>
     </section>
