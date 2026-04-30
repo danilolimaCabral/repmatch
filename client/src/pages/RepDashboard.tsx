@@ -290,14 +290,26 @@ export default function RepDashboard() {
               )}
 
                 <div className="flex flex-wrap gap-3 mb-6">
-                <div className="relative flex-1 min-w-[180px] max-w-xs">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="Filtrar por região..." value={searchRegion} onChange={(e) => setSearchRegion(e.target.value)} className="pl-9 bg-secondary border-border" />
-                </div>
-                <div className="relative flex-1 min-w-[180px] max-w-xs">
-                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="Filtrar por segmento..." value={searchSegment} onChange={(e) => setSearchSegment(e.target.value)} className="pl-9 bg-secondary border-border" />
-                </div>
+                <Select value={searchRegion || "all"} onValueChange={(v) => setSearchRegion(v === "all" ? "" : v)}>
+                  <SelectTrigger className="flex-1 min-w-[180px] max-w-xs bg-secondary border-border">
+                    <MapPin className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
+                    <SelectValue placeholder="Todas as regiões" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as regiões</SelectItem>
+                    {REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={searchSegment || "all"} onValueChange={(v) => setSearchSegment(v === "all" ? "" : v)}>
+                  <SelectTrigger className="flex-1 min-w-[180px] max-w-xs bg-secondary border-border">
+                    <Briefcase className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
+                    <SelectValue placeholder="Todos os segmentos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os segmentos</SelectItem>
+                    {SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <div className="relative flex-1 min-w-[160px] max-w-[200px]">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input

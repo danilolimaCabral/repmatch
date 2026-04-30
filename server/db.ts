@@ -251,6 +251,50 @@ export async function updateJob(id: number, data: Partial<InsertJob>) {
   await db.update(jobs).set(data).where(eq(jobs.id, id));
 }
 
+export async function listPublicJobs(filters?: {
+  region?: string;
+  segment?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const db = await getDb();
+  if (!db) return { jobs: [], total: 0 };
+  const page = filters?.page ?? 1;
+  const limit = filters?.limit ?? 12;
+  const offset = (page - 1) * limit;
+  const conditions: SQL[] = [eq(jobs.status, "open")];
+  if (filters?.region) conditions.push(eq(jobs.region, filters.region));
+  if (filters?.segment) conditions.push(eq(jobs.segment, filters.segment));
+  const whereClause = and(...conditions);
+  const rows = await db
+    .select({
+      id: jobs.id,
+      title: jobs.title,
+      description: jobs.description,
+      commissionPercentage: jobs.commissionPercentage,
+      region: jobs.region,
+      segment: jobs.segment,
+      isFeatured: jobs.isFeatured,
+      minTierRequired: jobs.minTierRequired,
+      createdAt: jobs.createdAt,
+      companyId: jobs.companyId,
+      companyName: companies.companyName,
+      companyRank: companies.dynamicRank,
+    })
+    .from(jobs)
+    .innerJoin(companies, eq(jobs.companyId, companies.id))
+    .where(whereClause)
+    .orderBy(desc(jobs.isFeatured), desc(jobs.createdAt))
+    .limit(limit)
+    .offset(offset);
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(jobs)
+    .innerJoin(companies, eq(jobs.companyId, companies.id))
+    .where(whereClause);
+  return { jobs: rows, total: Number(count) };
+}
+
 // ─── Applications ─────────────────────────────────────────────────────────────
 
 export async function createApplication(data: InsertApplication): Promise<Application | undefined> {

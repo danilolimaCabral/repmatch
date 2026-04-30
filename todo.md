@@ -209,3 +209,12 @@
 - [x] Checkout: passar repId nos metadados da sessão Stripe
 - [x] Frontend: detectar ?payment=success&rep_id=X na URL e registrar desbloqueio
 - [x] Webhook: tratar FEATURED_JOB corretamente com job_id nos metadados
+
+## Representante Encontra Empresa Rápido (A+B+C)
+
+- [ ] Backend: criar procedure pública `jobs.listPublic` com filtros de região/segmento e paginação
+- [ ] Landing page: adicionar seção "Vagas em Destaque" com cards de vagas reais abertas
+- [ ] Criar página pública /vagas com feed completo, filtros e CTA de cadastro
+- [ ] Adicionar link "Vagas" no header da landing page
+- [ ] Dashboard do Representante: melhorar feed de vagas com filtro rápido por região/segmento e visual mais atrativo
+- [ ] Registrar rota /vagas no App.tsx

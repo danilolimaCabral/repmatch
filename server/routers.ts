@@ -34,6 +34,7 @@ import {
   listAllUsers,
   getRepresentativePreview,
   listRepresentativesForCompany,
+  listPublicJobs,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
@@ -285,6 +286,19 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         return listJobs(input);
+      }),
+
+    listPublic: publicProcedure
+      .input(
+        z.object({
+          region: z.string().optional(),
+          segment: z.string().optional(),
+          page: z.number().optional(),
+          limit: z.number().optional(),
+        }).optional()
+      )
+      .query(async ({ input }) => {
+        return listPublicJobs(input ?? {});
       }),
 
     myJobs: protectedProcedure.query(async ({ ctx }) => {

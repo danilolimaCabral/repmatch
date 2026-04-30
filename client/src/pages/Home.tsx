@@ -3,11 +3,78 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight, CheckCircle, Star, Users, Building2, Zap, TrendingUp,
   Shield, Award, ChevronDown, BarChart3, MessageSquare,
-  Target, Sparkles, Clock
+  Target, Sparkles, Clock, MapPin, Briefcase, DollarSign, Lock
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+
+function maskCompanyName(name: string): string {
+  const words = name.trim().split(" ");
+  if (words.length === 1) return words[0].charAt(0).toUpperCase() + " " + "●".repeat(Math.min(words[0].length - 1, 5));
+  return words[0] + " " + words.slice(1).map(() => "●●●").join(" ");
+}
+
+function VagasDestaque() {
+  const [, navigate] = useLocation();
+  const { data } = trpc.jobs.listPublic.useQuery({ page: 1, limit: 3 });
+  const jobs = data?.jobs ?? [];
+  if (!jobs.length) return null;
+  return (
+    <section className="py-24 px-6 border-t border-border">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-14">
+          <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Vagas abertas agora</Badge>
+          <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+            Empresas buscando<br />
+            <span className="text-gradient-green">representantes hoje</span>
+          </h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Crie sua conta gratuita para ver os detalhes e se candidatar. Sem taxa de cadastro.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-5 mb-10">
+          {jobs.map((job) => (
+            <div key={job.id} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4">
+              <div>
+                <h3 className="font-bold text-base leading-snug mb-1">{job.title}</h3>
+                {job.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">{job.description}</p>
+                )}
+              </div>
+              <div className="space-y-1.5 text-xs text-muted-foreground">
+                {job.region && <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-primary" />{job.region}</div>}
+                {job.segment && <div className="flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" />{job.segment}</div>}
+                {job.commissionPercentage && <div className="flex items-center gap-1.5 text-primary font-semibold"><DollarSign className="w-3.5 h-3.5" />{job.commissionPercentage}% comissão</div>}
+              </div>
+              <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-secondary/60 border border-border">
+                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-black flex-shrink-0">
+                  {job.companyName?.charAt(0) ?? "E"}
+                </div>
+                <span className="text-xs font-semibold truncate flex-1">{maskCompanyName(job.companyName ?? "Empresa")}</span>
+                <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              </div>
+              <button
+                onClick={() => navigate("/register")}
+                className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm py-2.5 rounded-lg transition-colors"
+              >
+                Candidatar-se <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="text-center">
+          <button
+            onClick={() => navigate("/vagas")}
+            className="inline-flex items-center gap-2 border border-border hover:border-primary/40 text-foreground font-semibold px-8 py-3 rounded-xl transition-colors hover:bg-secondary/50"
+          >
+            Ver todas as vagas abertas <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 const LOGO_URL = "/manus-storage/repmatch-logo-clean_68a7f78f.png";
 
@@ -70,6 +137,7 @@ export default function Home() {
           <img src={LOGO_URL} alt="RepMatch" className="h-8 object-contain" />
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#como-funciona" className="hover:text-foreground transition-colors">Como funciona</a>
+            <a href="/vagas" className="hover:text-foreground transition-colors font-medium text-foreground/80">Vagas</a>
             <a href="/buscar" className="hover:text-foreground transition-colors font-medium text-foreground/80">Buscar Reps</a>
             <a href="#planos" className="hover:text-foreground transition-colors">Planos</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
@@ -484,6 +552,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ─── Vagas em Destaque ─────────────────────────────────────────── */}
+      <VagasDestaque />
 
       {/* ─── Planos ─────────────────────────────────────────────────────────── */}
       <section id="planos" className="py-28 px-6 bg-card/30 border-y border-border">
