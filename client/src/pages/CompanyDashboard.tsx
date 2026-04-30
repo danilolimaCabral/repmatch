@@ -32,15 +32,15 @@ const SEGMENTS = [
 
 const RANK_CONFIG = {
   bronze: { label: "Bronze", color: "text-amber-600", bg: "bg-amber-900/20", border: "border-amber-700/40" },
-  silver: { label: "Silver", color: "text-zinc-300", bg: "bg-zinc-700/20", border: "border-zinc-500/40" },
+  silver: { label: "Silver", color: "text-muted-foreground", bg: "bg-secondary", border: "border-border" },
   gold: { label: "Gold", color: "text-yellow-400", bg: "bg-yellow-900/20", border: "border-yellow-600/40" },
-  platinum: { label: "Platinum", color: "text-zinc-200", bg: "bg-zinc-600/20", border: "border-zinc-400/40" },
+  platinum: { label: "Platinum", color: "text-foreground", bg: "bg-secondary", border: "border-border" },
 };
 
 const TIER_CONFIG = {
-  starter: { label: "Starter", color: "bg-zinc-700 text-zinc-300" },
-  pro: { label: "Pro", color: "bg-green-900 text-green-300" },
-  enterprise: { label: "Enterprise", color: "bg-yellow-900 text-yellow-300" },
+  starter: { label: "Starter", color: "bg-secondary text-muted-foreground" },
+  pro: { label: "Pro", color: "bg-primary/15 text-primary" },
+  enterprise: { label: "Enterprise", color: "bg-amber-500/15 text-amber-400" },
 };
 
 const STATUS_CONFIG = {
@@ -199,7 +199,7 @@ export default function CompanyDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-background text-foreground">
       <div className="flex h-screen">
         {/* Sidebar */}
         <aside className="w-64 border-r border-border bg-card flex flex-col">
@@ -383,7 +383,7 @@ export default function CompanyDashboard() {
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge className={job.status === "open" ? "bg-green-500/20 text-green-400" : "bg-zinc-700 text-zinc-300"}>
+                            <Badge className={job.status === "open" ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}>
                               {job.status === "open" ? "Aberta" : job.status === "paused" ? "Pausada" : "Fechada"}
                             </Badge>
                             {job.isFeatured && (
@@ -667,7 +667,7 @@ export default function CompanyDashboard() {
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {(searchData?.reps ?? []).map((rep) => {
                       const isUnlocked = searchData?.unlockedIds.includes(rep.id);
-                      const tierBadge = rep.subscriptionTier === "elite" ? "bg-yellow-900 text-yellow-300" : rep.subscriptionTier === "premium" ? "bg-green-900 text-green-300" : "bg-zinc-700 text-zinc-300";
+                      const tierBadge = rep.subscriptionTier === "elite" ? "bg-amber-500/15 text-amber-400" : rep.subscriptionTier === "premium" ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground";
                       return (
                         <div key={rep.id} className={`rounded-xl border bg-card p-5 relative overflow-hidden ${isUnlocked ? "border-primary/40" : "border-border"}`}>
                           {isUnlocked && (

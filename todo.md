@@ -195,13 +195,13 @@
 
 ## Redesign Visual Completo — Menos IA, Mais Humano
 
-- [ ] Atualizar fontes globais para Plus Jakarta Sans + Bricolage Grotesque
-- [ ] Atualizar paleta de cores para tons mais naturais e humanos
-- [ ] Redesenhar landing page (Home.tsx) — layout, copy e visual
-- [ ] Redesenhar dashboard da empresa (CompanyDashboard.tsx)
-- [ ] Redesenhar dashboard do representante (RepDashboard.tsx)
-- [ ] Redesenhar telas de login e cadastro
-- [ ] Redesenhar tela de onboarding
+- [x] Atualizar fontes globais para Plus Jakarta Sans + Bricolage Grotesque
+- [x] Atualizar paleta de cores para tons mais naturais e humanos
+- [x] Redesenhar landing page (Home.tsx) — layout, copy e visual
+- [x] Redesenhar dashboard da empresa (CompanyDashboard.tsx)
+- [x] Redesenhar dashboard do representante (RepDashboard.tsx)
+- [x] Redesenhar telas de login e cadastro
+- [x] Redesenhar tela de onboarding
 
 ## Correção do Fluxo de Pagamento — Desbloqueio de Contato
 

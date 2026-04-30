@@ -112,7 +112,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
       <div className="border-b border-border p-4 flex items-center justify-center">
         <img src={LOGO_URL} alt="RepMatch" className="h-8 object-contain" />
@@ -124,7 +124,7 @@ export default function Onboarding() {
           {/* Step: Choose Type */}
           {step === "choose" && (
             <div className="text-center">
-              <h1 className="text-3xl font-black mb-2">Bem-vindo ao RepMatch!</h1>
+              <h1 className="text-3xl font-bold mb-2">Bem-vindo ao RepMatch!</h1>
               <p className="text-muted-foreground mb-10">Como você vai usar a plataforma?</p>
 
               <div className="grid grid-cols-2 gap-6">
@@ -134,7 +134,7 @@ export default function Onboarding() {
                   className="group rounded-2xl border-2 border-border bg-card p-8 text-center hover:border-primary transition-all cursor-pointer disabled:opacity-50"
                 >
                   <Building2 className="w-12 h-12 text-primary mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                  <div className="font-bold text-lg mb-2">Sou Empresa</div>
+                  <div className="font-semibold text-lg mb-2">Sou Empresa</div>
                   <div className="text-sm text-muted-foreground">Quero encontrar representantes comerciais</div>
                 </button>
 
@@ -144,7 +144,7 @@ export default function Onboarding() {
                   className="group rounded-2xl border-2 border-border bg-card p-8 text-center hover:border-primary transition-all cursor-pointer disabled:opacity-50"
                 >
                   <Users className="w-12 h-12 text-blue-400 mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                  <div className="font-bold text-lg mb-2">Sou Representante</div>
+                  <div className="font-semibold text-lg mb-2">Sou Representante</div>
                   <div className="text-sm text-muted-foreground">Quero encontrar empresas para representar</div>
                 </button>
               </div>
@@ -166,7 +166,7 @@ export default function Onboarding() {
                   <Users className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-black">Complete seu perfil</h1>
+                  <h1 className="text-2xl font-bold">Complete seu perfil</h1>
                   <p className="text-muted-foreground text-sm">Representante Comercial</p>
                 </div>
               </div>
@@ -265,7 +265,7 @@ export default function Onboarding() {
                   <Building2 className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-black">Complete o perfil da empresa</h1>
+                  <h1 className="text-2xl font-bold">Complete o perfil da empresa</h1>
                   <p className="text-muted-foreground text-sm">Empresa / Indústria</p>
                 </div>
               </div>

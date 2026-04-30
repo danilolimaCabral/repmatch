@@ -38,9 +38,9 @@ const STATUS_CONFIG = {
 };
 
 const TIER_CONFIG = {
-  free: { label: "Free", color: "bg-zinc-700 text-zinc-300", upgrade: "Upgrade para Premium" },
-  premium: { label: "Premium", color: "bg-green-900 text-green-300", upgrade: "Upgrade para Elite" },
-  elite: { label: "Elite", color: "bg-yellow-900 text-yellow-300", upgrade: null },
+  free: { label: "Free", color: "bg-secondary text-muted-foreground", upgrade: "Upgrade para Premium" },
+  premium: { label: "Premium", color: "bg-primary/15 text-primary", upgrade: "Upgrade para Elite" },
+  elite: { label: "Elite", color: "bg-amber-500/15 text-amber-400", upgrade: null },
 };
 
 const RANK_TIER_MAP: Record<string, string[]> = {
@@ -205,7 +205,7 @@ export default function RepDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-background text-foreground">
       <div className="flex h-screen">
         {/* ─── Sidebar ─────────────────────────────────────────────────── */}
         <aside className="w-64 border-r border-border bg-card flex flex-col">
@@ -333,7 +333,7 @@ export default function RepDashboard() {
                               {job.createdAt && Date.now() - new Date(job.createdAt).getTime() < 3 * 24 * 60 * 60 * 1000 && (
                                 <Badge className="bg-green-500/20 text-green-400 text-xs">Nova</Badge>
                               )}
-                              {isLocked && <Badge className="bg-zinc-700 text-zinc-300 text-xs"><Lock className="w-3 h-3 mr-1" />Bloqueado</Badge>}
+                              {isLocked && <Badge className="bg-secondary text-muted-foreground text-xs"><Lock className="w-3 h-3 mr-1" />Bloqueado</Badge>}
                             </div>
                             <h3 className="font-bold text-base">{job.title}</h3>
                             <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
