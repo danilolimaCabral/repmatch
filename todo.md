@@ -218,3 +218,18 @@
 - [ ] Adicionar link "Vagas" no header da landing page
 - [ ] Dashboard do Representante: melhorar feed de vagas com filtro rápido por região/segmento e visual mais atrativo
 - [ ] Registrar rota /vagas no App.tsx
+
+## Pagamento PIX Obrigatório
+- [ ] Criar página /planos com todos os planos e opção PIX + Cartão
+- [ ] Remover plano Free — todos os planos exigem pagamento
+- [ ] Gerar QR Code PIX para chave telefone 41999499815
+- [ ] Botão WhatsApp para envio de comprovante após PIX
+- [ ] Fluxo: usuário paga PIX → manda comprovante no WhatsApp → admin libera acesso
+- [ ] Cartão via Stripe como alternativa ao PIX
+
+## Landing Page — Seções Inovadoras
+- [ ] Remover logos de empresas parceiras (fictícias)
+- [ ] Remover seção de depoimentos (fictícios)
+- [ ] Criar simulador de match interativo (segmento + região → reps disponíveis em tempo real)
+- [ ] Criar seção contador ao vivo de matches e base de reps
+- [ ] Criar seção Antes x Depois (vida sem RepMatch vs com RepMatch)
