@@ -5,15 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Search, MapPin, Briefcase, Star, Lock, Users, Filter, ArrowRight, Loader2, TrendingUp } from "lucide-react";
+import { Search, MapPin, Briefcase, Star, Lock, Users, Filter, ArrowRight, Loader2, TrendingUp, Clock, Award, Crown, Medal } from "lucide-react";
 
 const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
 
-const TIER_BADGE: Record<string, { label: string; color: string }> = {
-  free: { label: "Free", color: "bg-zinc-700 text-zinc-300" },
-  bronze: { label: "Bronze", color: "bg-amber-900/60 text-amber-300" },
-  prata: { label: "Prata", color: "bg-slate-700/60 text-slate-300" },
-  ouro: { label: "Ouro", color: "bg-yellow-900/60 text-yellow-300" },
+const TIER_BADGE: Record<string, { label: string; color: string; icon: React.ReactNode; highlight: boolean }> = {
+  free: { label: "Gratuito", color: "bg-zinc-700/60 text-zinc-300", icon: null, highlight: false },
+  bronze: { label: "Bronze", color: "bg-amber-900/60 text-amber-300", icon: <Medal className="w-3 h-3" />, highlight: true },
+  prata: { label: "Prata", color: "bg-slate-500/60 text-slate-200", icon: <Award className="w-3 h-3" />, highlight: true },
+  ouro: { label: "Ouro ⭐", color: "bg-yellow-600/70 text-yellow-100", icon: <Crown className="w-3 h-3" />, highlight: true },
+};
+
+const AVAILABILITY_LABEL: Record<string, string> = {
+  imediata: "Disponível agora",
+  "30dias": "Em 30 dias",
+  "60dias": "Em 60 dias",
+  negociavel: "Negociável",
 };
 
 export default function BuscarRepresentantes() {
@@ -144,22 +151,41 @@ export default function BuscarRepresentantes() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
               {previews.map((rep) => {
                 const tierCfg = TIER_BADGE[rep.subscriptionTier ?? "free"] ?? TIER_BADGE.free;
+                const isPaid = tierCfg.highlight;
                 return (
-                  <div key={rep.id} className="rounded-xl border border-border bg-card p-5 relative overflow-hidden group hover:border-primary/40 transition-colors">
+                  <div
+                    key={rep.id}
+                    className={`rounded-xl border bg-card p-5 relative overflow-hidden group transition-all ${
+                      isPaid
+                        ? "border-primary/50 shadow-[0_0_20px_rgba(var(--primary-rgb),0.12)] hover:shadow-[0_0_30px_rgba(var(--primary-rgb),0.2)]"
+                        : "border-border hover:border-primary/30"
+                    }`}
+                  >
+                    {/* Top badge for paid tiers */}
+                    {isPaid && (
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
+                    )}
+
                     <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                        isPaid ? "bg-primary/30 text-primary" : "bg-secondary text-muted-foreground"
+                      }`}>
                         {rep.maskedName.charAt(0)}
                       </div>
-                      <Badge className={`text-xs ${tierCfg.color}`}>{tierCfg.label}</Badge>
+                      <Badge className={`text-xs flex items-center gap-1 ${tierCfg.color}`}>
+                        {tierCfg.icon}{tierCfg.label}
+                      </Badge>
                     </div>
-                    <div className="font-bold text-base mb-1">{rep.maskedName}</div>
-                    <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
+
+                    <div className="font-bold text-base mb-2">{rep.maskedName}</div>
+
+                    <div className="flex flex-col gap-1.5 text-sm text-muted-foreground mb-3">
                       <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                        <MapPin className="w-3.5 h-3.5 shrink-0 text-primary/70" />
                         <span>{rep.region}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Briefcase className="w-3.5 h-3.5 shrink-0" />
+                        <Briefcase className="w-3.5 h-3.5 shrink-0 text-primary/70" />
                         <span>{rep.segment}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -167,6 +193,17 @@ export default function BuscarRepresentantes() {
                         <span>{rep.experienceYears} anos de experiência</span>
                       </div>
                     </div>
+
+                    {/* Availability badge for paid tiers */}
+                    {isPaid && (
+                      <div className="mb-3">
+                        <span className="inline-flex items-center gap-1 text-xs bg-green-500/10 text-green-400 border border-green-500/20 rounded-full px-2.5 py-0.5">
+                          <Clock className="w-3 h-3" />
+                          {AVAILABILITY_LABEL["negociavel"]}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Blur overlay for contact */}
                     <div className="border-t border-border pt-3">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">

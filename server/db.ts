@@ -583,6 +583,14 @@ export async function listRepresentativesForCompany(
     .where(and(...conditions));
   const total = Number(countResult[0]?.count ?? 0);
 
+  // Sort: paid tiers first (ouro > prata > bronze > free), then by rating
+  const tierOrder = sql<number>`CASE ${representatives.subscriptionTier}
+    WHEN 'ouro' THEN 1
+    WHEN 'prata' THEN 2
+    WHEN 'bronze' THEN 3
+    ELSE 4
+  END`;
+
   // Get reps with user email join
   const reps = await db
     .select({
@@ -596,13 +604,21 @@ export async function listRepresentativesForCompany(
       subscriptionTier: representatives.subscriptionTier,
       averageRating: representatives.averageRating,
       responseRate: representatives.responseRate,
+      availability: representatives.availability,
+      workModel: representatives.workModel,
+      portfolioSize: representatives.portfolioSize,
+      linkedinUrl: representatives.linkedinUrl,
+      avatarUrl: representatives.avatarUrl,
+      cities: representatives.cities,
+      additionalSegments: representatives.additionalSegments,
+      highlightedAt: representatives.highlightedAt,
       createdAt: representatives.createdAt,
       email: users.email,
     })
     .from(representatives)
     .leftJoin(users, eq(representatives.userId, users.id))
     .where(and(...conditions))
-    .orderBy(desc(representatives.subscriptionTier), desc(representatives.averageRating))
+    .orderBy(tierOrder, desc(representatives.averageRating), desc(representatives.highlightedAt))
     .limit(limit)
     .offset(offset);
 

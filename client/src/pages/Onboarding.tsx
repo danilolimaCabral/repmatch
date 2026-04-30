@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { Building2, Users, Loader2, CheckCircle } from "lucide-react";
+import { Building2, Users, Loader2, CheckCircle, Briefcase, MapPin, Clock, Link } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -42,6 +42,11 @@ export default function Onboarding() {
     segment: "",
     experienceYears: 0,
     bio: "",
+    availability: "negociavel" as "imediata" | "30dias" | "60dias" | "negociavel",
+    workModel: "multiplas" as "exclusivo" | "multiplas" | "indifferente",
+    additionalSegments: "",
+    cities: "",
+    linkedinUrl: "",
   });
 
   // Company form state
@@ -96,9 +101,17 @@ export default function Onboarding() {
       return;
     }
     completeRepMutation.mutate({
-      ...repForm,
       fullName: repForm.fullName || user?.name || "Representante",
+      phone: repForm.phone || undefined,
+      region: repForm.region,
+      segment: repForm.segment,
       experienceYears: Number(repForm.experienceYears),
+      bio: repForm.bio || undefined,
+      availability: repForm.availability,
+      workModel: repForm.workModel,
+      additionalSegments: repForm.additionalSegments || undefined,
+      cities: repForm.cities || undefined,
+      linkedinUrl: repForm.linkedinUrl || undefined,
     });
   };
 
@@ -231,6 +244,66 @@ export default function Onboarding() {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="flex items-center gap-1"><Clock className="w-3 h-3" /> Disponibilidade</Label>
+                    <Select value={repForm.availability} onValueChange={(v: "imediata" | "30dias" | "60dias" | "negociavel") => setRepForm({ ...repForm, availability: v })}>
+                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="imediata">Imediata</SelectItem>
+                        <SelectItem value="30dias">Em 30 dias</SelectItem>
+                        <SelectItem value="60dias">Em 60 dias</SelectItem>
+                        <SelectItem value="negociavel">Negociável</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="flex items-center gap-1"><Briefcase className="w-3 h-3" /> Modelo de trabalho</Label>
+                    <Select value={repForm.workModel} onValueChange={(v: "exclusivo" | "multiplas" | "indifferente") => setRepForm({ ...repForm, workModel: v })}>
+                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="exclusivo">Exclusivo</SelectItem>
+                        <SelectItem value="multiplas">Múltiplas empresas</SelectItem>
+                        <SelectItem value="indifferente">Indiferente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Cidades/regiões de atuação</Label>
+                  <Input
+                    value={repForm.cities}
+                    onChange={(e) => setRepForm({ ...repForm, cities: e.target.value })}
+                    placeholder="Ex: Curitiba, Londrina, Maringá..."
+                    className="mt-1 bg-secondary border-border"
+                  />
+                </div>
+
+                <div>
+                  <Label>Segmentos adicionais</Label>
+                  <Input
+                    value={repForm.additionalSegments}
+                    onChange={(e) => setRepForm({ ...repForm, additionalSegments: e.target.value })}
+                    placeholder="Ex: Farmacêutico, Cosméticos..."
+                    className="mt-1 bg-secondary border-border"
+                  />
+                </div>
+
+                <div>
+                  <Label className="flex items-center gap-1"><Link className="w-3 h-3" /> LinkedIn (opcional)</Label>
+                  <Input
+                    value={repForm.linkedinUrl}
+                    onChange={(e) => setRepForm({ ...repForm, linkedinUrl: e.target.value })}
+                    placeholder="https://linkedin.com/in/seu-perfil"
+                    className="mt-1 bg-secondary border-border"
+                  />
+                </div>
+
                 <div>
                   <Label>Bio / Apresentação</Label>
                   <Textarea
@@ -238,7 +311,7 @@ export default function Onboarding() {
                     onChange={(e) => setRepForm({ ...repForm, bio: e.target.value })}
                     placeholder="Descreva sua experiência, produtos que já vendeu, diferenciais..."
                     className="mt-1 bg-secondary border-border"
-                    rows={4}
+                    rows={3}
                   />
                 </div>
 

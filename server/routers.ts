@@ -120,6 +120,11 @@ export const appRouter = router({
           segment: z.string().min(2),
           experienceYears: z.number().min(0).max(50),
           bio: z.string().optional(),
+          availability: z.enum(["imediata", "30dias", "60dias", "negociavel"]).optional(),
+          workModel: z.enum(["exclusivo", "multiplas", "indifferente"]).optional(),
+          additionalSegments: z.string().optional(),
+          cities: z.string().optional(),
+          linkedinUrl: z.string().url().optional().or(z.literal("")),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -171,6 +176,11 @@ export const appRouter = router({
           segment: z.string().optional(),
           experienceYears: z.number().min(0).max(50).optional(),
           bio: z.string().optional(),
+          availability: z.enum(["imediata", "30dias", "60dias", "negociavel"]).optional(),
+          workModel: z.enum(["exclusivo", "multiplas", "indifferente"]).optional(),
+          additionalSegments: z.string().optional(),
+          cities: z.string().optional(),
+          linkedinUrl: z.string().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
