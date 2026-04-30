@@ -77,6 +77,7 @@ export default function CompanyDashboard() {
   const [searchKycApproved, setSearchKycApproved] = useState(false);
   const [searchCoreActive, setSearchCoreActive] = useState(false);
   const [searchAvailability, setSearchAvailability] = useState<string | undefined>(undefined);
+  const [searchSortBy, setSearchSortBy] = useState<"availability" | "rating" | "tier" | "recent">("tier");
   const [createJobOpen, setCreateJobOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
@@ -110,7 +111,7 @@ export default function CompanyDashboard() {
     { enabled: !!selectedJobId }
   );
   const { data: searchData, isLoading: searchLoading } = trpc.representatives.listForCompany.useQuery(
-    { region: searchRegion, segment: searchSegment, tier: searchTier, page: searchPage, limit: 20, kycApproved: searchKycApproved || undefined, coreActive: searchCoreActive || undefined, availability: searchAvailability },
+    { region: searchRegion, segment: searchSegment, tier: searchTier, page: searchPage, limit: 20, kycApproved: searchKycApproved || undefined, coreActive: searchCoreActive || undefined, availability: searchAvailability, sortBy: searchSortBy },
     { enabled: activeTab === "search" }
   );
 
@@ -728,15 +729,31 @@ export default function CompanyDashboard() {
                   {searchCoreActive && <span className="ml-0.5">✓</span>}
                 </button>
               </div>
-              {/* Count */}
-              {!searchLoading && searchData && (
-                <div className="text-sm text-muted-foreground mb-4">
-                  <span className="font-bold text-foreground">{searchData.total}</span> representantes encontrados
-                  {searchData.unlockedIds.length > 0 && (
-                    <span className="ml-2 text-primary font-medium">· {searchData.unlockedIds.length} contato{searchData.unlockedIds.length > 1 ? "s" : ""} desbloqueado{searchData.unlockedIds.length > 1 ? "s" : ""}</span>
-                  )}
+              {/* Sort + Count row */}
+              <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-medium">Ordenar por:</span>
+                  <Select value={searchSortBy} onValueChange={v => { setSearchSortBy(v as "availability" | "rating" | "tier" | "recent"); setSearchPage(1); }}>
+                    <SelectTrigger className="w-52 h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="availability">🟢 Mais disponíveis primeiro</SelectItem>
+                      <SelectItem value="tier">🏆 Plano (Ouro › Prata › Bronze)</SelectItem>
+                      <SelectItem value="rating">⭐ Melhor avaliação</SelectItem>
+                      <SelectItem value="recent">🕒 Mais recentes</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                {!searchLoading && searchData && (
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-bold text-foreground">{searchData.total}</span> representantes encontrados
+                    {searchData.unlockedIds.length > 0 && (
+                      <span className="ml-2 text-primary font-medium">· {searchData.unlockedIds.length} contato{searchData.unlockedIds.length > 1 ? "s" : ""} desbloqueado{searchData.unlockedIds.length > 1 ? "s" : ""}</span>
+                    )}
+                  </div>
+                )}
+              </div>
               {/* Rep cards */}
               {searchLoading ? (
                 <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">

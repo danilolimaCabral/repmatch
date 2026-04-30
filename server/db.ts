@@ -599,6 +599,7 @@ export async function listRepresentativesForCompany(
     kycApproved?: boolean;
     coreActive?: boolean;
     availability?: string;
+    sortBy?: "availability" | "rating" | "tier" | "recent";
   }
 ) {
   const db = await getDb();
@@ -623,13 +624,34 @@ export async function listRepresentativesForCompany(
     .where(and(...conditions));
   const total = Number(countResult[0]?.count ?? 0);
 
-  // Sort: paid tiers first (ouro > prata > bronze > free), then by rating
+  // Sort expressions
   const tierOrder = sql<number>`CASE ${representatives.subscriptionTier}
     WHEN 'ouro' THEN 1
     WHEN 'prata' THEN 2
     WHEN 'bronze' THEN 3
     ELSE 4
   END`;
+  // Availability order: imediata=1, 30dias=2, 60dias=3, negociavel=4, null=5
+  const availabilityOrder = sql<number>`CASE ${representatives.availability}
+    WHEN 'imediata' THEN 1
+    WHEN '30dias' THEN 2
+    WHEN '60dias' THEN 3
+    WHEN 'negociavel' THEN 4
+    ELSE 5
+  END`;
+
+  const sortBy = filters?.sortBy ?? "tier";
+  let orderClauses;
+  if (sortBy === "availability") {
+    orderClauses = [availabilityOrder, tierOrder, desc(representatives.averageRating)];
+  } else if (sortBy === "rating") {
+    orderClauses = [desc(representatives.averageRating), tierOrder, availabilityOrder];
+  } else if (sortBy === "recent") {
+    orderClauses = [desc(representatives.createdAt), tierOrder];
+  } else {
+    // default: tier
+    orderClauses = [tierOrder, desc(representatives.averageRating), desc(representatives.highlightedAt)];
+  }
 
   // Get reps with user email join
   const reps = await db
@@ -658,7 +680,7 @@ export async function listRepresentativesForCompany(
     .from(representatives)
     .leftJoin(users, eq(representatives.userId, users.id))
     .where(and(...conditions))
-    .orderBy(tierOrder, desc(representatives.averageRating), desc(representatives.highlightedAt))
+    .orderBy(...orderClauses)
     .limit(limit)
     .offset(offset);
 

@@ -296,3 +296,7 @@
 - [x] Backend: adicionar parâmetro availability em listRepresentativesForCompany e getRepresentativePreview
 - [x] Frontend CompanyDashboard: select de disponibilidade na aba "Buscar Representantes"
 - [x] Frontend BuscarRepresentantes: select de disponibilidade nos filtros públicos
+
+## Ordenação por Disponibilidade
+- [x] Backend: adicionar sortBy em listRepresentativesForCompany (availability, rating, tier)
+- [x] Frontend CompanyDashboard: select de ordenação (Mais disponíveis / Melhor avaliados / Plano)

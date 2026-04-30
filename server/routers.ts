@@ -233,6 +233,7 @@ export const appRouter = router({
           kycApproved: z.boolean().optional(),
           coreActive: z.boolean().optional(),
           availability: z.string().optional(),
+          sortBy: z.enum(["availability", "rating", "tier", "recent"]).optional(),
         }).optional()
       )
       .query(async ({ ctx, input }) => {
