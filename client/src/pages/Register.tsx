@@ -73,7 +73,7 @@ export default function Register() {
         <div className="bg-card border border-border rounded-2xl p-8 shadow-xl">
           <div className="mb-7">
             <h1 className="text-2xl font-bold text-foreground mb-1.5">Criar sua conta</h1>
-            <p className="text-muted-foreground text-sm">Comece grátis. Sem cartão de crédito.</p>
+            <p className="text-muted-foreground text-sm">Crie sua conta e comece a usar.</p>
           </div>
 
           {/* User type selector */}
@@ -207,7 +207,7 @@ export default function Register() {
                 </span>
               ) : (
                 <>
-                  Criar conta grátis
+                  Criar conta
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

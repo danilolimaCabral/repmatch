@@ -45,7 +45,7 @@ export default function BuscarRepresentantes() {
               Entrar
             </Button>
             <Button size="sm" className="bg-primary text-primary-foreground font-semibold" onClick={() => navigate("/register")}>
-              Cadastrar grátis
+              Cadastrar
             </Button>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function BuscarRepresentantes() {
                   className="bg-primary text-primary-foreground font-bold px-8"
                   onClick={() => navigate("/register")}
                 >
-                  Cadastrar empresa grátis
+                  Cadastrar empresa
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 <Button

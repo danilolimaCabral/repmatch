@@ -150,7 +150,7 @@ export default function Login() {
           <p className="text-center text-sm text-muted-foreground">
             Não tem conta?{" "}
             <a href="/register" className="text-primary font-semibold hover:underline">
-              Criar conta grátis
+              Criar conta
             </a>
           </p>
         </div>

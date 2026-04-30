@@ -159,7 +159,7 @@ export default function Home() {
               <>
                 <a href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Entrar</a>
                 <a href="/register" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">
-                  Começar grátis
+                  Cadastrar agora
                 </a>
               </>
             )}
@@ -640,7 +640,7 @@ export default function Home() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {([
-                { name: "Free", monthly: 0, free: true, border: "border-border", bg: "bg-card", features: ["Perfil visível na base", "Candidaturas ilimitadas", "Chat com empresas", "Aparece no fim da lista"], cta: "Começar grátis", highlight: false },
+                { name: "Free", monthly: 0, free: true, border: "border-border", bg: "bg-card", features: ["Perfil visível na base", "Candidaturas ilimitadas", "Chat com empresas", "Aparece no fim da lista"], cta: "Cadastrar agora", highlight: false },
                 { name: "Bronze", monthly: 9.99, free: false, border: "border-orange-500/40", bg: "bg-orange-500/5", features: ["Tudo do Free", "Badge Bronze no perfil", "Aparece antes dos Free", "Acesso a vagas exclusivas Bronze"], cta: "Assinar Bronze", highlight: false },
                 { name: "Prata", monthly: 19.90, free: false, border: "border-primary/40", bg: "bg-primary/5", features: ["Tudo do Bronze", "Badge Prata em destaque", "Aparece antes dos Bronze", "Vagas Prata + score de match"], cta: "Assinar Prata", highlight: true },
                 { name: "Ouro", monthly: 29.90, free: false, border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Tudo do Prata", "Badge Ouro — máximo destaque", "Aparece PRIMEIRO na busca", "Card destacado em verde", "Todas as vagas desbloqueadas"], cta: "Assinar Ouro", highlight: false },

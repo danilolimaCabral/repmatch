@@ -100,7 +100,7 @@ export default function Vagas() {
                   Entrar
                 </Button>
                 <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => navigate("/register")}>
-                  Criar conta grátis
+                  Criar conta
                 </Button>
               </>
             )}
@@ -343,7 +343,7 @@ export default function Vagas() {
                 className="bg-primary text-primary-foreground font-semibold px-8"
                 onClick={() => navigate("/register")}
               >
-                Criar conta grátis
+                Criar conta
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               <Button
