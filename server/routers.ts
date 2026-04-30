@@ -38,9 +38,10 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { consentLogs, dataDeletionRequests } from "../drizzle/schema";
+import { consentLogs, dataDeletionRequests, representatives } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
+import { storagePut } from "./storage";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
 import { COOKIE_NAME } from "@shared/const";
@@ -657,6 +658,238 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         await toggleUserActive(input.userId, input.isActive);
+        return { success: true };
+      }),
+  }),
+
+  // ─── KYC / Verificação de Identidade + CORE ────────────────────────────────
+  kyc: router({
+    // Upload de documento + selfie para verificação
+    submitDocuments: protectedProcedure
+      .input(z.object({
+        documentType: z.enum(["rg", "cnh", "passaporte"]),
+        documentBase64: z.string(), // base64 do documento
+        selfieBase64: z.string(),   // base64 da selfie
+        coreNumber: z.string().optional(),
+        coreState: z.string().length(2).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        // Find representative
+        const rep = await db.select().from(representatives).where(eq(representatives.userId, ctx.user.id)).limit(1);
+        if (!rep.length) throw new TRPCError({ code: "NOT_FOUND", message: "Perfil de representante não encontrado" });
+
+        // Upload document image to S3
+        const docBuffer = Buffer.from(input.documentBase64.replace(/^data:image\/\w+;base64,/, ""), "base64");
+        const selfieBuffer = Buffer.from(input.selfieBase64.replace(/^data:image\/\w+;base64,/, ""), "base64");
+        const docKey = `kyc/${ctx.user.id}/document_${Date.now()}.jpg`;
+        const selfieKey = `kyc/${ctx.user.id}/selfie_${Date.now()}.jpg`;
+        const { url: docUrl } = await storagePut(docKey, docBuffer, "image/jpeg");
+        const { url: selfieUrl } = await storagePut(selfieKey, selfieBuffer, "image/jpeg");
+
+        // Use LLM Vision to extract data from document and compare with selfie
+        let extractedName: string | null = null;
+        let extractedCpf: string | null = null;
+        let kycNotes: string | null = null;
+
+        try {
+          const llmResult = await invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: `Você é um sistema de verificação de identidade KYC. Analise o documento e a selfie fornecidos e retorne um JSON com os campos: name (nome completo no documento), cpf (CPF no documento, sem pontuação), faceMatch (true/false se a selfie parece ser a mesma pessoa do documento), documentValid (true/false se o documento parece autêntico e legível), notes (observações em português). Seja conservador: em caso de dúvida, marque documentValid como false.`,
+              },
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: `Documento tipo: ${input.documentType}. Analise o documento e a selfie:` },
+                  { type: "image_url", image_url: { url: `data:image/jpeg;base64,${input.documentBase64.replace(/^data:image\/\w+;base64,/, "")}` } },
+                  { type: "image_url", image_url: { url: `data:image/jpeg;base64,${input.selfieBase64.replace(/^data:image\/\w+;base64,/, "")}` } },
+                ],
+              },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "kyc_result",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    cpf: { type: "string" },
+                    faceMatch: { type: "boolean" },
+                    documentValid: { type: "boolean" },
+                    notes: { type: "string" },
+                  },
+                  required: ["name", "cpf", "faceMatch", "documentValid", "notes"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+          const parsed = JSON.parse(llmResult.choices[0].message.content as string);
+          extractedName = parsed.name || null;
+          extractedCpf = parsed.cpf || null;
+          kycNotes = `IA: faceMatch=${parsed.faceMatch}, docValid=${parsed.documentValid}. ${parsed.notes}`;
+        } catch (e) {
+          kycNotes = "Erro na análise automática. Requer revisão manual.";
+        }
+
+        // Update representative record
+        await db.update(representatives)
+          .set({
+            kycStatus: "pending_review",
+            kycDocumentUrl: docUrl,
+            kycSelfieUrl: selfieUrl,
+            kycDocumentType: input.documentType,
+            kycExtractedName: extractedName,
+            kycExtractedCpf: extractedCpf,
+            kycNotes: kycNotes,
+            coreNumber: input.coreNumber || null,
+            coreState: input.coreState || null,
+          })
+          .where(eq(representatives.userId, ctx.user.id));
+
+        // Notify admin
+        await notifyOwner({
+          title: "Nova solicitação de verificação KYC",
+          content: `Representante ${ctx.user.name} (ID ${ctx.user.id}) enviou documentos para verificação. Notas da IA: ${kycNotes}`,
+        });
+
+        return { success: true, status: "pending_review", notes: kycNotes };
+      }),
+
+    // Consultar status KYC do representante logado
+    getStatus: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const rep = await db
+        .select({
+          kycStatus: representatives.kycStatus,
+          kycDocumentType: representatives.kycDocumentType,
+          kycExtractedName: representatives.kycExtractedName,
+          kycNotes: representatives.kycNotes,
+          kycReviewedAt: representatives.kycReviewedAt,
+          coreNumber: representatives.coreNumber,
+          coreState: representatives.coreState,
+          coreStatus: representatives.coreStatus,
+          coreValidUntil: representatives.coreValidUntil,
+          coreCheckedAt: representatives.coreCheckedAt,
+        })
+        .from(representatives)
+        .where(eq(representatives.userId, ctx.user.id))
+        .limit(1);
+      if (!rep.length) throw new TRPCError({ code: "NOT_FOUND" });
+      return rep[0];
+    }),
+
+    // Consultar CORE pelo número de registro + estado
+    lookupCore: protectedProcedure
+      .input(z.object({
+        coreNumber: z.string().min(1),
+        coreState: z.string().length(2),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+        // Try CONFERE public consultation
+        let coreStatus: "active" | "inactive" | "not_found" = "not_found";
+        let coreValidUntil: string | null = null;
+        let coreName: string | null = null;
+
+        try {
+          const response = await fetch(
+            `https://www.confere.org.br/consultapublica?rdReg=on&txtConsulta=${encodeURIComponent(input.coreNumber)}`,
+            {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (compatible; RepMatch/1.0)",
+                "Accept": "text/html",
+              },
+              signal: AbortSignal.timeout(8000),
+            }
+          );
+          const html = await response.text();
+          // Parse the response to find registration status
+          if (html.toLowerCase().includes("ativo") || html.toLowerCase().includes("regular")) {
+            coreStatus = "active";
+            // Try to extract validity date
+            const validMatch = html.match(/(\d{2}\/\d{2}\/\d{4})/g);
+            if (validMatch && validMatch.length > 0) {
+              coreValidUntil = validMatch[validMatch.length - 1];
+            }
+            // Try to extract name
+            const nameMatch = html.match(/<td[^>]*>([A-Z\s]{5,60})<\/td>/i);
+            if (nameMatch) coreName = nameMatch[1].trim();
+          } else if (html.toLowerCase().includes("cancelado") || html.toLowerCase().includes("inativo") || html.toLowerCase().includes("suspenso")) {
+            coreStatus = "inactive";
+          }
+        } catch (e) {
+          // If CONFERE is down, mark as pending manual check
+          coreStatus = "not_found";
+        }
+
+        // Update representative record
+        await db.update(representatives)
+          .set({
+            coreNumber: input.coreNumber,
+            coreState: input.coreState.toUpperCase(),
+            coreStatus,
+            coreValidUntil,
+            coreCheckedAt: new Date(),
+          })
+          .where(eq(representatives.userId, ctx.user.id));
+
+        return { coreStatus, coreValidUntil, coreName };
+      }),
+
+    // Admin: listar KYC pendentes
+    listPendingKyc: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      return db
+        .select({
+          id: representatives.id,
+          userId: representatives.userId,
+          fullName: representatives.fullName,
+          kycStatus: representatives.kycStatus,
+          kycDocumentUrl: representatives.kycDocumentUrl,
+          kycSelfieUrl: representatives.kycSelfieUrl,
+          kycDocumentType: representatives.kycDocumentType,
+          kycExtractedName: representatives.kycExtractedName,
+          kycExtractedCpf: representatives.kycExtractedCpf,
+          kycNotes: representatives.kycNotes,
+          coreNumber: representatives.coreNumber,
+          coreState: representatives.coreState,
+          coreStatus: representatives.coreStatus,
+          createdAt: representatives.createdAt,
+        })
+        .from(representatives)
+        .where(eq(representatives.kycStatus, "pending_review"));
+    }),
+
+    // Admin: aprovar ou rejeitar KYC
+    reviewKyc: protectedProcedure
+      .input(z.object({
+        representativeId: z.number(),
+        decision: z.enum(["approved", "rejected"]),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+        await db.update(representatives)
+          .set({
+            kycStatus: input.decision,
+            kycNotes: input.notes || null,
+            kycReviewedAt: new Date(),
+          })
+          .where(eq(representatives.id, input.representativeId));
         return { success: true };
       }),
   }),

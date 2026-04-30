@@ -253,12 +253,24 @@
 - [x] Exibir badge "CNPJ Verificado" no perfil da empresa após consulta bem-sucedida
 
 ## LGPD e Segurança
-- [ ] Criar página /privacidade com Política de Privacidade completa (LGPD)
-- [ ] Criar página /termos com Termos de Uso completos
-- [ ] Criar banner de cookie consent (aceitar/recusar cookies analíticos)
-- [ ] Adicionar checkbox de consentimento LGPD no onboarding
-- [ ] Criar tabela consent_logs no banco para registrar consentimentos
-- [ ] Implementar endpoint de exclusão de dados (direito ao esquecimento)
-- [ ] Atualizar footer com links reais para /privacidade e /termos
-- [ ] Adicionar links LGPD no onboarding e formulários
-- [ ] Registrar rotas /privacidade e /termos no App.tsx
+- [x] Criar página /privacidade com Política de Privacidade completa (LGPD)
+- [x] Criar página /termos com Termos de Uso completos
+- [x] Criar banner de cookie consent (aceitar/recusar cookies analíticos)
+- [x] Adicionar checkbox de consentimento LGPD no onboarding
+- [x] Criar tabela consent_logs no banco para registrar consentimentos
+- [x] Implementar endpoint de exclusão de dados (direito ao esquecimento)
+- [x] Atualizar footer com links reais para /privacidade e /termos
+- [x] Adicionar links LGPD no onboarding e formulários
+- [x] Registrar rotas /privacidade e /termos no App.tsx
+
+## KYC e Verificação de Identidade + CORE
+- [ ] Schema: adicionar campos kycStatus, kycDocumentUrl, kycSelfieUrl, kycReviewedAt, kycNotes, coreNumber, coreState, coreStatus, coreValidUntil, coreCheckedAt na tabela representatives
+- [ ] Gerar e aplicar migration SQL dos novos campos
+- [ ] Procedure: uploadKycDocuments (salva doc + selfie no S3, muda status para pending_review)
+- [ ] Procedure: verifyKycWithAI (usa LLM vision para comparar selfie com documento e extrair dados)
+- [ ] Procedure: lookupCore (scraping do CONFERE por CPF/número de registro)
+- [ ] Procedure: adminReviewKyc (admin aprova/rejeita verificação manual)
+- [ ] Frontend: fluxo de verificação no RepDashboard (upload doc + selfie + número CORE)
+- [ ] Frontend: badge "Identidade Verificada" e "CORE Ativo" nos cards de representante
+- [ ] Frontend: painel admin para revisar KYC pendentes com imagens e dados extraídos
+- [ ] Frontend: exibir validade do CORE e estado nos cards para empresas

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Search, MapPin, Briefcase, Star, Lock, Users, Filter, ArrowRight, Loader2, TrendingUp, Clock, Award, Crown, Medal } from "lucide-react";
+import { Search, MapPin, Briefcase, Star, Lock, Users, Filter, ArrowRight, Loader2, TrendingUp, Clock, Award, Crown, Medal, Shield } from "lucide-react";
 
 const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
 
@@ -194,13 +194,23 @@ export default function BuscarRepresentantes() {
                       </div>
                     </div>
 
-                    {/* Availability badge for paid tiers */}
+                    {/* Availability + KYC/CORE badges */}
                     {isPaid && (
-                      <div className="mb-3">
+                      <div className="mb-3 flex flex-wrap gap-1.5">
                         <span className="inline-flex items-center gap-1 text-xs bg-green-500/10 text-green-400 border border-green-500/20 rounded-full px-2.5 py-0.5">
                           <Clock className="w-3 h-3" />
-                          {AVAILABILITY_LABEL["negociavel"]}
+                          {AVAILABILITY_LABEL[(rep as any).availability ?? "negociavel"] ?? "Negociável"}
                         </span>
+                        {(rep as any).kycStatus === "approved" && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full px-2.5 py-0.5">
+                            <Shield className="w-3 h-3" /> Verificado
+                          </span>
+                        )}
+                        {(rep as any).coreStatus === "active" && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full px-2.5 py-0.5">
+                            <Award className="w-3 h-3" /> CORE Ativo
+                          </span>
+                        )}
                       </div>
                     )}
 

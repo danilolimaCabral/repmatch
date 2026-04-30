@@ -10,7 +10,8 @@ import { trpc } from "@/lib/trpc";
 import {
   Briefcase, User, LogOut, Search, MapPin, DollarSign,
   ChevronRight, Loader2, Star, Lock, CheckCircle, Clock, XCircle,
-  TrendingUp, Building2, Filter, MessageCircle, Send, Edit2, Bell
+  TrendingUp, Building2, Filter, MessageCircle, Send, Edit2, Bell,
+  Shield, Award
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -506,6 +507,31 @@ export default function RepDashboard() {
                   </div>
                 </div>
               </div>
+              {/* KYC Verification Card */}
+              <div className="mt-6 rounded-xl border border-emerald-800/50 bg-emerald-900/10 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-500/20 rounded-lg">
+                      <Shield className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm">Verificação de Identidade</h3>
+                      <p className="text-xs text-muted-foreground">Obtenha o badge de representante verificado</p>
+                    </div>
+                  </div>
+                  <a href="/verificacao">
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                      <Shield className="w-3 h-3 mr-1" /> Verificar
+                    </Button>
+                  </a>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="text-xs bg-emerald-900/30 text-emerald-300 px-2 py-1 rounded-full">✓ Badge no perfil</span>
+                  <span className="text-xs bg-emerald-900/30 text-emerald-300 px-2 py-1 rounded-full">✓ Prioridade na busca</span>
+                  <span className="text-xs bg-emerald-900/30 text-emerald-300 px-2 py-1 rounded-full">✓ Validação CORE</span>
+                </div>
+              </div>
+
               {tierConfig.upgrade && (
                 <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-6">
                   <div className="flex items-center gap-3 mb-3">

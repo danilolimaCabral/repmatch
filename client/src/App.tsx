@@ -14,6 +14,7 @@ import Vagas from "./pages/Vagas";
 import Planos from "./pages/Planos";
 import Privacidade from "./pages/Privacidade";
 import Termos from "./pages/Termos";
+import VerificacaoKYC from "./pages/VerificacaoKYC";
 import CookieConsent from "./components/CookieConsent";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/privacidade" component={Privacidade} />
       <Route path="/termos" component={Termos} />
+      <Route path="/verificacao" component={VerificacaoKYC} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
