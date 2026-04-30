@@ -192,3 +192,20 @@
 - [x] Testar "Reabrir Vaga": status volta para "open" corretamente
 - [x] TypeScript: 0 erros após correção
 - [x] Testes Vitest: 7/7 passando após correção
+
+## Redesign Visual Completo — Menos IA, Mais Humano
+
+- [ ] Atualizar fontes globais para Plus Jakarta Sans + Bricolage Grotesque
+- [ ] Atualizar paleta de cores para tons mais naturais e humanos
+- [ ] Redesenhar landing page (Home.tsx) — layout, copy e visual
+- [ ] Redesenhar dashboard da empresa (CompanyDashboard.tsx)
+- [ ] Redesenhar dashboard do representante (RepDashboard.tsx)
+- [ ] Redesenhar telas de login e cadastro
+- [ ] Redesenhar tela de onboarding
+
+## Correção do Fluxo de Pagamento — Desbloqueio de Contato
+
+- [x] Webhook Stripe: tratar UNLOCK_CONTACT e registrar desbloqueio no banco após pagamento
+- [x] Checkout: passar repId nos metadados da sessão Stripe
+- [x] Frontend: detectar ?payment=success&rep_id=X na URL e registrar desbloqueio
+- [x] Webhook: tratar FEATURED_JOB corretamente com job_id nos metadados

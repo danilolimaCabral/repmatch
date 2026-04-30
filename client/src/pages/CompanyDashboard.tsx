@@ -139,6 +139,32 @@ export default function CompanyDashboard() {
     onError: (e) => toast.error(e.message),
   });
 
+  // Handle Stripe payment success redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get("payment");
+    if (paymentStatus === "success") {
+      const repId = params.get("rep_id");
+      const jobId = params.get("job_id");
+      if (repId) {
+        toast.success("Pagamento confirmado! Contato desbloqueado com sucesso.");
+        setActiveTab("search");
+        utils.representatives.listForCompany.invalidate();
+      } else if (jobId) {
+        toast.success("Vaga destacada com sucesso!");
+        utils.jobs.myJobs.invalidate();
+      } else {
+        toast.success("Pagamento confirmado! Seu plano foi atualizado.");
+        utils.companies.myProfile.invalidate();
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (paymentStatus === "cancelled") {
+      toast.info("Pagamento cancelado.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // MUST be before any conditional returns to comply with Rules of Hooks
   useEffect(() => {
     if (!profileLoading && !profile) {
