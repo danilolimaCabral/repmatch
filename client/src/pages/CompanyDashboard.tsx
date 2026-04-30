@@ -10,7 +10,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Briefcase, Building2, Users, LogOut, Plus, MapPin, DollarSign,
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
-  ChevronRight, Eye
+  ChevronRight, Eye, Crown, Medal, Linkedin
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -692,12 +692,29 @@ export default function CompanyDashboard() {
                             <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3" />{rep.segment ?? "Geral"}</div>
                             <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears ?? 0} anos de experiência</div>
                             <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{Number(rep.averageRating ?? 0).toFixed(1)} avaliação</div>
+                            {(rep as any).availability && (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-3 h-3 text-green-400" />
+                                <span className="text-green-400">{(rep as any).availability === "imediata" ? "Disponível agora" : (rep as any).availability === "30dias" ? "Em 30 dias" : (rep as any).availability === "60dias" ? "Em 60 dias" : "Negociável"}</span>
+                              </div>
+                            )}
+                            {(rep as any).cities && (
+                              <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3 text-primary/60" /><span className="truncate">{(rep as any).cities}</span></div>
+                            )}
+                            {(rep as any).additionalSegments && (
+                              <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3 text-primary/60" /><span className="truncate text-foreground/70">{(rep as any).additionalSegments}</span></div>
+                            )}
                           </div>
                           {isUnlocked ? (
                             <div className="space-y-1.5 text-xs border-t border-border pt-3">
                               {rep.phone && <div className="flex items-center gap-1.5 text-foreground font-medium"><DollarSign className="w-3 h-3 text-primary" />{rep.phone}</div>}
                               {rep.email && <div className="flex items-center gap-1.5 text-foreground font-medium"><ChevronRight className="w-3 h-3 text-primary" />{rep.email}</div>}
                               {rep.bio && <p className="text-muted-foreground mt-2 leading-relaxed line-clamp-2">{rep.bio}</p>}
+                              {(rep as any).linkedinUrl && (
+                                <a href={(rep as any).linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 mt-1">
+                                  <Linkedin className="w-3 h-3" />Ver LinkedIn
+                                </a>
+                              )}
                             </div>
                           ) : (
                             <Button

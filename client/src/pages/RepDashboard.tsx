@@ -148,7 +148,7 @@ export default function RepDashboard() {
   const [minCommission, setMinCommission] = useState<number>(0);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState({ fullName: "", phone: "", region: "", segment: "", experienceYears: 0, bio: "" });
+  const [profileForm, setProfileForm] = useState({ fullName: "", phone: "", region: "", segment: "", experienceYears: 0, bio: "", availability: "negociavel" as string, workModel: "multiplas" as string, additionalSegments: "", cities: "", linkedinUrl: "" });
 
   const utils = trpc.useUtils();
   const { data: profile, isLoading: profileLoading } = trpc.representatives.myProfile.useQuery();
@@ -202,6 +202,11 @@ export default function RepDashboard() {
       segment: profile.segment ?? "",
       experienceYears: profile.experienceYears ?? 0,
       bio: profile.bio ?? "",
+      availability: (profile as any).availability ?? "negociavel",
+      workModel: (profile as any).workModel ?? "multiplas",
+      additionalSegments: (profile as any).additionalSegments ?? "",
+      cities: (profile as any).cities ?? "",
+      linkedinUrl: (profile as any).linkedinUrl ?? "",
     });
     setEditProfileOpen(true);
   };
@@ -526,21 +531,21 @@ export default function RepDashboard() {
           <DialogHeader>
             <DialogTitle>Editar Perfil</DialogTitle>
           </DialogHeader>
-          <form className="space-y-4 mt-2" onSubmit={(e) => { e.preventDefault(); updateProfileMutation.mutate(profileForm); }}>
+          <form className="space-y-4 mt-2 max-h-[70vh] overflow-y-auto pr-1" onSubmit={(e) => { e.preventDefault(); updateProfileMutation.mutate({ ...profileForm, availability: profileForm.availability as "imediata" | "30dias" | "60dias" | "negociavel", workModel: profileForm.workModel as "exclusivo" | "multiplas" | "indifferente" }); }}>
             <div>
               <Label>Nome completo</Label>
               <Input value={profileForm.fullName} onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })} className="mt-1 bg-secondary border-border" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Região</Label>
+                <Label>Região principal</Label>
                 <Select value={profileForm.region} onValueChange={(v) => setProfileForm({ ...profileForm, region: v })}>
                   <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Segmento</Label>
+                <Label>Segmento principal</Label>
                 <Select value={profileForm.segment} onValueChange={(v) => setProfileForm({ ...profileForm, segment: v })}>
                   <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
@@ -557,9 +562,46 @@ export default function RepDashboard() {
                 <Input type="number" min={0} max={50} value={profileForm.experienceYears} onChange={(e) => setProfileForm({ ...profileForm, experienceYears: Number(e.target.value) })} className="mt-1 bg-secondary border-border" />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Disponibilidade</Label>
+                <Select value={profileForm.availability} onValueChange={(v) => setProfileForm({ ...profileForm, availability: v })}>
+                  <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="imediata">Disponível agora</SelectItem>
+                    <SelectItem value="30dias">Em 30 dias</SelectItem>
+                    <SelectItem value="60dias">Em 60 dias</SelectItem>
+                    <SelectItem value="negociavel">Negociável</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Modelo de trabalho</Label>
+                <Select value={profileForm.workModel} onValueChange={(v) => setProfileForm({ ...profileForm, workModel: v })}>
+                  <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="exclusivo">Exclusivo</SelectItem>
+                    <SelectItem value="multiplas">Múltiplas empresas</SelectItem>
+                    <SelectItem value="indifferente">Indiferente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Outros segmentos que atua <span className="text-muted-foreground text-xs">(separados por vírgula)</span></Label>
+              <Input value={profileForm.additionalSegments} onChange={(e) => setProfileForm({ ...profileForm, additionalSegments: e.target.value })} placeholder="Ex: Farmacêutico, Cosméticos" className="mt-1 bg-secondary border-border" />
+            </div>
+            <div>
+              <Label>Cidades / Estados que atende <span className="text-muted-foreground text-xs">(separados por vírgula)</span></Label>
+              <Input value={profileForm.cities} onChange={(e) => setProfileForm({ ...profileForm, cities: e.target.value })} placeholder="Ex: São Paulo, Campinas, ABC Paulista" className="mt-1 bg-secondary border-border" />
+            </div>
+            <div>
+              <Label>LinkedIn <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+              <Input value={profileForm.linkedinUrl} onChange={(e) => setProfileForm({ ...profileForm, linkedinUrl: e.target.value })} placeholder="https://linkedin.com/in/seu-perfil" className="mt-1 bg-secondary border-border" />
+            </div>
             <div>
               <Label>Bio</Label>
-              <Textarea value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} placeholder="Conte sobre sua experiência..." className="mt-1 bg-secondary border-border" rows={3} />
+              <Textarea value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} placeholder="Conte sobre sua experiência, resultados e diferenciais..." className="mt-1 bg-secondary border-border" rows={3} />
             </div>
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" className="flex-1 border-border" onClick={() => setEditProfileOpen(false)}>Cancelar</Button>

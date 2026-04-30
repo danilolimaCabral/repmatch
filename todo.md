@@ -233,3 +233,14 @@
 - [x] Criar simulador de match interativo (segmento + região → reps disponíveis em tempo real)
 - [x] Criar seção contador ao vivo de representantes e vagas
 - [x] Criar seção Antes x Depois (vida sem RepMatch vs com RepMatch)
+
+## Modelo Freemium para Representantes
+
+- [x] Schema: adicionar campos availability, workModel, cities, additionalSegments, linkedinUrl, avatarUrl, highlightedAt
+- [x] Migração SQL aplicada ao banco de dados
+- [x] Onboarding expandido: disponibilidade, modelo de trabalho, cidades, segmentos adicionais, LinkedIn
+- [x] Procedures atualizadas: completeRepProfile e updateProfile aceitam novos campos
+- [x] db.ts: listRepresentativesForCompany retorna novos campos + ordenação ouro > prata > bronze > free
+- [x] BuscarRepresentantes: cards premium com badge Crown/Award/Medal, borda gradiente, badge de disponibilidade
+- [x] RepDashboard: atualizar formulário de edição de perfil com novos campos
+- [x] CompanyDashboard: exibir novos campos (disponibilidade, cidades, segmentos adicionais) nos cards de busca
