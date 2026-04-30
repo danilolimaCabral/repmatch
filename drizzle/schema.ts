@@ -159,3 +159,32 @@ export const importLogs = mysqlTable("import_logs", {
 
 export type ImportLog = typeof importLogs.$inferSelect;
 export type InsertImportLog = typeof importLogs.$inferInsert;
+
+// LGPD Consent Logs
+export const consentLogs = mysqlTable("consent_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  consentType: mysqlEnum("consentType", ["terms", "privacy", "analytics", "marketing"]).notNull(),
+  action: mysqlEnum("action", ["granted", "revoked"]).notNull(),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  userAgent: varchar("userAgent", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ConsentLog = typeof consentLogs.$inferSelect;
+export type InsertConsentLog = typeof consentLogs.$inferInsert;
+
+// LGPD Data Deletion Requests (Direito ao Esquecimento)
+export const dataDeletionRequests = mysqlTable("data_deletion_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  reason: text("reason"),
+  status: mysqlEnum("status", ["pending", "processing", "completed", "rejected"]).default("pending").notNull(),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  processedAt: timestamp("processedAt"),
+  processedBy: int("processedBy"),
+  notes: text("notes"),
+});
+
+export type DataDeletionRequest = typeof dataDeletionRequests.$inferSelect;
+export type InsertDataDeletionRequest = typeof dataDeletionRequests.$inferInsert;

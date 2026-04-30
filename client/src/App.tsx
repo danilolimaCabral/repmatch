@@ -12,6 +12,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import BuscarRepresentantes from "./pages/BuscarRepresentantes";
 import Vagas from "./pages/Vagas";
 import Planos from "./pages/Planos";
+import Privacidade from "./pages/Privacidade";
+import Termos from "./pages/Termos";
+import CookieConsent from "./components/CookieConsent";
 
 function Router() {
   return (
@@ -24,6 +27,8 @@ function Router() {
       <Route path="/dashboard/rep" component={RepDashboard} />
       <Route path="/dashboard/company" component={CompanyDashboard} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/privacidade" component={Privacidade} />
+      <Route path="/termos" component={Termos} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -37,6 +42,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <CookieConsent />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

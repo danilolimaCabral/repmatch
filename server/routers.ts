@@ -37,6 +37,9 @@ import {
   listPublicJobs,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
+import { getDb } from "./db";
+import { consentLogs, dataDeletionRequests } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
@@ -657,6 +660,67 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         return { success: true };
       }),
   }),
-});
 
+  // ─── LGPD / Privacidade ─────────────────────────────────────────────────────
+  lgpd: router({
+    // Log de consentimento (chamado no onboarding e no cookie banner)
+    logConsent: protectedProcedure
+      .input(z.object({
+        consentType: z.enum(["terms", "privacy", "analytics", "marketing"]),
+        action: z.enum(["granted", "revoked"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const ip = (ctx.req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim()
+          || ctx.req.socket?.remoteAddress
+          || null;
+        const ua = (ctx.req.headers["user-agent"] as string)?.substring(0, 500) || null;
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+        await db.insert(consentLogs).values({
+          userId: ctx.user.id,
+          consentType: input.consentType,
+          action: input.action,
+          ipAddress: ip,
+          userAgent: ua,
+        });
+        return { success: true };
+      }),
+
+    // Solicitar exclusão de dados (direito ao esquecimento — LGPD Art. 18)
+    requestDataDeletion: protectedProcedure
+      .input(z.object({ reason: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        // Check if there's already a pending request
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+        const existing = await db
+          .select()
+          .from(dataDeletionRequests)
+          .where(eq(dataDeletionRequests.userId, ctx.user.id))
+          .limit(1);
+        if (existing.length > 0 && existing[0].status === "pending") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Você já tem uma solicitação de exclusão em andamento." });
+        }
+        await db.insert(dataDeletionRequests).values({
+          userId: ctx.user.id,
+          reason: input.reason || null,
+          status: "pending",
+        });
+        // Notify owner
+        await notifyOwner({
+          title: "Nova solicitação de exclusão de dados (LGPD)",
+          content: `Usuário ID ${ctx.user.id} (${ctx.user.name}) solicitou exclusão de dados. Motivo: ${input.reason || "Não informado"}`,
+        });
+        return { success: true, message: "Solicitação registrada. Seus dados serão excluídos em até 15 dias úteis." };
+      }),
+
+    // Listar solicitações de exclusão (admin)
+    listDeletionRequests: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      return db.select().from(dataDeletionRequests).orderBy(dataDeletionRequests.requestedAt);
+    }),
+  }),
+});
 export type AppRouter = typeof appRouter;

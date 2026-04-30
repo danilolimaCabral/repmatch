@@ -251,3 +251,14 @@
 - [x] CompanyDashboard: botão "Consultar CNPJ" para atualizar dados da empresa
 - [x] Validação de formato de CNPJ (14 dígitos, máscara XX.XXX.XXX/XXXX-XX)
 - [x] Exibir badge "CNPJ Verificado" no perfil da empresa após consulta bem-sucedida
+
+## LGPD e Segurança
+- [ ] Criar página /privacidade com Política de Privacidade completa (LGPD)
+- [ ] Criar página /termos com Termos de Uso completos
+- [ ] Criar banner de cookie consent (aceitar/recusar cookies analíticos)
+- [ ] Adicionar checkbox de consentimento LGPD no onboarding
+- [ ] Criar tabela consent_logs no banco para registrar consentimentos
+- [ ] Implementar endpoint de exclusão de dados (direito ao esquecimento)
+- [ ] Atualizar footer com links reais para /privacidade e /termos
+- [ ] Adicionar links LGPD no onboarding e formulários
+- [ ] Registrar rotas /privacidade e /termos no App.tsx

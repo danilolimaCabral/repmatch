@@ -90,6 +90,9 @@ export default function Onboarding() {
     }
   }, [cnpjQuery.isError, cnpjQuery.error, cnpjLookupCnpj]);
 
+  // LGPD consent state
+  const [lgpdConsent, setLgpdConsent] = useState(false);
+
   const setTypeMutation = trpc.onboarding.setUserType.useMutation();
   const completeRepMutation = trpc.onboarding.completeRepProfile.useMutation({
     onSuccess: () => {
@@ -127,6 +130,10 @@ export default function Onboarding() {
 
   const handleRepSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!lgpdConsent) {
+      toast.error("Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar");
+      return;
+    }
     if (!repForm.region || !repForm.segment) {
       toast.error("Preencha região e segmento");
       return;
@@ -148,6 +155,10 @@ export default function Onboarding() {
 
   const handleCompanySubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!lgpdConsent) {
+      toast.error("Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar");
+      return;
+    }
     if (!companyForm.companyName || !companyForm.segment) {
       toast.error("Preencha nome da empresa e segmento");
       return;
@@ -346,10 +357,28 @@ export default function Onboarding() {
                   />
                 </div>
 
+                {/* LGPD Consent */}
+                <div className="flex items-start gap-3 p-4 bg-muted/20 rounded-lg border border-border">
+                  <input
+                    type="checkbox"
+                    id="lgpd-consent-rep"
+                    checked={lgpdConsent}
+                    onChange={(e) => setLgpdConsent(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-green-500 cursor-pointer shrink-0"
+                  />
+                  <label htmlFor="lgpd-consent-rep" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                    Li e concordo com os{" "}
+                    <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Termos de Uso</a>{" "}
+                    e a{" "}
+                    <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Política de Privacidade</a>,
+                    incluindo o tratamento dos meus dados pessoais conforme a LGPD (Lei 13.709/2018).
+                  </label>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full bg-primary text-primary-foreground font-bold py-6"
-                  disabled={completeRepMutation.isPending}
+                  disabled={completeRepMutation.isPending || !lgpdConsent}
                 >
                   {completeRepMutation.isPending ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Criando perfil...</>
@@ -472,10 +501,28 @@ export default function Onboarding() {
                   />
                 </div>
 
+                {/* LGPD Consent */}
+                <div className="flex items-start gap-3 p-4 bg-muted/20 rounded-lg border border-border">
+                  <input
+                    type="checkbox"
+                    id="lgpd-consent-company"
+                    checked={lgpdConsent}
+                    onChange={(e) => setLgpdConsent(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-green-500 cursor-pointer shrink-0"
+                  />
+                  <label htmlFor="lgpd-consent-company" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                    Li e concordo com os{" "}
+                    <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Termos de Uso</a>{" "}
+                    e a{" "}
+                    <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Política de Privacidade</a>,
+                    incluindo o tratamento dos meus dados pessoais conforme a LGPD (Lei 13.709/2018).
+                  </label>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full bg-primary text-primary-foreground font-bold py-6"
-                  disabled={completeCompanyMutation.isPending}
+                  disabled={completeCompanyMutation.isPending || !lgpdConsent}
                 >
                   {completeCompanyMutation.isPending ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Criando empresa...</>

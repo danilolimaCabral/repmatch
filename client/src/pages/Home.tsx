@@ -1070,13 +1070,17 @@ export default function Home() {
               <span className="text-muted-foreground/60 text-sm">Conectando empresas e representantes. Gerando resultados.</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground/60">
-              <a href="#" className="hover:text-muted-foreground transition-colors">Termos de uso</a>
-              <a href="#" className="hover:text-muted-foreground transition-colors">Privacidade</a>
-              <a href="#" className="hover:text-muted-foreground transition-colors">Contato</a>
+              <a href="/termos" className="hover:text-foreground transition-colors">Termos de Uso</a>
+              <a href="/privacidade" className="hover:text-foreground transition-colors">Privacidade</a>
+              <a href="https://wa.me/5541999499815" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Contato</a>
             </div>
           </div>
-          <div className="pt-6 border-t border-border text-center text-xs text-muted-foreground/40">
-            © 2026 RepMatch. Todos os direitos reservados.
+          <div className="pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground/40">
+            <span>© 2026 RepMatch. Todos os direitos reservados.</span>
+            <div className="flex items-center gap-2">
+              <Shield className="w-3 h-3 text-green-500/60" />
+              <span>Dados protegidos conforme a LGPD (Lei 13.709/2018)</span>
+            </div>
           </div>
         </div>
       </footer>
