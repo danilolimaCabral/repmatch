@@ -95,6 +95,11 @@ export async function promoteToAdmin(userId: number): Promise<void> {
   if (!db) return;
   await db.update(users).set({ role: "admin" }).where(eq(users.id, userId));
 }
+export async function toggleUserActive(userId: number, isActive: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ isActive }).where(eq(users.id, userId));
+}
 
 export async function listAllUsers(limit = 50) {
   const db = await getDb();

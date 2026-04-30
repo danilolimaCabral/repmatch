@@ -721,18 +721,45 @@ export default function CompanyDashboard() {
                     <Star className="w-5 h-5 text-yellow-400" />
                     <h3 className="font-bold">Destaque suas vagas</h3>
                   </div>
-                  <Button
-                    size="sm"
-                    className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-xs"
-                    onClick={() => {
-                      if (!selectedJobId) { toast.error("Selecione uma vaga primeiro na aba Candidaturas"); return; }
-                      user && startCheckout("FEATURED_JOB", user.id, user.email ?? "", user.name ?? "", { jobId: selectedJobId });
-                    }}
-                  >
-                    Destacar Vaga R$49
-                  </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">Vagas em destaque aparecem no topo da lista para representantes e recebem 3x mais candidaturas.</p>
+                <p className="text-sm text-muted-foreground mb-4">Vagas em destaque aparecem no topo da lista para representantes e recebem 3x mais candidaturas.</p>
+                {(() => {
+                  const openJobs = myJobs?.filter(j => j.status === "open") ?? [];
+                  if (!myJobs || myJobs.length === 0) {
+                    return <p className="text-sm text-muted-foreground italic">Crie uma vaga primeiro para poder destacá-la.</p>;
+                  }
+                  if (openJobs.length === 0) {
+                    return <p className="text-sm text-muted-foreground italic">Nenhuma vaga aberta no momento. Reabra uma vaga para poder destacá-la.</p>;
+                  }
+                  return (
+                    <div className="flex items-center gap-3">
+                      <Select
+                        value={selectedJobId?.toString() ?? ""}
+                        onValueChange={(v) => setSelectedJobId(Number(v))}
+                      >
+                        <SelectTrigger className="flex-1 bg-secondary border-border text-sm">
+                          <SelectValue placeholder="Selecione a vaga para destacar..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {openJobs.map((j) => (
+                            <SelectItem key={j.id} value={j.id.toString()}>{j.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-xs whitespace-nowrap"
+                        disabled={!selectedJobId}
+                        onClick={() => {
+                          if (!selectedJobId) return;
+                          user && startCheckout("FEATURED_JOB", user.id, user.email ?? "", user.name ?? "", { jobId: selectedJobId });
+                        }}
+                      >
+                        <Star className="w-3 h-3 mr-1" />Destacar R$49
+                      </Button>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-6">

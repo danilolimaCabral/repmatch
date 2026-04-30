@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2 } from "lucide-react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck } from "lucide-react";
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -32,6 +32,10 @@ export default function AdminDashboard() {
   const promoteMutation = trpc.admin.promoteUser.useMutation({
     onSuccess: () => { toast.success("Usuário promovido a admin!"); refetchUsers(); },
     onError: () => toast.error("Erro ao promover usuário"),
+  });
+  const toggleActiveMutation = trpc.admin.toggleUserActive.useMutation({
+    onSuccess: (_, vars) => { toast.success(vars.isActive ? "Usuário reativado!" : "Usuário desativado!"); refetchUsers(); },
+    onError: () => toast.error("Erro ao alterar status do usuário"),
   });
   const importMutation = trpc.admin.importData.useMutation({
     onSuccess: (result) => {
@@ -442,7 +446,8 @@ export default function AdminDashboard() {
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Tipo</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Role</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cadastro</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ação</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -463,18 +468,46 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
                           <td className="px-4 py-3">
-                            {u.role !== "admin" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs border-primary/30 text-primary hover:bg-primary/10"
-                                onClick={() => promoteMutation.mutate({ userId: u.id })}
-                                disabled={promoteMutation.isPending}
-                              >
-                                <ShieldCheck className="w-3 h-3 mr-1" />
-                                Promover Admin
-                              </Button>
+                            {(u as Record<string, unknown> & { isActive?: boolean }).isActive !== false ? (
+                              <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs">Ativo</Badge>
+                            ) : (
+                              <Badge className="bg-zinc-700 text-zinc-300 text-xs">Inativo</Badge>
                             )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              {u.role !== "admin" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs border-primary/30 text-primary hover:bg-primary/10"
+                                  onClick={() => promoteMutation.mutate({ userId: u.id })}
+                                  disabled={promoteMutation.isPending}
+                                >
+                                  <ShieldCheck className="w-3 h-3 mr-1" />
+                                  Admin
+                                </Button>
+                              )}
+                              {u.id !== user?.id && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className={`text-xs ${
+                                    (u as Record<string, unknown> & { isActive?: boolean }).isActive !== false
+                                      ? "border-red-700/40 text-red-400 hover:bg-red-900/20"
+                                      : "border-green-700/40 text-green-400 hover:bg-green-900/20"
+                                  }`}
+                                  onClick={() => toggleActiveMutation.mutate({ userId: u.id, isActive: (u as Record<string, unknown> & { isActive?: boolean }).isActive === false })}
+                                  disabled={toggleActiveMutation.isPending}
+                                >
+                                  {(u as Record<string, unknown> & { isActive?: boolean }).isActive !== false ? (
+                                    <><UserX className="w-3 h-3 mr-1" />Desativar</>
+                                  ) : (
+                                    <><UserCheck className="w-3 h-3 mr-1" />Reativar</>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}

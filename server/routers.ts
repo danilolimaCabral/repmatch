@@ -30,6 +30,7 @@ import {
   updateUserType,
   createRepresentative,
   promoteToAdmin,
+  toggleUserActive,
   listAllUsers,
   getRepresentativePreview,
 } from "./db";
@@ -562,6 +563,13 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         await promoteToAdmin(input.userId);
+        return { success: true };
+      }),
+    toggleUserActive: protectedProcedure
+      .input(z.object({ userId: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        await toggleUserActive(input.userId, input.isActive);
         return { success: true };
       }),
   }),

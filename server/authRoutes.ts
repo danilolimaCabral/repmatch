@@ -112,6 +112,11 @@ router.post("/login", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "E-mail ou senha incorretos." });
     }
 
+    // Block deactivated users
+    if (user.isActive === false) {
+      return res.status(403).json({ error: "Sua conta foi desativada. Entre em contato com o suporte." });
+    }
+
     // Update lastSignedIn
     await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
 
@@ -156,7 +161,7 @@ router.get("/me", async (req: Request, res: Response) => {
 
     const result = await db.select().from(users).where(eq(users.id, payload.userId as number)).limit(1);
     const user = result[0];
-    if (!user) return res.json(null);
+    if (!user || user.isActive === false) return res.json(null);
 
     return res.json({
       id: user.id,

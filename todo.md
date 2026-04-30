@@ -153,9 +153,9 @@
 
 - [x] Admin: corrigir adminStats() para retornar rankDistribution e tierDistribution
 - [x] Admin: adicionar aba "Vagas" para visualizar todas as vagas publicadas
-- [ ] Admin: adicionar ação de desativar/reativar usuário
+- [x] Admin: adicionar ação de desativar/reativar usuário (campo isActive na tabela users + botões Desativar/Reativar no painel)
 - [x] Empresa: corrigir bug do Stripe checkout — updateJobMutation separado do updateStatusMutation
-- [ ] Empresa: corrigir "Destacar Vaga" para não depender de selectedJobId nulo
+- [x] Empresa: corrigir "Destacar Vaga" para não depender de selectedJobId nulo (seletor inline de vaga aberta + botão desabilitado até selecionar)
 - [x] Empresa: adicionar botão de pausar/fechar vaga diretamente na lista
 - [x] Representante: adicionar filtro por comissão mínima nas oportunidades
 - [x] Representante: mostrar badge de "nova" em vagas adicionadas nos últimos 3 dias

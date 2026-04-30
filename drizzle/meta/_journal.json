@@ -22,6 +22,13 @@
       "when": 1777505519389,
       "tag": "0002_gigantic_hellfire_club",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1777508381646,
+      "tag": "0003_pink_wrecker",
+      "breakpoints": true
     }
   ]
 }
