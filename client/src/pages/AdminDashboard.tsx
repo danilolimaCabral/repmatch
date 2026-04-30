@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck } from "lucide-react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2 } from "lucide-react";
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ function normalizePhone(raw: string): string | null {
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"stats" | "import" | "users">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "import" | "users" | "jobs">("stats");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; failed: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -127,6 +127,7 @@ export default function AdminDashboard() {
           <nav className="flex-1 p-4 space-y-1">
             {[
               { id: "stats", label: "Dashboard", icon: TrendingUp },
+              { id: "jobs", label: "Vagas", icon: Briefcase },
               { id: "import", label: "Importar Dados", icon: Upload },
               { id: "users", label: "Usuários", icon: Users },
             ].map((item) => (
@@ -357,6 +358,61 @@ export default function AdminDashboard() {
                   <p className="text-xs mt-3 text-muted-foreground/70">O sistema detecta automaticamente o tipo pelo campo CNPJ. Telefones são normalizados para o formato (XX) XXXXX-XXXX.</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === "jobs" && (
+            <div>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-2xl font-black">Vagas Publicadas</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Todas as vagas cadastradas na plataforma</p>
+                </div>
+                <Badge className="bg-purple-900/30 text-purple-300 border border-purple-700/40 px-3 py-1">
+                  <BarChart2 className="w-3 h-3 mr-1" />{stats?.totalJobs ?? 0} vagas
+                </Badge>
+              </div>
+              {!stats?.recentJobs ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : (stats as Record<string, unknown> & { recentJobs?: Array<{ id: number; title: string; status: string; segment: string | null; region: string | null; createdAt: Date }> })?.recentJobs?.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">Nenhuma vaga publicada ainda</div>
+              ) : (
+                <div className="rounded-xl border border-border bg-card overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/30">
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">ID</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Título</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Segmento</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Região</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Criada em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {((stats as Record<string, unknown> & { recentJobs?: Array<{ id: number; title: string; status: string; segment: string | null; region: string | null; createdAt: Date }> })?.recentJobs ?? []).map((job) => (
+                        <tr key={job.id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
+                          <td className="px-4 py-3 text-muted-foreground">#{job.id}</td>
+                          <td className="px-4 py-3 font-medium">{job.title}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{job.segment ?? "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{job.region ?? "—"}</td>
+                          <td className="px-4 py-3">
+                            <Badge className={job.status === "open" ? "bg-green-900/30 text-green-300" : job.status === "paused" ? "bg-yellow-900/30 text-yellow-300" : "bg-zinc-700 text-zinc-300"} variant="outline">
+                              {job.status === "open" ? "Aberta" : job.status === "paused" ? "Pausada" : "Fechada"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(job.createdAt).toLocaleDateString("pt-BR")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="px-4 py-3 border-t border-border text-xs text-muted-foreground">
+                    Exibindo as 10 vagas mais recentes. Total: {stats?.totalJobs ?? 0} vagas.
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

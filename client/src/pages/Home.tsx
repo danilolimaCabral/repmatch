@@ -71,6 +71,7 @@ export default function Home() {
           <img src={LOGO_URL} alt="RepMatch" className="h-9 object-contain" />
           <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
             <a href="#como-funciona" className="hover:text-white transition-colors">Como funciona</a>
+            <a href="/buscar" className="hover:text-white transition-colors font-medium text-zinc-300">Buscar Reps</a>
             <a href="#planos" className="hover:text-white transition-colors">Planos</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </nav>

@@ -124,3 +124,39 @@
 - [x] Adicionar rota de promoção de usuário para admin no backend
 - [x] Adicionar aba de "Propostas" no Rep Dashboard
 - [x] Adicionar aba de "Histórico de Contratações" no Company Dashboard
+
+## Envio Real de E-mail (Resend)
+- [ ] Instalar SDK do Resend no projeto
+- [ ] Configurar RESEND_API_KEY via webdev_request_secrets
+- [ ] Criar helper server/emailService.ts com função sendEmail
+- [ ] Atualizar /api/auth/forgot-password para enviar e-mail real via Resend
+- [ ] Template HTML de e-mail de recuperação de senha
+
+## Página Pública de Busca (/buscar)
+- [x] Criar página client/src/pages/BuscarRepresentantes.tsx
+- [x] Filtros por região e segmento (sem login necessário)
+- [x] Contador de representantes disponíveis + cards com preview mascarado
+- [x] CTA de cadastro/login para desbloquear contatos
+- [x] Adicionar rota /buscar no App.tsx
+- [x] Link para /buscar no header da landing page
+
+## Auditoria e Melhorias dos Painéis
+- [x] Auditar painel do Representante (fluxo completo, bugs, UX)
+- [x] Auditar painel da Empresa (fluxo completo, bugs, UX)
+- [x] Auditar painel Admin (métricas, gestão, bugs)
+- [x] Corrigir bugs encontrados nos painéis
+- [x] Melhorar UX dos painéis (loading states, empty states, feedbacks)
+- [x] Criar página pública /buscar com filtros e preview de representantes
+- [x] Adicionar link /buscar no header da landing page
+
+## Melhorias e Correções dos Painéis (Auditoria 2)
+
+- [x] Admin: corrigir adminStats() para retornar rankDistribution e tierDistribution
+- [x] Admin: adicionar aba "Vagas" para visualizar todas as vagas publicadas
+- [ ] Admin: adicionar ação de desativar/reativar usuário
+- [x] Empresa: corrigir bug do Stripe checkout — updateJobMutation separado do updateStatusMutation
+- [ ] Empresa: corrigir "Destacar Vaga" para não depender de selectedJobId nulo
+- [x] Empresa: adicionar botão de pausar/fechar vaga diretamente na lista
+- [x] Representante: adicionar filtro por comissão mínima nas oportunidades
+- [x] Representante: mostrar badge de "nova" em vagas adicionadas nos últimos 3 dias
+- [x] Página pública /buscar com filtros e preview de representantes

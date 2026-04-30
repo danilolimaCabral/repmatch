@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import BuscarRepresentantes from "./pages/BuscarRepresentantes";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/buscar" component={BuscarRepresentantes} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/dashboard/rep" component={RepDashboard} />
       <Route path="/dashboard/company" component={CompanyDashboard} />

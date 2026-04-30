@@ -143,17 +143,19 @@ export default function RepDashboard() {
   const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile">("jobs");
   const [searchRegion, setSearchRegion] = useState("");
   const [searchSegment, setSearchSegment] = useState("");
+  const [minCommission, setMinCommission] = useState<number>(0);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({ fullName: "", phone: "", region: "", segment: "", experienceYears: 0, bio: "" });
 
   const utils = trpc.useUtils();
   const { data: profile, isLoading: profileLoading } = trpc.representatives.myProfile.useQuery();
-  const { data: jobs, isLoading: jobsLoading } = trpc.jobs.list.useQuery({
+  const { data: allJobs, isLoading: jobsLoading } = trpc.jobs.list.useQuery({
     region: searchRegion || undefined,
     segment: searchSegment || undefined,
     repTier: profile?.subscriptionTier ?? "free",
   });
+  const jobs = allJobs?.filter(j => !minCommission || Number(j.commissionPercentage ?? 0) >= minCommission);
   const { data: myApplications, isLoading: appsLoading } = trpc.candidaturas.myApplications.useQuery();
 
   const applyMutation = trpc.candidaturas.submit.useMutation({
@@ -221,7 +223,7 @@ export default function RepDashboard() {
           </div>
           <nav className="flex-1 p-4 space-y-1">
             {[
-              { id: "jobs", label: "Oportunidades", icon: Briefcase, badge: jobs?.length },
+              { id: "jobs", label: "Oportunidades", icon: Briefcase, badge: allJobs?.length },
               { id: "applications", label: "Candidaturas", icon: Bell, badge: myApplications?.length },
               { id: "profile", label: "Meu Perfil", icon: User },
             ].map((item) => (
@@ -287,14 +289,24 @@ export default function RepDashboard() {
                 </div>
               )}
 
-              <div className="flex gap-3 mb-6">
-                <div className="relative flex-1 max-w-xs">
+                <div className="flex flex-wrap gap-3 mb-6">
+                <div className="relative flex-1 min-w-[180px] max-w-xs">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input placeholder="Filtrar por região..." value={searchRegion} onChange={(e) => setSearchRegion(e.target.value)} className="pl-9 bg-secondary border-border" />
                 </div>
-                <div className="relative flex-1 max-w-xs">
+                <div className="relative flex-1 min-w-[180px] max-w-xs">
                   <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input placeholder="Filtrar por segmento..." value={searchSegment} onChange={(e) => setSearchSegment(e.target.value)} className="pl-9 bg-secondary border-border" />
+                </div>
+                <div className="relative flex-1 min-w-[160px] max-w-[200px]">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="number" min={0} max={100}
+                    placeholder="Comissão mín. %"
+                    value={minCommission || ""}
+                    onChange={(e) => setMinCommission(Number(e.target.value))}
+                    className="pl-9 bg-secondary border-border"
+                  />
                 </div>
               </div>
 
@@ -318,6 +330,9 @@ export default function RepDashboard() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                               {job.isFeatured && <Badge className="bg-yellow-500/20 text-yellow-400 text-xs"><Star className="w-3 h-3 mr-1" />Destaque</Badge>}
+                              {job.createdAt && Date.now() - new Date(job.createdAt).getTime() < 3 * 24 * 60 * 60 * 1000 && (
+                                <Badge className="bg-green-500/20 text-green-400 text-xs">Nova</Badge>
+                              )}
                               {isLocked && <Badge className="bg-zinc-700 text-zinc-300 text-xs"><Lock className="w-3 h-3 mr-1" />Bloqueado</Badge>}
                             </div>
                             <h3 className="font-bold text-base">{job.title}</h3>

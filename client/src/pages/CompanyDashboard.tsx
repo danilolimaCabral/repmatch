@@ -51,12 +51,12 @@ const STATUS_CONFIG = {
   hired: { label: "Contratado", color: "bg-primary/20 text-primary", icon: Star },
 };
 
-async function startCheckout(productKey: string, userId: number, userEmail: string, userName: string, metadata?: Record<string, string>) {
+async function startCheckout(productKey: string, userId: number, userEmail: string, userName: string, extraData?: { jobId?: number; repId?: number }) {
   try {
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productKey, userId, userEmail, userName, metadata }),
+      body: JSON.stringify({ productKey, userId, userEmail, userName, jobId: extraData?.jobId, repId: extraData?.repId }),
     });
     const data = await res.json() as { url?: string; error?: string };
     if (data.url) { toast.info("Redirecionando para o pagamento..."); window.open(data.url, "_blank"); }
@@ -126,6 +126,13 @@ export default function CompanyDashboard() {
       toast.success("Status atualizado!");
       utils.candidaturas.byJob.invalidate();
     },
+  });
+  const updateJobMutation = trpc.jobs.update.useMutation({
+    onSuccess: () => {
+      toast.success("Vaga atualizada!");
+      utils.jobs.myJobs.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   if (profileLoading) {
@@ -356,16 +363,34 @@ export default function CompanyDashboard() {
                             {job.segment && <span>{job.segment}</span>}
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-border"
-                          onClick={() => { setSelectedJobId(job.id); setActiveTab("applications"); }}
-                        >
-                          <Users className="w-3.5 h-3.5 mr-1" />
-                          Ver candidatos
-                          <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-border"
+                            onClick={() => { setSelectedJobId(job.id); setActiveTab("applications"); }}
+                          >
+                            <Users className="w-3.5 h-3.5 mr-1" />
+                            Candidatos
+                          </Button>
+                          {job.status === "open" ? (
+                            <Button size="sm" variant="outline" className="border-yellow-700/50 text-yellow-400 hover:bg-yellow-900/20"
+                              onClick={() => updateJobMutation.mutate({ id: job.id, status: "paused" })} disabled={updateJobMutation.isPending}>
+                              Pausar
+                            </Button>
+                          ) : job.status === "paused" ? (
+                            <Button size="sm" variant="outline" className="border-green-700/50 text-green-400 hover:bg-green-900/20"
+                              onClick={() => updateJobMutation.mutate({ id: job.id, status: "open" })} disabled={updateJobMutation.isPending}>
+                              Reabrir
+                            </Button>
+                          ) : null}
+                          {job.status !== "closed" && (
+                            <Button size="sm" variant="outline" className="border-red-700/50 text-red-400 hover:bg-red-900/20"
+                              onClick={() => updateJobMutation.mutate({ id: job.id, status: "closed" })} disabled={updateJobMutation.isPending}>
+                              Fechar
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -527,7 +552,7 @@ export default function CompanyDashboard() {
                               size="sm"
                               variant="outline"
                               className="border-primary/40 text-primary hover:bg-primary/10 text-xs h-7 px-2"
-                              onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: String(rep.id) })}
+                              onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}
                             >
                               Desbloquear R$29
                             </Button>
@@ -600,7 +625,7 @@ export default function CompanyDashboard() {
                         <div className="text-xs font-bold text-foreground">Contato bloqueado</div>
                         <div className="text-xs text-muted-foreground mt-0.5">R$29 para desbloquear</div>
                         <Button size="sm" className="mt-2 h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
-                          onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: String(rep.id) })}>
+                          onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}>
                           Desbloquear
                         </Button>
                       </div>
@@ -701,7 +726,7 @@ export default function CompanyDashboard() {
                     className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-xs"
                     onClick={() => {
                       if (!selectedJobId) { toast.error("Selecione uma vaga primeiro na aba Candidaturas"); return; }
-                      user && startCheckout("FEATURED_JOB", user.id, user.email ?? "", user.name ?? "", { jobId: String(selectedJobId) });
+                      user && startCheckout("FEATURED_JOB", user.id, user.email ?? "", user.name ?? "", { jobId: selectedJobId });
                     }}
                   >
                     Destacar Vaga R$49

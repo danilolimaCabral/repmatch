@@ -397,12 +397,42 @@ export async function adminStats() {
     .from(representatives)
     .where(or(eq(representatives.subscriptionTier, "premium"), eq(representatives.subscriptionTier, "elite"))!);
 
+  // Rank distribution for companies
+  const rankRows = await db
+    .select({ rank: companies.dynamicRank, count: sql<number>`count(*)` })
+    .from(companies)
+    .groupBy(companies.dynamicRank);
+  const rankDistribution: Record<string, number> = {};
+  for (const row of rankRows) {
+    if (row.rank) rankDistribution[row.rank] = Number(row.count);
+  }
+
+  // Tier distribution for representatives
+  const tierRows = await db
+    .select({ tier: representatives.subscriptionTier, count: sql<number>`count(*)` })
+    .from(representatives)
+    .groupBy(representatives.subscriptionTier);
+  const tierDistribution: Record<string, number> = {};
+  for (const row of tierRows) {
+    if (row.tier) tierDistribution[row.tier] = Number(row.count);
+  }
+
+  // Recent jobs
+  const recentJobs = await db
+    .select({ id: jobs.id, title: jobs.title, status: jobs.status, segment: jobs.segment, region: jobs.region, createdAt: jobs.createdAt })
+    .from(jobs)
+    .orderBy(desc(jobs.createdAt))
+    .limit(10);
+
   return {
     totalReps: Number(totalReps?.count ?? 0),
     totalCompanies: Number(totalCompanies?.count ?? 0),
     totalJobs: Number(totalJobs?.count ?? 0),
     totalApplications: Number(totalApplications?.count ?? 0),
     premiumReps: Number(premiumReps?.count ?? 0),
+    rankDistribution,
+    tierDistribution,
+    recentJobs,
   };
 }
 
