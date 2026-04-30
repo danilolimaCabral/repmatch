@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, or, sql, SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   Application,
@@ -224,10 +224,14 @@ export async function listJobs(filters?: {
   const db = await getDb();
   if (!db) return [];
 
-  const conditions = [eq(jobs.status, "open")];
+  // When querying by companyId (company dashboard), show all statuses.
+  // When querying for rep feed (no companyId), only show open jobs.
+  const conditions: SQL[] = [];
+  if (!filters?.companyId) conditions.push(eq(jobs.status, "open"));
   if (filters?.companyId) conditions.push(eq(jobs.companyId, filters.companyId));
   if (filters?.region) conditions.push(eq(jobs.region, filters.region));
   if (filters?.segment) conditions.push(eq(jobs.segment, filters.segment));
+  if (filters?.status) conditions.push(eq(jobs.status, filters.status as "open" | "closed" | "paused"));
 
   // Tier access control
   if (filters?.repTier === "free") {
@@ -237,7 +241,8 @@ export async function listJobs(filters?: {
   }
   // elite sees all
 
-  return db.select().from(jobs).where(and(...conditions)).orderBy(desc(jobs.isFeatured), desc(jobs.createdAt));
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  return db.select().from(jobs).where(whereClause).orderBy(desc(jobs.isFeatured), desc(jobs.createdAt));
 }
 
 export async function updateJob(id: number, data: Partial<InsertJob>) {

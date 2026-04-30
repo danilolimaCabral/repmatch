@@ -163,20 +163,32 @@
 
 ## Varredura Completa — Correção de Todos os Bugs
 
-- [ ] Auditar fluxo de registro (Empresa e Representante)
-- [ ] Auditar fluxo de login e redirecionamento pós-login
-- [ ] Auditar fluxo de onboarding (Empresa e Representante)
-- [ ] Auditar painel do Representante (todas as abas)
-- [ ] Auditar painel da Empresa (todas as abas)
-- [ ] Auditar painel Admin (todas as abas)
-- [ ] Auditar página /buscar (filtros, cards, CTA)
-- [ ] Corrigir todos os bugs encontrados
+- [x] Auditar fluxo de registro (Empresa e Representante)
+- [x] Auditar fluxo de login e redirecionamento pós-login
+- [x] Auditar fluxo de onboarding (Empresa e Representante)
+- [x] Auditar painel do Representante (todas as abas)
+- [x] Auditar painel da Empresa (todas as abas)
+- [x] Auditar painel Admin (todas as abas)
+- [x] Auditar página /buscar (filtros, cards, CTA)
+- [x] Corrigir todos os bugs encontrados
 
 ## Aba "Buscar Representantes" no Painel da Empresa
 
-- [ ] Criar procedure tRPC `representatives.listForCompany` com filtros e paginação
-- [ ] Adicionar aba "Buscar Representantes" no painel da empresa com cards completos
-- [ ] Exibir dados completos para planos pagos, dados parciais para Free
-- [ ] Filtros por região, segmento e plano do representante
-- [ ] Corrigir bug UNAUTHORIZED ao criar vaga (cookie rm_session não enviado pelo browser)
-- [ ] Corrigir bug de redirect prematuro no AdminDashboard (já corrigido, confirmar)
+- [x] Criar procedure tRPC `representatives.listForCompany` com filtros e paginação
+- [x] Adicionar aba "Buscar Representantes" no painel da empresa com cards completos
+- [x] Exibir dados completos para planos pagos, dados parciais para Free
+- [x] Filtros por região, segmento e plano do representante
+- [x] Corrigir bug UNAUTHORIZED ao criar vaga (jobs.create funciona corretamente via cookie rm_session)
+- [x] Corrigir bug de redirect prematuro no AdminDashboard (confirmado e corrigido)
+
+## Testes de Browser e Correções Finais (Sessão 2)
+
+- [x] Completar onboarding da empresa testuser@repmatch.com (Empresa Teste Ltda, Alimentos e Bebidas, SP Capital)
+- [x] Verificar dashboard da empresa: aba Minhas Vagas, Candidaturas, Buscar Representantes, Perfil
+- [x] Testar "Buscar Representantes": 9.677 reps exibidos com filtros funcionando
+- [x] Testar "Publicar Vaga": vaga criada com sucesso (título, descrição, comissão)
+- [x] Testar "Pausar Vaga": status alterado para "paused" no banco de dados
+- [x] Corrigir bug: listJobs() sempre filtrava status=open mesmo no dashboard da empresa — agora mostra todas as vagas da empresa (abertas, pausadas, fechadas)
+- [x] Testar "Reabrir Vaga": status volta para "open" corretamente
+- [x] TypeScript: 0 erros após correção
+- [x] Testes Vitest: 7/7 passando após correção

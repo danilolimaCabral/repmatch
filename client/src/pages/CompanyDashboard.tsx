@@ -139,6 +139,13 @@ export default function CompanyDashboard() {
     onError: (e) => toast.error(e.message),
   });
 
+  // MUST be before any conditional returns to comply with Rules of Hooks
+  useEffect(() => {
+    if (!profileLoading && !profile) {
+      navigate("/onboarding");
+    }
+  }, [profileLoading, profile, navigate]);
+
   if (profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -146,12 +153,6 @@ export default function CompanyDashboard() {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (!profileLoading && !profile) {
-      navigate("/onboarding");
-    }
-  }, [profileLoading, profile, navigate]);
 
   if (!profile) {
     return null;
