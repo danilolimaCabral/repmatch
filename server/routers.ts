@@ -311,7 +311,7 @@ export const appRouter = router({
           commissionPercentage: z.number().min(0).max(100).optional(),
           region: z.string().optional(),
           segment: z.string().optional(),
-          minTierRequired: z.enum(["free", "bronze", "prata", "ouro"]).default("free"),
+          minTierRequired: z.enum(["bronze", "prata", "ouro"]).default("bronze"),
         })
       )
       .mutation(async ({ ctx, input }) => {

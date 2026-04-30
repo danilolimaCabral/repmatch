@@ -39,7 +39,7 @@ const STATUS_CONFIG = {
 };
 
 const TIER_CONFIG = {
-  free: { label: "Free", color: "bg-secondary text-muted-foreground", upgrade: "Upgrade para Bronze — R$9,99/mês" },
+  free: { label: "Pendente", color: "bg-secondary text-muted-foreground", upgrade: "Ativar plano Bronze — R$9,99/mês" },
   bronze: { label: "Bronze", color: "bg-orange-500/15 text-orange-400", upgrade: "Upgrade para Prata — R$19,90/mês" },
   prata: { label: "Prata", color: "bg-primary/15 text-primary", upgrade: "Upgrade para Ouro — R$29,90/mês" },
   ouro: { label: "Ouro", color: "bg-amber-500/15 text-amber-400", upgrade: null },
@@ -277,8 +277,8 @@ export default function RepDashboard() {
                   <h1 className="text-2xl font-black">Oportunidades</h1>
                   <p className="text-muted-foreground text-sm mt-1">
                     Plano <span className="text-primary font-semibold">{tierConfig.label}</span> — {
-                      tier === "free" ? "apenas vagas Free" :
-                      tier === "bronze" ? "vagas Free + Bronze" :
+                      tier === "free" ? "pagamento pendente — vagas bloqueadas" :
+                      tier === "bronze" ? "vagas Bronze disponíveis" :
                       tier === "prata" ? "vagas até Prata" : "todas as vagas (Ouro incluso)"
                     }
                   </p>
@@ -287,13 +287,13 @@ export default function RepDashboard() {
               </div>
 
               {tier === "free" && (
-                <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 px-5 py-3 flex items-center justify-between">
+                <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
-                    <Lock className="w-4 h-4 text-primary" />
-                    <span>Plano Free — vagas Bronze, Prata e Ouro estão bloqueadas.</span>
+                    <Lock className="w-4 h-4 text-amber-400" />
+                    <span className="text-amber-300">Pagamento pendente — ative um plano para acessar as vagas.</span>
                   </div>
                   <Button size="sm" className="bg-primary text-primary-foreground text-xs font-bold" onClick={() => startCheckout("REP_BRONZE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
-                    Fazer Upgrade
+                    Ativar Plano
                   </Button>
                 </div>
               )}
@@ -587,7 +587,7 @@ export default function RepDashboard() {
                     <h3 className="font-bold">Desbloqueie mais oportunidades</h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {tier === "free" ? "Com o Bronze (R$9,99/mês) você aparece para mais empresas e acessa vagas exclusivas." : tier === "bronze" ? "Com o Prata (R$19,90/mês) você tem destaque na busca e acessa vagas Prata." : "Com o Ouro (R$29,90/mês) você aparece em primeiro na busca e acessa TODAS as vagas."}
+                    {tier === "free" ? "Ative o Bronze (R$9,99/mês) para aparecer para empresas e acessar vagas exclusivas." : tier === "bronze" ? "Com o Prata (R$19,90/mês) você tem destaque na busca e acessa vagas Prata." : "Com o Ouro (R$29,90/mês) você aparece em primeiro na busca e acessa TODAS as vagas."}
                   </p>
                   <Button className="bg-primary text-primary-foreground font-bold" onClick={() => startCheckout(tier === "free" ? "REP_BRONZE" : tier === "bronze" ? "REP_PRATA" : "REP_OURO", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
                     {tierConfig.upgrade}

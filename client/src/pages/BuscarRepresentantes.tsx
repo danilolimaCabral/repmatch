@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Search, MapPin, Briefcase, Star, Lock, Users, Filter, ArrowRight, Loader2, TrendingUp, Clock, Award, Crown, Medal, Shield } from "lucide-react";
+import { getLoginUrl } from "@/const";
 
 const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
 
 const TIER_BADGE: Record<string, { label: string; color: string; icon: React.ReactNode; highlight: boolean }> = {
-  free: { label: "Gratuito", color: "bg-zinc-700/60 text-zinc-300", icon: null, highlight: false },
+  free: { label: "Pendente", color: "bg-zinc-700/60 text-zinc-300", icon: null, highlight: false },
   bronze: { label: "Bronze", color: "bg-amber-900/60 text-amber-300", icon: <Medal className="w-3 h-3" />, highlight: true },
   prata: { label: "Prata", color: "bg-slate-500/60 text-slate-200", icon: <Award className="w-3 h-3" />, highlight: true },
   ouro: { label: "Ouro ⭐", color: "bg-yellow-600/70 text-yellow-100", icon: <Crown className="w-3 h-3" />, highlight: true },
@@ -51,10 +52,10 @@ export default function BuscarRepresentantes() {
             <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
           </button>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => navigate("/login")}>
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => window.location.href = getLoginUrl()}>
               Entrar
             </Button>
-            <Button size="sm" className="bg-primary text-primary-foreground font-semibold" onClick={() => navigate("/register")}>
+            <Button size="sm" className="bg-primary text-primary-foreground font-semibold" onClick={() => window.location.href = getLoginUrl()}>
               Cadastrar
             </Button>
           </div>
@@ -188,7 +189,7 @@ export default function BuscarRepresentantes() {
             {count > 0 && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
               {previews.map((rep) => {
-                const tierCfg = TIER_BADGE[rep.subscriptionTier ?? "free"] ?? TIER_BADGE.free;
+                const tierCfg = TIER_BADGE[rep.subscriptionTier ?? "free"] ?? TIER_BADGE["free"];
                 const isPaid = tierCfg.highlight;
                 return (
                   <div
@@ -311,7 +312,7 @@ export default function BuscarRepresentantes() {
                   size="lg"
                   variant="outline"
                   className="border-border"
-                  onClick={() => navigate("/login")}
+                  onClick={() => window.location.href = getLoginUrl()}
                 >
                   Já tenho conta
                 </Button>

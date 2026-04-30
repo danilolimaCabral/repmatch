@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { getLoginUrl } from "@/const";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle, ArrowRight, Users, Building2, Copy, MessageCircle,
@@ -170,8 +171,8 @@ export default function Planos() {
       setSelectedPlan(plan);
       setPaymentMethod("pix");
     } else {
-      // Redirect to register with plan info
-      navigate(`/register?plan=${plan.productKey}&billing=${billing}`);
+      // Redirect to Manus OAuth then onboarding will handle plan selection
+      window.location.href = getLoginUrl();
     }
   };
 
@@ -184,9 +185,9 @@ export default function Planos() {
             <img src={LOGO_URL} alt="RepMatch" className="h-8 object-contain" />
           </a>
           <div className="flex items-center gap-4">
-            <a href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Entrar</a>
-            <a href="/register" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">
-              Cadastrar
+            <a href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Início</a>
+            <a href={getLoginUrl()} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">
+              Entrar / Cadastrar
             </a>
           </div>
         </div>

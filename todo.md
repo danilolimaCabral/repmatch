@@ -221,7 +221,7 @@
 
 ## Pagamento PIX Obrigatório
 - [x] Criar página /planos com todos os planos e opção PIX + Cartão
-- [ ] Remover plano Free — todos os planos exigem pagamento (pendente decisão do usuário)
+- [x] Remover plano Free — todos os planos exigem pagamento (pendente decisão do usuário)
 - [x] Chave PIX telefone 41999499815 exibida na página /planos
 - [x] Botão WhatsApp para envio de comprovante após PIX
 - [x] Fluxo: usuário paga PIX → manda comprovante no WhatsApp → admin libera acesso
@@ -282,6 +282,6 @@
 - [x] Frontend CompanyDashboard: adicionar os mesmos filtros na aba de busca
 
 ## Selos Visuais nos Cards de Representantes
-- [ ] BuscarRepresentantes: adicionar selos "Identidade Verificada" e "CORE Ativo" nos cards
-- [ ] CompanyDashboard: adicionar selos nos cards da aba de busca
-- [ ] RepDashboard: exibir selos no perfil próprio do representante
+- [x] BuscarRepresentantes: adicionar selos "Identidade Verificada" e "CORE Ativo" nos cards
+- [x] CompanyDashboard: adicionar selos nos cards da aba de busca
+- [x] RepDashboard: exibir selos no perfil próprio do representante

@@ -97,10 +97,10 @@ export default function Vagas() {
               </Button>
             ) : (
               <>
-                <Button size="sm" variant="ghost" onClick={() => navigate("/login")}>
+                <Button size="sm" variant="ghost" onClick={() => window.location.href = getLoginUrl()}>
                   Entrar
                 </Button>
-                <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => navigate("/register")}>
+                <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => window.location.href = getLoginUrl()}>
                   Criar conta
                 </Button>
               </>
@@ -350,13 +350,13 @@ export default function Vagas() {
               <Button
                 variant="outline"
                 className="border-border"
-                onClick={() => navigate("/login")}
-              >
-                Já tenho conta
+                onClick={() => window.location.href = getLoginUrl()}
+                >
+                  Já tenho conta
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-4">
-              Plano Free disponível · Upgrade para Prata a partir de R$19,90/mês
+              Planos a partir de R$9,99/mês · Cancele quando quiser
             </p>
           </div>
         )}
@@ -368,8 +368,8 @@ export default function Vagas() {
         <p>© 2025 RepMatch · Marketplace de Representantes Comerciais</p>
         <div className="flex justify-center gap-4 mt-2">
           <Link href="/" className="hover:text-foreground transition-colors">Início</Link>
-          <Link href="/register" className="hover:text-foreground transition-colors">Cadastrar</Link>
-          <Link href="/login" className="hover:text-foreground transition-colors">Entrar</Link>
+          <a href="/" className="hover:text-foreground transition-colors">Cadastrar</a>
+          <a href={getLoginUrl()} className="hover:text-foreground transition-colors">Entrar</a>
         </div>
       </footer>
     </div>
