@@ -251,6 +251,48 @@ export const appRouter = router({
     getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
       return getCompanyById(input.id);
     }),
+
+    // ─── BrasilAPI: consulta pública de CNPJ ─────────────────────────────────
+    lookupCnpj: publicProcedure
+      .input(z.object({ cnpj: z.string().min(11).max(18) }))
+      .query(async ({ input }) => {
+        const digits = input.cnpj.replace(/\D/g, "");
+        if (digits.length !== 14) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "CNPJ deve ter 14 dígitos" });
+        }
+        try {
+          const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`, {
+            signal: AbortSignal.timeout(10000),
+          });
+          if (!res.ok) {
+            if (res.status === 404) throw new TRPCError({ code: "NOT_FOUND", message: "CNPJ não encontrado na Receita Federal" });
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao consultar CNPJ" });
+          }
+          const data = await res.json() as Record<string, unknown>;
+          // Map BrasilAPI fields to our model
+          const cnaePrincipal = (data.cnae_fiscal_descricao as string) ?? "";
+          const logradouro = [data.logradouro, data.numero, data.complemento].filter(Boolean).join(", ");
+          const cidade = [data.municipio, data.uf].filter(Boolean).join(" - ");
+          return {
+            razaoSocial: (data.razao_social as string) ?? "",
+            nomeFantasia: (data.nome_fantasia as string) ?? "",
+            situacao: (data.descricao_situacao_cadastral as string) ?? "",
+            cnae: cnaePrincipal,
+            logradouro,
+            cidade,
+            cep: (data.cep as string) ?? "",
+            telefone: (data.ddd_telefone_1 as string) ?? "",
+            email: (data.email as string) ?? "",
+            uf: (data.uf as string) ?? "",
+            municipio: (data.municipio as string) ?? "",
+            abertura: (data.data_inicio_atividade as string) ?? "",
+            capitalSocial: (data.capital_social as number) ?? 0,
+          };
+        } catch (err) {
+          if (err instanceof TRPCError) throw err;
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha na consulta à BrasilAPI" });
+        }
+      }),
   }),
 
   // ─── Jobs ────────────────────────────────────────────────────────────────────

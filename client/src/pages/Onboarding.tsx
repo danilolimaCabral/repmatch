@@ -5,8 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { Building2, Users, Loader2, CheckCircle, Briefcase, MapPin, Clock, Link } from "lucide-react";
-import { useState } from "react";
+import { Building2, Users, Loader2, CheckCircle, Briefcase, MapPin, Clock, Link, Search, BadgeCheck } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -58,6 +58,37 @@ export default function Onboarding() {
     phone: "",
     description: "",
   });
+  const [cnpjVerified, setCnpjVerified] = useState(false);
+  const [cnpjLookupCnpj, setCnpjLookupCnpj] = useState("");
+
+  const cnpjQuery = trpc.companies.lookupCnpj.useQuery(
+    { cnpj: cnpjLookupCnpj },
+    {
+      enabled: cnpjLookupCnpj.replace(/\D/g, "").length === 14,
+      retry: false,
+    }
+  );
+
+  // React to CNPJ query result
+  useEffect(() => {
+    if (cnpjQuery.isSuccess && cnpjQuery.data) {
+      const data = cnpjQuery.data;
+      setCompanyForm((prev) => ({
+        ...prev,
+        companyName: prev.companyName || data.razaoSocial || data.nomeFantasia,
+        phone: prev.phone || data.telefone,
+      }));
+      setCnpjVerified(true);
+      toast.success(`CNPJ verificado: ${data.razaoSocial || data.nomeFantasia}`);
+    }
+  }, [cnpjQuery.isSuccess, cnpjQuery.data]);
+
+  useEffect(() => {
+    if (cnpjQuery.isError && cnpjLookupCnpj) {
+      setCnpjVerified(false);
+      toast.error(cnpjQuery.error?.message || "CNPJ não encontrado");
+    }
+  }, [cnpjQuery.isError, cnpjQuery.error, cnpjLookupCnpj]);
 
   const setTypeMutation = trpc.onboarding.setUserType.useMutation();
   const completeRepMutation = trpc.onboarding.completeRepProfile.useMutation({
@@ -356,13 +387,42 @@ export default function Onboarding() {
                 </div>
 
                 <div>
-                  <Label>CNPJ</Label>
-                  <Input
-                    value={companyForm.cnpj}
-                    onChange={(e) => setCompanyForm({ ...companyForm, cnpj: e.target.value })}
-                    placeholder="00.000.000/0001-00"
-                    className="mt-1 bg-secondary border-border"
-                  />
+                  <Label className="flex items-center gap-2">
+                    CNPJ
+                    {cnpjVerified && (
+                      <span className="flex items-center gap-1 text-xs text-green-500 font-medium">
+                        <BadgeCheck className="w-3.5 h-3.5" /> Verificado
+                      </span>
+                    )}
+                  </Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      value={companyForm.cnpj}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCompanyForm({ ...companyForm, cnpj: val });
+                        setCnpjVerified(false);
+                      }}
+                      placeholder="00.000.000/0001-00"
+                      className="bg-secondary border-border"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      disabled={companyForm.cnpj.replace(/\D/g, "").length !== 14 || cnpjQuery.isFetching}
+                      onClick={() => setCnpjLookupCnpj(companyForm.cnpj)}
+                      title="Consultar CNPJ na Receita Federal"
+                    >
+                      {cnpjQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  {cnpjQuery.data && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {cnpjQuery.data.razaoSocial} · {cnpjQuery.data.situacao} · {cnpjQuery.data.municipio}/{cnpjQuery.data.uf}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

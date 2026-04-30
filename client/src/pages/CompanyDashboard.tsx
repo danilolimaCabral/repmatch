@@ -10,7 +10,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Briefcase, Building2, Users, LogOut, Plus, MapPin, DollarSign,
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
-  ChevronRight, Eye, Crown, Medal, Linkedin
+  ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -81,6 +81,12 @@ export default function CompanyDashboard() {
   const [previewRegion, setPreviewRegion] = useState<string | undefined>(undefined);
   const [previewSegment, setPreviewSegment] = useState<string | undefined>(undefined);
 
+  // Profile edit state
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [profileEditForm, setProfileEditForm] = useState({ companyName: "", cnpj: "", segment: "", region: "", phone: "", description: "" });
+  const [cnpjLookup, setCnpjLookup] = useState("");
+  const [cnpjVerified, setCnpjVerified] = useState(false);
+
   const [jobForm, setJobForm] = useState({
     title: "",
     description: "",
@@ -106,6 +112,38 @@ export default function CompanyDashboard() {
   );
 
   const utils = trpc.useUtils();
+
+  const cnpjQuery = trpc.companies.lookupCnpj.useQuery(
+    { cnpj: cnpjLookup },
+    { enabled: cnpjLookup.replace(/\D/g, "").length === 14, retry: false }
+  );
+  useEffect(() => {
+    if (cnpjQuery.isSuccess && cnpjQuery.data) {
+      const d = cnpjQuery.data;
+      setProfileEditForm((prev) => ({
+        ...prev,
+        companyName: prev.companyName || d.razaoSocial || d.nomeFantasia,
+        phone: prev.phone || d.telefone,
+      }));
+      setCnpjVerified(true);
+      toast.success(`CNPJ verificado: ${d.razaoSocial || d.nomeFantasia}`);
+    }
+  }, [cnpjQuery.isSuccess, cnpjQuery.data]);
+  useEffect(() => {
+    if (cnpjQuery.isError && cnpjLookup) {
+      setCnpjVerified(false);
+      toast.error(cnpjQuery.error?.message || "CNPJ não encontrado");
+    }
+  }, [cnpjQuery.isError, cnpjQuery.error, cnpjLookup]);
+
+  const updateProfileMutation = trpc.companies.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("Perfil atualizado!");
+      setEditProfileOpen(false);
+      utils.companies.myProfile.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const createJobMutation = trpc.jobs.create.useMutation({
     onSuccess: () => {
@@ -762,7 +800,7 @@ export default function CompanyDashboard() {
                   <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-2xl">
                     {profile.companyName.charAt(0).toUpperCase()}
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-xl font-bold">{profile.companyName}</h2>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge className={tierConfig.color}>{tierConfig.label}</Badge>
@@ -772,6 +810,25 @@ export default function CompanyDashboard() {
                       </div>
                     </div>
                   </div>
+                  <Button
+                    size="sm" variant="outline"
+                    className="shrink-0"
+                    onClick={() => {
+                      setProfileEditForm({
+                        companyName: profile.companyName ?? "",
+                        cnpj: profile.cnpj ?? "",
+                        segment: profile.segment ?? "",
+                        region: profile.region ?? "",
+                        phone: profile.phone ?? "",
+                        description: profile.description ?? "",
+                      });
+                      setCnpjVerified(false);
+                      setCnpjLookup("");
+                      setEditProfileOpen(true);
+                    }}
+                  >
+                    <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -876,6 +933,79 @@ export default function CompanyDashboard() {
               </div>
             </div>
           )}
+
+          {/* ─── Edit Profile Dialog ───────────────────────────────────────────── */}
+          <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
+            <DialogContent className="bg-card border-border max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="text-foreground">Editar Perfil da Empresa</DialogTitle>
+              </DialogHeader>
+              <form
+                className="space-y-4 mt-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  updateProfileMutation.mutate(profileEditForm);
+                }}
+              >
+                <div>
+                  <Label>Nome da empresa</Label>
+                  <Input value={profileEditForm.companyName} onChange={(e) => setProfileEditForm({ ...profileEditForm, companyName: e.target.value })} className="mt-1 bg-secondary border-border" />
+                </div>
+                <div>
+                  <Label className="flex items-center gap-2">
+                    CNPJ
+                    {cnpjVerified && <span className="flex items-center gap-1 text-xs text-green-500"><BadgeCheck className="w-3.5 h-3.5" /> Verificado</span>}
+                  </Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      value={profileEditForm.cnpj}
+                      onChange={(e) => { setProfileEditForm({ ...profileEditForm, cnpj: e.target.value }); setCnpjVerified(false); }}
+                      placeholder="00.000.000/0001-00"
+                      className="bg-secondary border-border"
+                    />
+                    <Button
+                      type="button" variant="outline" size="icon" className="shrink-0"
+                      disabled={profileEditForm.cnpj.replace(/\D/g, "").length !== 14 || cnpjQuery.isFetching}
+                      onClick={() => setCnpjLookup(profileEditForm.cnpj)}
+                      title="Consultar CNPJ na Receita Federal"
+                    >
+                      {cnpjQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  {cnpjQuery.data && (
+                    <p className="text-xs text-muted-foreground mt-1">{cnpjQuery.data.razaoSocial} · {cnpjQuery.data.situacao} · {cnpjQuery.data.municipio}/{cnpjQuery.data.uf}</p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Segmento</Label>
+                    <Select value={profileEditForm.segment} onValueChange={(v) => setProfileEditForm({ ...profileEditForm, segment: v })}>
+                      <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>{SEGMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Região</Label>
+                    <Select value={profileEditForm.region} onValueChange={(v) => setProfileEditForm({ ...profileEditForm, region: v })}>
+                      <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>{REGIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label>Telefone</Label>
+                  <Input value={profileEditForm.phone} onChange={(e) => setProfileEditForm({ ...profileEditForm, phone: e.target.value })} placeholder="(11) 3000-0000" className="mt-1 bg-secondary border-border" />
+                </div>
+                <div>
+                  <Label>Descrição</Label>
+                  <Textarea value={profileEditForm.description} onChange={(e) => setProfileEditForm({ ...profileEditForm, description: e.target.value })} rows={3} className="mt-1 bg-secondary border-border" />
+                </div>
+                <Button type="submit" className="w-full" disabled={updateProfileMutation.isPending}>
+                  {updateProfileMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</> : "Salvar alterações"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>

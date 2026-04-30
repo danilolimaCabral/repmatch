@@ -244,3 +244,10 @@
 - [x] BuscarRepresentantes: cards premium com badge Crown/Award/Medal, borda gradiente, badge de disponibilidade
 - [x] RepDashboard: atualizar formulário de edição de perfil com novos campos
 - [x] CompanyDashboard: exibir novos campos (disponibilidade, cidades, segmentos adicionais) nos cards de busca
+
+## Integração BrasilAPI — Consulta de CNPJ Gratuita
+- [x] Criar procedure pública `company.lookupCnpj` no servidor via BrasilAPI
+- [x] Onboarding empresa: auto-preenchimento ao digitar CNPJ (razão social, nome fantasia, endereço, atividade)
+- [x] CompanyDashboard: botão "Consultar CNPJ" para atualizar dados da empresa
+- [x] Validação de formato de CNPJ (14 dígitos, máscara XX.XXX.XXX/XXXX-XX)
+- [x] Exibir badge "CNPJ Verificado" no perfil da empresa após consulta bem-sucedida
