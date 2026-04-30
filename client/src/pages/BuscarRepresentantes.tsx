@@ -204,7 +204,7 @@ export default function BuscarRepresentantes() {
             </div>
             )}
 
-            {/* CTA Section */}
+            {/* CTA Section - public page */}
             <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-8 text-center">
               <h3 className="text-2xl font-black mb-2">
                 Pronto para contratar o representante ideal?

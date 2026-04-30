@@ -33,6 +33,7 @@ import {
   toggleUserActive,
   listAllUsers,
   getRepresentativePreview,
+  listRepresentativesForCompany,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
@@ -192,6 +193,21 @@ export const appRouter = router({
       .input(z.object({ region: z.string().optional(), segment: z.string().optional() }).optional())
       .query(async ({ input }) => {
         return listRepresentatives(input);
+      }),
+    listForCompany: protectedProcedure
+      .input(
+        z.object({
+          region: z.string().optional(),
+          segment: z.string().optional(),
+          tier: z.enum(["free", "premium", "elite"]).optional(),
+          page: z.number().min(1).default(1),
+          limit: z.number().min(1).max(50).default(20),
+        }).optional()
+      )
+      .query(async ({ ctx, input }) => {
+        const company = await getCompanyByUserId(ctx.user.id);
+        if (!company) throw new TRPCError({ code: "FORBIDDEN", message: "Crie seu perfil de empresa primeiro" });
+        return listRepresentativesForCompany(company.id, input);
       }),
   }),
 

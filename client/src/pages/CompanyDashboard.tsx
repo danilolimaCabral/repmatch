@@ -12,7 +12,7 @@ import {
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
   ChevronRight, Eye
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -69,7 +69,11 @@ async function startCheckout(productKey: string, userId: number, userEmail: stri
 export default function CompanyDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile" | "preview">("jobs");
+  const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile" | "search">("jobs");
+  const [searchPage, setSearchPage] = useState(1);
+  const [searchRegion, setSearchRegion] = useState<string | undefined>(undefined);
+  const [searchSegment, setSearchSegment] = useState<string | undefined>(undefined);
+  const [searchTier, setSearchTier] = useState<"free" | "premium" | "elite" | undefined>(undefined);
   const [createJobOpen, setCreateJobOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
@@ -96,9 +100,9 @@ export default function CompanyDashboard() {
     { jobId: selectedJobId! },
     { enabled: !!selectedJobId }
   );
-  const { data: previewData, isLoading: previewLoading } = trpc.representatives.preview.useQuery(
-    { region: previewRegion, segment: previewSegment },
-    { enabled: activeTab === "preview" }
+  const { data: searchData, isLoading: searchLoading } = trpc.representatives.listForCompany.useQuery(
+    { region: searchRegion, segment: searchSegment, tier: searchTier, page: searchPage, limit: 20 },
+    { enabled: activeTab === "search" }
   );
 
   const utils = trpc.useUtils();
@@ -143,8 +147,13 @@ export default function CompanyDashboard() {
     );
   }
 
+  useEffect(() => {
+    if (!profileLoading && !profile) {
+      navigate("/onboarding");
+    }
+  }, [profileLoading, profile, navigate]);
+
   if (!profile) {
-    navigate("/onboarding");
     return null;
   }
 
@@ -187,7 +196,7 @@ export default function CompanyDashboard() {
             {[
               { id: "jobs", label: "Minhas Vagas", icon: Briefcase },
               { id: "applications", label: "Candidaturas", icon: Users },
-              { id: "preview", label: "Buscar Representantes", icon: Eye },
+              { id: "search", label: "Buscar Representantes", icon: Eye },
               { id: "profile", label: "Perfil da Empresa", icon: Building2 },
             ].map((item) => (
               <button
@@ -566,95 +575,134 @@ export default function CompanyDashboard() {
             </div>
           )}
 
-          {/* ─── Preview Tab ─────────────────────────────────────────────── */}
-          {activeTab === "preview" && (
-            <div className="p-8 max-w-4xl">
-              <div className="mb-8">
+          {/* ─── Search Tab ─────────────────────────────────────────────── */}
+          {activeTab === "search" && (
+            <div className="p-8">
+              <div className="mb-6">
                 <h1 className="text-2xl font-black mb-2">Buscar Representantes</h1>
-                <p className="text-muted-foreground text-sm">Veja quantos representantes estão disponíveis na sua região e segmento. Desbloqueie o contato completo para negociar diretamente.</p>
+                <p className="text-muted-foreground text-sm">
+                  Base com <span className="font-bold text-foreground">9.677 representantes</span> ativos. Contatos desbloqueados aparecem com dados completos.
+                </p>
               </div>
               {/* Filters */}
-              <div className="flex flex-wrap gap-4 mb-8">
-                <Select value={previewRegion ?? "all"} onValueChange={v => setPreviewRegion(v === "all" ? undefined : v)}>
-                  <SelectTrigger className="w-56">
+              <div className="flex flex-wrap gap-3 mb-6">
+                <Select value={searchRegion ?? "all"} onValueChange={v => { setSearchRegion(v === "all" ? undefined : v); setSearchPage(1); }}>
+                  <SelectTrigger className="w-52">
                     <SelectValue placeholder="Todas as regiões" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas as regiões</SelectItem>
-                    {(previewData?.regions ?? REGIONS).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    {REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Select value={previewSegment ?? "all"} onValueChange={v => setPreviewSegment(v === "all" ? undefined : v)}>
-                  <SelectTrigger className="w-56">
+                <Select value={searchSegment ?? "all"} onValueChange={v => { setSearchSegment(v === "all" ? undefined : v); setSearchPage(1); }}>
+                  <SelectTrigger className="w-52">
                     <SelectValue placeholder="Todos os segmentos" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os segmentos</SelectItem>
-                    {(previewData?.segments ?? SEGMENTS).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
-              {/* Count banner */}
-              {previewLoading ? (
-                <div className="flex items-center gap-2 text-muted-foreground mb-8"><Loader2 className="w-4 h-4 animate-spin" /> Carregando...</div>
-              ) : (
-                <div className="rounded-2xl bg-primary/5 border border-primary/20 p-6 mb-8 flex items-center justify-between">
-                  <div>
-                    <div className="text-4xl font-black text-primary mb-1">{previewData?.count ?? 0}</div>
-                    <div className="text-sm text-muted-foreground">
-                      representantes disponíveis{previewRegion ? ` em ${previewRegion}` : ""}{previewSegment ? ` · ${previewSegment}` : ""}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-muted-foreground mb-2">Plano atual: <span className="font-bold text-foreground">{profile?.subscriptionTier ?? "starter"}</span></div>
-                    <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
-                      onClick={() => user && startCheckout("COMPANY_PRO", user.id, user.email ?? "", user.name ?? "")}>
-                      Upgrade para desbloquear contatos
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {/* Preview cards */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(previewData?.previews ?? []).map((rep) => (
-                  <div key={rep.id} className="rounded-xl border border-border bg-card p-5 relative overflow-hidden">
-                    {/* Blur overlay for locked data */}
-                    <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-10 rounded-xl">
-                      <div className="bg-card border border-border rounded-xl px-4 py-3 text-center shadow-lg">
-                        <Eye className="w-5 h-5 text-primary mx-auto mb-1" />
-                        <div className="text-xs font-bold text-foreground">Contato bloqueado</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">R$29 para desbloquear</div>
-                        <Button size="sm" className="mt-2 h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
-                          onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}>
-                          Desbloquear
-                        </Button>
-                      </div>
-                    </div>
-                    {/* Partial data */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm">
-                        {rep.maskedName.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="font-bold text-sm">{rep.maskedName}</div>
-                        <div className="text-xs text-muted-foreground">{rep.segment}</div>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{rep.region}</div>
-                      <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears} anos de experiência</div>
-                      <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{Number(rep.averageRating).toFixed(1)} avaliação</div>
-                    </div>
-                  </div>
-                ))}
-                {(!previewData?.previews?.length && !previewLoading) && (
-                  <div className="col-span-3 text-center py-12 text-muted-foreground">
-                    <Users className="w-8 h-8 mx-auto mb-3 opacity-40" />
-                    <p>Nenhum representante encontrado com esses filtros.</p>
-                    <p className="text-sm mt-1">Tente remover os filtros para ver todos os disponíveis.</p>
-                  </div>
+                <Select value={searchTier ?? "all"} onValueChange={v => { setSearchTier(v === "all" ? undefined : v as "free" | "premium" | "elite"); setSearchPage(1); }}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="Todos os planos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os planos</SelectItem>
+                    <SelectItem value="free">Free</SelectItem>
+                    <SelectItem value="premium">Premium</SelectItem>
+                    <SelectItem value="elite">Elite</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(searchRegion || searchSegment || searchTier) && (
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { setSearchRegion(undefined); setSearchSegment(undefined); setSearchTier(undefined); setSearchPage(1); }}>
+                    Limpar filtros
+                  </Button>
                 )}
               </div>
+              {/* Count */}
+              {!searchLoading && searchData && (
+                <div className="text-sm text-muted-foreground mb-4">
+                  <span className="font-bold text-foreground">{searchData.total}</span> representantes encontrados
+                  {searchData.unlockedIds.length > 0 && (
+                    <span className="ml-2 text-primary font-medium">· {searchData.unlockedIds.length} contato{searchData.unlockedIds.length > 1 ? "s" : ""} desbloqueado{searchData.unlockedIds.length > 1 ? "s" : ""}</span>
+                  )}
+                </div>
+              )}
+              {/* Rep cards */}
+              {searchLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin" /> Carregando representantes...
+                </div>
+              ) : (
+                <>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {(searchData?.reps ?? []).map((rep) => {
+                      const isUnlocked = searchData?.unlockedIds.includes(rep.id);
+                      const tierBadge = rep.subscriptionTier === "elite" ? "bg-yellow-900 text-yellow-300" : rep.subscriptionTier === "premium" ? "bg-green-900 text-green-300" : "bg-zinc-700 text-zinc-300";
+                      return (
+                        <div key={rep.id} className={`rounded-xl border bg-card p-5 relative overflow-hidden ${isUnlocked ? "border-primary/40" : "border-border"}`}>
+                          {isUnlocked && (
+                            <div className="absolute top-3 right-3">
+                              <Badge className="bg-primary/20 text-primary text-xs"><CheckCircle className="w-3 h-3 mr-1" />Desbloqueado</Badge>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm flex-shrink-0">
+                              {rep.fullName?.charAt(0) ?? "R"}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-sm truncate">{isUnlocked ? rep.fullName : `${rep.fullName?.split(" ")[0]} ${ rep.fullName?.split(" ").slice(1).map(() => "●").join("") ?? "●●"}`}</div>
+                              <Badge className={`text-xs mt-0.5 ${tierBadge}`}>{rep.subscriptionTier}</Badge>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5 text-xs text-muted-foreground mb-4">
+                            <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{rep.region ?? "Brasil"}</div>
+                            <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3" />{rep.segment ?? "Geral"}</div>
+                            <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears ?? 0} anos de experiência</div>
+                            <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{Number(rep.averageRating ?? 0).toFixed(1)} avaliação</div>
+                          </div>
+                          {isUnlocked ? (
+                            <div className="space-y-1.5 text-xs border-t border-border pt-3">
+                              {rep.phone && <div className="flex items-center gap-1.5 text-foreground font-medium"><DollarSign className="w-3 h-3 text-primary" />{rep.phone}</div>}
+                              {rep.email && <div className="flex items-center gap-1.5 text-foreground font-medium"><ChevronRight className="w-3 h-3 text-primary" />{rep.email}</div>}
+                              {rep.bio && <p className="text-muted-foreground mt-2 leading-relaxed line-clamp-2">{rep.bio}</p>}
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs"
+                              onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}
+                            >
+                              <Eye className="w-3 h-3 mr-1" />Desbloquear Contato — R$29
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {(!searchData?.reps?.length && !searchLoading) && (
+                      <div className="col-span-3 text-center py-16 text-muted-foreground">
+                        <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                        <p className="font-medium">Nenhum representante encontrado.</p>
+                        <p className="text-sm mt-1">Tente remover os filtros para ampliar a busca.</p>
+                      </div>
+                    )}
+                  </div>
+                  {/* Pagination */}
+                  {searchData && searchData.total > 20 && (
+                    <div className="flex items-center justify-between mt-8 pt-4 border-t border-border">
+                      <div className="text-sm text-muted-foreground">
+                        Página {searchPage} de {Math.ceil(searchData.total / 20)}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" disabled={searchPage === 1} onClick={() => setSearchPage(p => p - 1)}>Anterior</Button>
+                        <Button variant="outline" size="sm" disabled={searchPage >= Math.ceil(searchData.total / 20)} onClick={() => setSearchPage(p => p + 1)}>Próxima</Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
           {/* ─── Profile Tab ──────────────────────────────────────────────── */}

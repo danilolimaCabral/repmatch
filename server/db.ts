@@ -492,3 +492,66 @@ export async function getRepresentativePreview(filters?: { region?: string; segm
 
   return { count: allReps.length, previews, regions, segments };
 }
+
+// ─── Representatives for Company (full listing with unlock awareness) ─────────
+export async function listRepresentativesForCompany(
+  companyId: number,
+  filters?: {
+    region?: string;
+    segment?: string;
+    tier?: string;
+    page?: number;
+    limit?: number;
+  }
+) {
+  const db = await getDb();
+  if (!db) return { reps: [], total: 0, unlockedIds: [] };
+
+  const page = filters?.page ?? 1;
+  const limit = filters?.limit ?? 20;
+  const offset = (page - 1) * limit;
+
+  const conditions = [eq(representatives.isActive, true)];
+  if (filters?.region) conditions.push(eq(representatives.region, filters.region));
+  if (filters?.segment) conditions.push(eq(representatives.segment, filters.segment));
+  if (filters?.tier) conditions.push(eq(representatives.subscriptionTier, filters.tier as "free" | "premium" | "elite"));
+
+  // Get total count
+  const countResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(representatives)
+    .where(and(...conditions));
+  const total = Number(countResult[0]?.count ?? 0);
+
+  // Get reps with user email join
+  const reps = await db
+    .select({
+      id: representatives.id,
+      fullName: representatives.fullName,
+      phone: representatives.phone,
+      region: representatives.region,
+      segment: representatives.segment,
+      experienceYears: representatives.experienceYears,
+      bio: representatives.bio,
+      subscriptionTier: representatives.subscriptionTier,
+      averageRating: representatives.averageRating,
+      responseRate: representatives.responseRate,
+      createdAt: representatives.createdAt,
+      email: users.email,
+    })
+    .from(representatives)
+    .leftJoin(users, eq(representatives.userId, users.id))
+    .where(and(...conditions))
+    .orderBy(desc(representatives.subscriptionTier), desc(representatives.averageRating))
+    .limit(limit)
+    .offset(offset);
+
+  // Get unlocked contact IDs for this company
+  const unlocked = await db
+    .select({ representativeId: unlockedContacts.representativeId })
+    .from(unlockedContacts)
+    .where(eq(unlockedContacts.companyId, companyId));
+  const unlockedIds = unlocked.map((u) => u.representativeId);
+
+  return { reps, total, unlockedIds };
+}

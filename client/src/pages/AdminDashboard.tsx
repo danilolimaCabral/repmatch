@@ -19,7 +19,7 @@ function normalizePhone(raw: string): string | null {
 }
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"stats" | "import" | "users" | "jobs">("stats");
   const [importing, setImporting] = useState(false);
@@ -49,7 +49,15 @@ export default function AdminDashboard() {
     },
   });
 
-  if (user?.role !== "admin") {
+  // Wait for auth to load before checking role
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (!user || user.role !== "admin") {
     navigate("/");
     return null;
   }

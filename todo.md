@@ -160,3 +160,23 @@
 - [x] Representante: adicionar filtro por comissão mínima nas oportunidades
 - [x] Representante: mostrar badge de "nova" em vagas adicionadas nos últimos 3 dias
 - [x] Página pública /buscar com filtros e preview de representantes
+
+## Varredura Completa — Correção de Todos os Bugs
+
+- [ ] Auditar fluxo de registro (Empresa e Representante)
+- [ ] Auditar fluxo de login e redirecionamento pós-login
+- [ ] Auditar fluxo de onboarding (Empresa e Representante)
+- [ ] Auditar painel do Representante (todas as abas)
+- [ ] Auditar painel da Empresa (todas as abas)
+- [ ] Auditar painel Admin (todas as abas)
+- [ ] Auditar página /buscar (filtros, cards, CTA)
+- [ ] Corrigir todos os bugs encontrados
+
+## Aba "Buscar Representantes" no Painel da Empresa
+
+- [ ] Criar procedure tRPC `representatives.listForCompany` com filtros e paginação
+- [ ] Adicionar aba "Buscar Representantes" no painel da empresa com cards completos
+- [ ] Exibir dados completos para planos pagos, dados parciais para Free
+- [ ] Filtros por região, segmento e plano do representante
+- [ ] Corrigir bug UNAUTHORIZED ao criar vaga (cookie rm_session não enviado pelo browser)
+- [ ] Corrigir bug de redirect prematuro no AdminDashboard (já corrigido, confirmar)

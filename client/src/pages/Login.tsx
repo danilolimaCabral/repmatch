@@ -32,9 +32,10 @@ export default function Login() {
       }
       // Refresh auth state
       await utils.auth.me.invalidate();
-      // Redirect based on userType
-      const userType = data.user?.userType;
-      if (userType === "company") navigate("/dashboard/company");
+      // Redirect based on role and userType
+      const { userType, role } = data.user || {};
+      if (role === "admin") navigate("/admin");
+      else if (userType === "company") navigate("/dashboard/company");
       else if (userType === "representative") navigate("/dashboard/rep");
       else navigate("/onboarding");
     } catch {
