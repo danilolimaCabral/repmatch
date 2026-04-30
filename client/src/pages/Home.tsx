@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight, CheckCircle, Star, Users, Building2, Zap, TrendingUp,
   Shield, Award, ChevronDown, BarChart3, MessageSquare,
-  Target, Sparkles, Clock, MapPin, Briefcase, DollarSign, Lock
+  Target, Sparkles, Clock, MapPin, Briefcase, DollarSign, Lock,
+  Search, LockOpen, UserPlus, Eye, FileText, Crown, Gem
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
@@ -309,68 +310,115 @@ export default function Home() {
           <div className="text-center mb-16">
             <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Como funciona</Badge>
             <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-              Do cadastro ao contato<br />
+              Do cadastro ao match<br />
               <span className="text-gradient-green">em menos de 48 horas.</span>
             </h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Sem processos longos, sem intermediários. Você publica a vaga, a plataforma encontra os melhores candidatos.
+              Dois caminhos, um destaque: o match certo entre empresa e representante.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-16">
-            {/* Para Empresas */}
-            <div>
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-primary-foreground" />
+          {/* Fluxo visual simplificado */}
+          <div className="relative">
+            {/* Duas colunas que convergem */}
+            <div className="grid md:grid-cols-2 gap-6 mb-0">
+
+              {/* Coluna Empresa */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+                    <Building2 className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                  <span className="font-bold text-foreground text-base">Empresa</span>
                 </div>
-                <h3 className="text-xl font-bold text-foreground">Para Empresas</h3>
-              </div>
-              <div className="space-y-6">
                 {[
-                  { step: "01", title: "Publique sua vaga", desc: "Informe região, segmento, comissão e o perfil ideal do representante." },
-                  { step: "02", title: "Receba os top 10 candidatos", desc: "A plataforma analisa mais de 10 mil representantes e entrega os mais compatíveis." },
-                  { step: "03", title: "Negocie dentro da plataforma", desc: "Chat direto com os candidatos. Contatos só revelados quando ambas as partes concordam." },
-                  { step: "04", title: "Contrate com segurança", desc: "Histórico de performance, ranking e avaliações de cada representante." },
-                ].map(({ step, title, desc }) => (
-                  <div key={step} className="flex gap-4 group">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-sm group-hover:bg-primary/20 transition-colors">
-                      {step}
+                  { icon: UserPlus, label: "Cria conta e escolhe plano" },
+                  { icon: FileText, label: "Publica vaga com região e comissão" },
+                  { icon: Search, label: "Busca representantes por filtro" },
+                  { icon: LockOpen, label: "Desbloqueia contato por R$29" },
+                ].map(({ icon: Icon, label }, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                      <Icon className="w-3.5 h-3.5 text-primary" />
                     </div>
-                    <div>
-                      <div className="font-semibold text-foreground mb-1">{title}</div>
-                      <div className="text-sm text-muted-foreground leading-relaxed">{desc}</div>
-                    </div>
+                    <span className="text-sm text-foreground font-medium">{label}</span>
+                    {i < 3 && (
+                      <div className="ml-auto w-px h-6 bg-primary/20 hidden md:block" />
+                    )}
                   </div>
                 ))}
+                {/* Seta para baixo apontando para o match */}
+                <div className="flex justify-center pt-2">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="w-px h-8 bg-gradient-to-b from-primary/40 to-primary" />
+                    <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-primary" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Coluna Representante */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-9 h-9 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4 text-foreground" />
+                  </div>
+                  <span className="font-bold text-foreground text-base">Representante</span>
+                </div>
+                {[
+                  { icon: UserPlus, label: "Cria conta e monta perfil completo" },
+                  { icon: Eye, label: "Vê vagas abertas (empresa mascarada)" },
+                  { icon: Zap, label: "Candidate-se com 1 clique" },
+                  { icon: TrendingUp, label: "Sobe de plano para acessar mais vagas" },
+                ].map(({ icon: Icon, label }, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0">
+                      <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                    </div>
+                    <span className="text-sm text-foreground font-medium">{label}</span>
+                  </div>
+                ))}
+                {/* Seta para baixo apontando para o match */}
+                <div className="flex justify-center pt-2">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="w-px h-8 bg-gradient-to-b from-border to-primary" />
+                    <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-primary" />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Para Representantes */}
-            <div>
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center">
-                  <Users className="w-5 h-5 text-foreground" />
-                </div>
-                <h3 className="text-xl font-bold text-foreground">Para Representantes</h3>
-              </div>
-              <div className="space-y-6">
-                {[
-                  { step: "01", title: "Monte seu perfil profissional", desc: "Região, segmento, experiência e portfólio. Quanto mais completo, maior o score." },
-                  { step: "02", title: "Acesse vagas compatíveis", desc: "Veja apenas vagas que fazem sentido para o seu perfil. Sem ruído, sem perda de tempo." },
-                  { step: "03", title: "Candidate-se com 1 clique", desc: "Sua candidatura vai com score de compatibilidade para a empresa ver." },
-                  { step: "04", title: "Suba de plano e acesse mais", desc: "Planos Premium e Elite desbloqueiam empresas Gold e Platinum com as melhores comissões." },
-                ].map(({ step, title, desc }) => (
-                  <div key={step} className="flex gap-4 group">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center text-muted-foreground font-black text-sm group-hover:bg-secondary/80 transition-colors">
-                      {step}
+            {/* Bloco de Match central */}
+            <div className="relative mt-0 flex justify-center">
+              <div className="w-full max-w-lg bg-primary/10 border-2 border-primary/40 rounded-2xl p-6 text-center relative overflow-hidden">
+                {/* Brilho de fundo */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
+                    <Target className="w-7 h-7 text-primary-foreground" />
+                  </div>
+                  <div className="text-2xl font-black text-foreground mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                    🎯 MATCH!
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Score calculado: região + segmento + experiência + análise de perfil
+                  </p>
+                  <div className="flex items-center justify-center gap-6 text-xs">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                      <span>Chat direto</span>
                     </div>
-                    <div>
-                      <div className="font-semibold text-foreground mb-1">{title}</div>
-                      <div className="text-sm text-muted-foreground leading-relaxed">{desc}</div>
+                    <div className="w-px h-4 bg-border" />
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Award className="w-3.5 h-3.5 text-primary" />
+                      <span>Score de compatibilidade</span>
+                    </div>
+                    <div className="w-px h-4 bg-border" />
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Shield className="w-3.5 h-3.5 text-primary" />
+                      <span>Contato seguro</span>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           </div>
@@ -590,11 +638,12 @@ export default function Home() {
               <Users className="w-5 h-5 text-primary" />
               <h3 className="text-xl font-bold text-foreground">Para Representantes</h3>
             </div>
-            <div className="grid md:grid-cols-3 gap-5">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {([
-                { name: "Free", monthly: 0, free: true, border: "border-border", bg: "bg-card", features: ["Acesso a vagas Bronze e Silver", "Candidaturas ilimitadas", "Chat com empresas", "Perfil básico"], cta: "Começar grátis", highlight: false },
-                { name: "Premium", monthly: 19, free: false, border: "border-primary/40", bg: "bg-primary/5", features: ["Tudo do Free", "Acesso a vagas Gold", "Score de compatibilidade", "Destaque nas candidaturas", "Notificações em tempo real"], cta: "Assinar Premium", highlight: true },
-                { name: "Elite", monthly: 49, free: false, border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Tudo do Premium", "Acesso a vagas Platinum", "Análise avançada do perfil", "Suporte prioritário", "Badge Elite no perfil"], cta: "Assinar Elite", highlight: false },
+                { name: "Free", monthly: 0, free: true, border: "border-border", bg: "bg-card", features: ["Perfil visível na base", "Candidaturas ilimitadas", "Chat com empresas", "Aparece no fim da lista"], cta: "Começar grátis", highlight: false },
+                { name: "Bronze", monthly: 9.99, free: false, border: "border-orange-500/40", bg: "bg-orange-500/5", features: ["Tudo do Free", "Badge Bronze no perfil", "Aparece antes dos Free", "Acesso a vagas exclusivas Bronze"], cta: "Assinar Bronze", highlight: false },
+                { name: "Prata", monthly: 19.90, free: false, border: "border-primary/40", bg: "bg-primary/5", features: ["Tudo do Bronze", "Badge Prata em destaque", "Aparece antes dos Bronze", "Vagas Prata + score de match"], cta: "Assinar Prata", highlight: true },
+                { name: "Ouro", monthly: 29.90, free: false, border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Tudo do Prata", "Badge Ouro — máximo destaque", "Aparece PRIMEIRO na busca", "Card destacado em verde", "Todas as vagas desbloqueadas"], cta: "Assinar Ouro", highlight: false },
               ] as const).map(({ name, monthly, free, border, bg, features, cta, highlight }) => {
                 const annualMonthly = Math.round(monthly * 0.8);
                 const price = free ? "R$0" : isAnnual ? `R$${annualMonthly}` : `R$${monthly}`;
@@ -750,7 +799,7 @@ export default function Home() {
               { q: "Como funciona o match do RepMatch?", a: "Cruzamos critérios objetivos: região de atuação, segmento, anos de experiência e status ativo. O resultado é um score de compatibilidade que mostra, de forma clara, quais representantes têm o perfil mais alinhado com a sua vaga." },
               { q: "Posso cancelar minha assinatura a qualquer momento?", a: "Sim. Não há fidelidade ou multa. Você cancela quando quiser diretamente pelo painel, e o acesso permanece até o fim do período pago." },
               { q: "O que é o ranking Bronze, Silver, Gold e Platinum?", a: "É a classificação das empresas dentro da plataforma, baseada em histórico de vagas publicadas, avaliações dos representantes, taxa de resposta e comissão oferecida. Empresas bem ranqueadas atraem representantes mais qualificados e experientes." },
-              { q: "Representantes Free conseguem boas vagas?", a: "Sim! O plano Free dá acesso a todas as vagas de empresas Bronze e Silver. Para acessar empresas Gold e Platinum — que geralmente oferecem comissões acima da média — é necessário o plano Premium ou Elite." },
+              { q: "Representantes Free conseguem boas vagas?", a: "Sim! O plano Free dá acesso a vagas abertas para todos. Para aparecer em destaque na busca das empresas e acessar vagas exclusivas, os planos Bronze (R$9,99), Prata (R$19,90) e Ouro (R$29,90) oferecem visibilidade crescente." },
               { q: "Como funciona o desbloqueio de contato (R$29)?", a: "Por padrão, os contatos dos representantes ficam ocultos para proteger a privacidade. Quando a empresa deseja negociar fora da plataforma, pode desbloquear o contato de um representante específico por R$29 — uma cobrança única, sem recorrência." },
               { q: "Posso importar minha base de clientes/representantes?", a: "Sim. O painel Admin permite importação em massa via planilha Excel. A plataforma valida CNPJs automaticamente via BrasilAPI e normaliza todos os telefones durante a importação." },
             ].map(({ q, a }, i) => (

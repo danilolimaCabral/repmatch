@@ -40,7 +40,7 @@ export const representatives = mysqlTable("representatives", {
   segment: varchar("segment", { length: 100 }),
   experienceYears: int("experienceYears").default(0),
   bio: text("bio"),
-  subscriptionTier: mysqlEnum("subscriptionTier", ["free", "premium", "elite"]).default("free").notNull(),
+  subscriptionTier: mysqlEnum("subscriptionTier", ["free", "bronze", "prata", "ouro"]).default("free").notNull(),
   stripeCustomerId: varchar("stripeCustomerId", { length: 100 }),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 100 }),
   isActive: boolean("isActive").default(true).notNull(),
@@ -90,7 +90,7 @@ export const jobs = mysqlTable("jobs", {
   segment: varchar("segment", { length: 100 }),
   isFeatured: boolean("isFeatured").default(false),
   status: mysqlEnum("status", ["open", "closed", "paused"]).default("open").notNull(),
-  minTierRequired: mysqlEnum("minTierRequired", ["free", "premium", "elite"]).default("free").notNull(),
+  minTierRequired: mysqlEnum("minTierRequired", ["free", "bronze", "prata", "ouro"]).default("free").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

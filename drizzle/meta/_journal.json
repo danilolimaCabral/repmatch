@@ -29,6 +29,20 @@
       "when": 1777508381646,
       "tag": "0003_pink_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1777519386275,
+      "tag": "0004_motionless_james_howlett",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1777519574547,
+      "tag": "0005_confused_peter_parker",
+      "breakpoints": true
     }
   ]
 }

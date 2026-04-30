@@ -73,7 +73,7 @@ export default function CompanyDashboard() {
   const [searchPage, setSearchPage] = useState(1);
   const [searchRegion, setSearchRegion] = useState<string | undefined>(undefined);
   const [searchSegment, setSearchSegment] = useState<string | undefined>(undefined);
-  const [searchTier, setSearchTier] = useState<"free" | "premium" | "elite" | undefined>(undefined);
+  const [searchTier, setSearchTier] = useState<"free" | "bronze" | "prata" | "ouro" | undefined>(undefined);
   const [createJobOpen, setCreateJobOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
@@ -87,7 +87,7 @@ export default function CompanyDashboard() {
     commissionPercentage: "",
     region: "",
     segment: "",
-    minTierRequired: "free" as "free" | "premium" | "elite",
+    minTierRequired: "free" as "free" | "bronze" | "prata" | "ouro",
   });
 
   const { data: profile, isLoading: profileLoading } = trpc.companies.myProfile.useQuery();
@@ -111,7 +111,7 @@ export default function CompanyDashboard() {
     onSuccess: () => {
       toast.success("Vaga publicada com sucesso!");
       setCreateJobOpen(false);
-      setJobForm({ title: "", description: "", commissionPercentage: "", region: "", segment: "", minTierRequired: "free" });
+      setJobForm({ title: "", description: "", commissionPercentage: "", region: "", segment: "", minTierRequired: "free" as "free" | "bronze" | "prata" | "ouro" });
       utils.jobs.myJobs.invalidate();
     },
     onError: (e) => toast.error(e.message),
@@ -313,15 +313,16 @@ export default function CompanyDashboard() {
                           <Label>Acesso mínimo</Label>
                           <Select
                             value={jobForm.minTierRequired}
-                            onValueChange={(v) => setJobForm({ ...jobForm, minTierRequired: v as "free" | "premium" | "elite" })}
+                            onValueChange={(v) => setJobForm({ ...jobForm, minTierRequired: v as "free" | "bronze" | "prata" | "ouro" })}
                           >
                             <SelectTrigger className="mt-1 bg-secondary border-border">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="free">Free (todos)</SelectItem>
-                              <SelectItem value="premium">Premium+</SelectItem>
-                              <SelectItem value="elite">Elite apenas</SelectItem>
+                              <SelectItem value="bronze">Bronze+ (R$9,99)</SelectItem>
+                              <SelectItem value="prata">Prata+ (R$19,90)</SelectItem>
+                              <SelectItem value="ouro">Ouro apenas (R$29,90)</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -631,15 +632,16 @@ export default function CompanyDashboard() {
                     {SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Select value={searchTier ?? "all"} onValueChange={v => { setSearchTier(v === "all" ? undefined : v as "free" | "premium" | "elite"); setSearchPage(1); }}>
+                <Select value={searchTier ?? "all"} onValueChange={v => { setSearchTier(v === "all" ? undefined : v as "free" | "bronze" | "prata" | "ouro"); setSearchPage(1); }}>
                   <SelectTrigger className="w-44">
                     <SelectValue placeholder="Todos os planos" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os planos</SelectItem>
                     <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                    <SelectItem value="elite">Elite</SelectItem>
+                    <SelectItem value="bronze">Bronze</SelectItem>
+                    <SelectItem value="prata">Prata</SelectItem>
+                    <SelectItem value="ouro">Ouro</SelectItem>
                   </SelectContent>
                 </Select>
                 {(searchRegion || searchSegment || searchTier) && (
@@ -667,7 +669,8 @@ export default function CompanyDashboard() {
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {(searchData?.reps ?? []).map((rep) => {
                       const isUnlocked = searchData?.unlockedIds.includes(rep.id);
-                      const tierBadge = rep.subscriptionTier === "elite" ? "bg-amber-500/15 text-amber-400" : rep.subscriptionTier === "premium" ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground";
+                      const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-500/15 text-amber-400" : rep.subscriptionTier === "prata" ? "bg-primary/15 text-primary" : rep.subscriptionTier === "bronze" ? "bg-orange-500/15 text-orange-400" : "bg-secondary text-muted-foreground";
+                      const tierLabel = rep.subscriptionTier === "ouro" ? "Ouro" : rep.subscriptionTier === "prata" ? "Prata" : rep.subscriptionTier === "bronze" ? "Bronze" : "Free";
                       return (
                         <div key={rep.id} className={`rounded-xl border bg-card p-5 relative overflow-hidden ${isUnlocked ? "border-primary/40" : "border-border"}`}>
                           {isUnlocked && (
@@ -681,7 +684,7 @@ export default function CompanyDashboard() {
                             </div>
                             <div className="min-w-0">
                               <div className="font-bold text-sm truncate">{isUnlocked ? rep.fullName : `${rep.fullName?.split(" ")[0]} ${ rep.fullName?.split(" ").slice(1).map(() => "●").join("") ?? "●●"}`}</div>
-                              <Badge className={`text-xs mt-0.5 ${tierBadge}`}>{rep.subscriptionTier}</Badge>
+                              <Badge className={`text-xs mt-0.5 ${tierBadge}`}>{tierLabel}</Badge>
                             </div>
                           </div>
                           <div className="space-y-1.5 text-xs text-muted-foreground mb-4">

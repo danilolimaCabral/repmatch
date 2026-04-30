@@ -188,7 +188,7 @@ stripeRouter.post("/webhook", async (req: Request, res: Response) => {
 
       if (product.userType === "representative") {
         await db.update(representatives)
-          .set({ subscriptionTier: product.tier as "free" | "premium" | "elite" })
+          .set({ subscriptionTier: product.tier as "free" | "bronze" | "prata" | "ouro" })
           .where(eq(representatives.userId, userId));
         console.log(`[Webhook] Rep ${userId} upgraded to ${product.tier}`);
       } else if (product.userType === "company") {

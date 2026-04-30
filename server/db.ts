@@ -141,7 +141,16 @@ export async function listRepresentatives(filters?: { region?: string; segment?:
   const conditions = [eq(representatives.isActive, true)];
   if (filters?.region) conditions.push(eq(representatives.region, filters.region));
   if (filters?.segment) conditions.push(eq(representatives.segment, filters.segment));
-  return db.select().from(representatives).where(and(...conditions)).orderBy(desc(representatives.averageRating));
+  if (filters?.tier) conditions.push(eq(representatives.subscriptionTier, filters.tier as "free" | "bronze" | "prata" | "ouro"));
+
+  // Sort: Ouro first, then Prata, Bronze, Free — then by rating within each tier
+  const tierOrder = sql<number>`CASE ${representatives.subscriptionTier}
+    WHEN 'ouro' THEN 1
+    WHEN 'prata' THEN 2
+    WHEN 'bronze' THEN 3
+    ELSE 4
+  END`;
+  return db.select().from(representatives).where(and(...conditions)).orderBy(tierOrder, desc(representatives.averageRating));
 }
 
 // ─── Companies ────────────────────────────────────────────────────────────────
@@ -219,7 +228,7 @@ export async function listJobs(filters?: {
   region?: string;
   segment?: string;
   status?: string;
-  repTier?: "free" | "premium" | "elite";
+  repTier?: "free" | "bronze" | "prata" | "ouro";
 }) {
   const db = await getDb();
   if (!db) return [];
@@ -233,13 +242,15 @@ export async function listJobs(filters?: {
   if (filters?.segment) conditions.push(eq(jobs.segment, filters.segment));
   if (filters?.status) conditions.push(eq(jobs.status, filters.status as "open" | "closed" | "paused"));
 
-  // Tier access control
+  // Tier access control — free only sees free jobs, bronze sees free+bronze, prata sees free+bronze+prata, ouro sees all
   if (filters?.repTier === "free") {
     conditions.push(eq(jobs.minTierRequired, "free"));
-  } else if (filters?.repTier === "premium") {
-    conditions.push(or(eq(jobs.minTierRequired, "free"), eq(jobs.minTierRequired, "premium"))!);
+  } else if (filters?.repTier === "bronze") {
+    conditions.push(or(eq(jobs.minTierRequired, "free"), eq(jobs.minTierRequired, "bronze"))!);
+  } else if (filters?.repTier === "prata") {
+    conditions.push(or(eq(jobs.minTierRequired, "free"), eq(jobs.minTierRequired, "bronze"), eq(jobs.minTierRequired, "prata"))!);
   }
-  // elite sees all
+  // ouro sees all
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
   return db.select().from(jobs).where(whereClause).orderBy(desc(jobs.isFeatured), desc(jobs.createdAt));
@@ -449,7 +460,7 @@ export async function adminStats() {
   const [premiumReps] = await db
     .select({ count: sql<number>`count(*)` })
     .from(representatives)
-    .where(or(eq(representatives.subscriptionTier, "premium"), eq(representatives.subscriptionTier, "elite"))!);
+    .where(or(eq(representatives.subscriptionTier, "bronze"), eq(representatives.subscriptionTier, "prata"), eq(representatives.subscriptionTier, "ouro"))!);
 
   // Rank distribution for companies
   const rankRows = await db
@@ -563,7 +574,7 @@ export async function listRepresentativesForCompany(
   const conditions = [eq(representatives.isActive, true)];
   if (filters?.region) conditions.push(eq(representatives.region, filters.region));
   if (filters?.segment) conditions.push(eq(representatives.segment, filters.segment));
-  if (filters?.tier) conditions.push(eq(representatives.subscriptionTier, filters.tier as "free" | "premium" | "elite"));
+  if (filters?.tier) conditions.push(eq(representatives.subscriptionTier, filters.tier as "free" | "bronze" | "prata" | "ouro"));
 
   // Get total count
   const countResult = await db

@@ -1,0 +1,1 @@
+ALTER TABLE `representatives` MODIFY COLUMN `subscriptionTier` enum('free','bronze','prata','ouro') NOT NULL DEFAULT 'free';

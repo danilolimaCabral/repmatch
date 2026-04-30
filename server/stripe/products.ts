@@ -1,32 +1,46 @@
 /**
  * RepMatch — Stripe Products & Prices
  * All amounts in BRL (centavos)
+ *
+ * MODELO DE VISIBILIDADE DO REPRESENTANTE:
+ * - Free:   aparece no fim da lista, sem badge
+ * - Bronze: R$9,99/mês  — aparece na lista normal
+ * - Prata:  R$19,90/mês — aparece em destaque (badge Prata)
+ * - Ouro:   R$29,90/mês — aparece primeiro, badge Ouro, card destacado
  */
-
 export const STRIPE_PRODUCTS = {
-  // ─── Representante Plans ───────────────────────────────────────────────────
-  REP_PREMIUM: {
-    name: "RepMatch Premium — Representante",
-    description: "Acesso a vagas Gold, perfil em destaque e análise de match por IA",
-    priceAmount: 1900, // R$ 19,00
+  // ─── Representante Plans (Visibilidade) ────────────────────────────────────
+  REP_BRONZE: {
+    name: "RepMatch Bronze — Representante",
+    description: "Apareça na lista de representantes para empresas. Perfil visível com badge Bronze.",
+    priceAmount: 999,   // R$ 9,99
     currency: "brl",
     interval: "month" as const,
-    tier: "premium" as const,
+    tier: "bronze" as const,
     userType: "representative" as const,
   },
-  REP_ELITE: {
-    name: "RepMatch Elite — Representante",
-    description: "Acesso a TODAS as vagas incluindo Platinum, prioridade nas candidaturas",
-    priceAmount: 4900, // R$ 49,00
+  REP_PRATA: {
+    name: "RepMatch Prata — Representante",
+    description: "Perfil em destaque com badge Prata. Aparece antes dos Bronze na busca das empresas.",
+    priceAmount: 1990,  // R$ 19,90
     currency: "brl",
     interval: "month" as const,
-    tier: "elite" as const,
+    tier: "prata" as const,
+    userType: "representative" as const,
+  },
+  REP_OURO: {
+    name: "RepMatch Ouro — Representante",
+    description: "Máxima visibilidade: aparece primeiro na busca, card destacado em verde, badge Ouro.",
+    priceAmount: 2990,  // R$ 29,90
+    currency: "brl",
+    interval: "month" as const,
+    tier: "ouro" as const,
     userType: "representative" as const,
   },
   // ─── Empresa Plans ─────────────────────────────────────────────────────────
   COMPANY_STARTER: {
     name: "RepMatch Starter — Empresa",
-    description: "3 vagas ativas, acesso a reps Free, ranking Bronze",
+    description: "3 vagas ativas, acesso a reps Bronze+, ranking Bronze",
     priceAmount: 9900, // R$ 99,00
     currency: "brl",
     interval: "month" as const,
@@ -35,7 +49,7 @@ export const STRIPE_PRODUCTS = {
   },
   COMPANY_PRO: {
     name: "RepMatch Pro — Empresa",
-    description: "10 vagas ativas, acesso a reps Premium, ranking Gold, match por IA",
+    description: "10 vagas ativas, acesso a todos os reps, ranking Gold, match por IA",
     priceAmount: 29900, // R$ 299,00
     currency: "brl",
     interval: "month" as const,
@@ -44,7 +58,7 @@ export const STRIPE_PRODUCTS = {
   },
   COMPANY_ENTERPRISE: {
     name: "RepMatch Enterprise — Empresa",
-    description: "Vagas ilimitadas, acesso a reps Elite, ranking Platinum, gerente dedicado",
+    description: "Vagas ilimitadas, acesso a reps Ouro em primeiro, ranking Platinum, gerente dedicado",
     priceAmount: 99900, // R$ 999,00
     currency: "brl",
     interval: "month" as const,
@@ -71,5 +85,4 @@ export const STRIPE_PRODUCTS = {
     userType: "company" as const,
   },
 } as const;
-
 export type ProductKey = keyof typeof STRIPE_PRODUCTS;

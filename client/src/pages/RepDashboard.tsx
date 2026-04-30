@@ -38,15 +38,17 @@ const STATUS_CONFIG = {
 };
 
 const TIER_CONFIG = {
-  free: { label: "Free", color: "bg-secondary text-muted-foreground", upgrade: "Upgrade para Premium" },
-  premium: { label: "Premium", color: "bg-primary/15 text-primary", upgrade: "Upgrade para Elite" },
-  elite: { label: "Elite", color: "bg-amber-500/15 text-amber-400", upgrade: null },
+  free: { label: "Free", color: "bg-secondary text-muted-foreground", upgrade: "Upgrade para Bronze — R$9,99/mês" },
+  bronze: { label: "Bronze", color: "bg-orange-500/15 text-orange-400", upgrade: "Upgrade para Prata — R$19,90/mês" },
+  prata: { label: "Prata", color: "bg-primary/15 text-primary", upgrade: "Upgrade para Ouro — R$29,90/mês" },
+  ouro: { label: "Ouro", color: "bg-amber-500/15 text-amber-400", upgrade: null },
 };
 
 const RANK_TIER_MAP: Record<string, string[]> = {
   free: ["bronze", "silver"],
-  premium: ["bronze", "silver", "gold"],
-  elite: ["bronze", "silver", "gold", "platinum"],
+  bronze: ["bronze", "silver", "gold"],
+  prata: ["bronze", "silver", "gold", "platinum"],
+  ouro: ["bronze", "silver", "gold", "platinum"],
 };
 
 async function startCheckout(productKey: string, userId: number, userEmail: string, userName: string) {
@@ -247,7 +249,7 @@ export default function RepDashboard() {
               <Button
                 size="sm"
                 className="w-full bg-primary text-primary-foreground text-xs font-bold"
-                onClick={() => startCheckout(tier === "free" ? "REP_PREMIUM" : "REP_ELITE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}
+                onClick={() => startCheckout(tier === "free" ? "REP_BRONZE" : tier === "bronze" ? "REP_PRATA" : "REP_OURO", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}
               >
                 <Star className="w-3 h-3 mr-1" />{tierConfig.upgrade}
               </Button>
@@ -269,8 +271,9 @@ export default function RepDashboard() {
                   <h1 className="text-2xl font-black">Oportunidades</h1>
                   <p className="text-muted-foreground text-sm mt-1">
                     Plano <span className="text-primary font-semibold">{tierConfig.label}</span> — {
-                      tier === "free" ? "vagas Bronze e Silver" :
-                      tier === "premium" ? "vagas até Gold" : "todas as vagas, incluindo Platinum"
+                      tier === "free" ? "apenas vagas Free" :
+                      tier === "bronze" ? "vagas Free + Bronze" :
+                      tier === "prata" ? "vagas até Prata" : "todas as vagas (Ouro incluso)"
                     }
                   </p>
                 </div>
@@ -281,9 +284,9 @@ export default function RepDashboard() {
                 <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 px-5 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
                     <Lock className="w-4 h-4 text-primary" />
-                    <span>Plano Free — vagas Gold e Platinum estão bloqueadas.</span>
+                    <span>Plano Free — vagas Bronze, Prata e Ouro estão bloqueadas.</span>
                   </div>
-                  <Button size="sm" className="bg-primary text-primary-foreground text-xs font-bold" onClick={() => startCheckout("REP_PREMIUM", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
+                  <Button size="sm" className="bg-primary text-primary-foreground text-xs font-bold" onClick={() => startCheckout("REP_BRONZE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
                     Fazer Upgrade
                   </Button>
                 </div>
@@ -333,8 +336,9 @@ export default function RepDashboard() {
               ) : (
                 <div className="space-y-4">
                   {jobs.map((job) => {
-                    const isLocked = (job.minTierRequired === "premium" && tier === "free") ||
-                                     (job.minTierRequired === "elite" && tier !== "elite");
+                    const isLocked = (job.minTierRequired === "bronze" && tier === "free") ||
+                                     (job.minTierRequired === "prata" && tier !== "prata" && tier !== "ouro") ||
+                                     (job.minTierRequired === "ouro" && tier !== "ouro");
                     const alreadyApplied = myApplications?.some(a => a.job?.id === job.id);
                     return (
                       <div key={job.id} className={`rounded-xl border p-5 transition-all ${isLocked ? "border-border opacity-60 bg-card" : "border-border bg-card hover:border-primary/40"}`}>
@@ -504,9 +508,9 @@ export default function RepDashboard() {
                     <h3 className="font-bold">Desbloqueie mais oportunidades</h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {tier === "free" ? "Com o Premium (R$ 19/mês) você acessa vagas de empresas Gold e tem perfil em destaque." : "Com o Elite (R$ 49/mês) você acessa TODAS as vagas, incluindo empresas Platinum."}
+                    {tier === "free" ? "Com o Bronze (R$9,99/mês) você aparece para mais empresas e acessa vagas exclusivas." : tier === "bronze" ? "Com o Prata (R$19,90/mês) você tem destaque na busca e acessa vagas Prata." : "Com o Ouro (R$29,90/mês) você aparece em primeiro na busca e acessa TODAS as vagas."}
                   </p>
-                  <Button className="bg-primary text-primary-foreground font-bold" onClick={() => startCheckout(tier === "free" ? "REP_PREMIUM" : "REP_ELITE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
+                  <Button className="bg-primary text-primary-foreground font-bold" onClick={() => startCheckout(tier === "free" ? "REP_BRONZE" : tier === "bronze" ? "REP_PRATA" : "REP_OURO", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
                     {tierConfig.upgrade}
                   </Button>
                 </div>

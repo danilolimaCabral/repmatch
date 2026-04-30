@@ -1,0 +1,1 @@
+ALTER TABLE `jobs` MODIFY COLUMN `minTierRequired` enum('free','bronze','prata','ouro') NOT NULL DEFAULT 'free';

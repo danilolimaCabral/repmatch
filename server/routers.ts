@@ -44,7 +44,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 
 /// ─── Helpers ──────────────────────────────────────────────────────────────────
-const TIER_ORDER = { free: 0, premium: 1, elite: 2 } as const;
+const TIER_ORDER = { free: 0, bronze: 1, prata: 2, ouro: 3 } as const;
 
 function normalizePhone(raw: string | undefined | null): string | null {
   if (!raw) return null;
@@ -80,10 +80,11 @@ async function enrichCNPJ(cnpj: string): Promise<{ companyName?: string; segment
 }
 const RANK_ORDER = { bronze: 0, silver: 1, gold: 2, platinum: 3 } as const;
 
-function tierAllowsRank(repTier: "free" | "premium" | "elite", companyRank: "bronze" | "silver" | "gold" | "platinum"): boolean {
-  if (repTier === "elite") return true;
-  if (repTier === "premium") return RANK_ORDER[companyRank] <= RANK_ORDER["gold"];
-  return RANK_ORDER[companyRank] <= RANK_ORDER["silver"];
+function tierAllowsRank(repTier: "free" | "bronze" | "prata" | "ouro", companyRank: "bronze" | "silver" | "gold" | "platinum"): boolean {
+  if (repTier === "ouro") return true;
+  if (repTier === "prata") return RANK_ORDER[companyRank] <= RANK_ORDER["gold"];
+  if (repTier === "bronze") return RANK_ORDER[companyRank] <= RANK_ORDER["silver"];
+  return RANK_ORDER[companyRank] <= RANK_ORDER["bronze"];
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
@@ -200,7 +201,7 @@ export const appRouter = router({
         z.object({
           region: z.string().optional(),
           segment: z.string().optional(),
-          tier: z.enum(["free", "premium", "elite"]).optional(),
+          tier: z.enum(["free", "bronze", "prata", "ouro"]).optional(),
           page: z.number().min(1).default(1),
           limit: z.number().min(1).max(50).default(20),
         }).optional()
@@ -252,7 +253,7 @@ export const appRouter = router({
           commissionPercentage: z.number().min(0).max(100).optional(),
           region: z.string().optional(),
           segment: z.string().optional(),
-          minTierRequired: z.enum(["free", "premium", "elite"]).default("free"),
+          minTierRequired: z.enum(["free", "bronze", "prata", "ouro"]).default("free"),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -281,7 +282,7 @@ export const appRouter = router({
         z.object({
           region: z.string().optional(),
           segment: z.string().optional(),
-          repTier: z.enum(["free", "premium", "elite"]).optional(),
+          repTier: z.enum(["free", "bronze", "prata", "ouro"]).optional(),
         }).optional()
       )
       .query(async ({ input }) => {
@@ -354,12 +355,13 @@ export const appRouter = router({
         const job = await getJobById(input.jobId);
         if (!job) throw new TRPCError({ code: "NOT_FOUND", message: "Vaga não encontrada" });
 
-        // Check tier access
-        if (job.minTierRequired === "premium" && rep.subscriptionTier === "free") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Esta vaga requer plano Premium ou superior" });
-        }
-        if (job.minTierRequired === "elite" && rep.subscriptionTier !== "elite") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Esta vaga requer plano Elite" });
+        // Check tier access — new visibility model: free < bronze < prata < ouro
+        const tierRank = { free: 0, bronze: 1, prata: 2, ouro: 3 } as const;
+        const repTierRank = tierRank[rep.subscriptionTier as keyof typeof tierRank] ?? 0;
+        const jobMinRank = tierRank[job.minTierRequired as keyof typeof tierRank] ?? 0;
+        if (repTierRank < jobMinRank) {
+          const tierNames: Record<string, string> = { bronze: "Bronze (R$9,99)", prata: "Prata (R$19,90)", ouro: "Ouro (R$29,90)" };
+          throw new TRPCError({ code: "FORBIDDEN", message: `Esta vaga requer plano ${tierNames[job.minTierRequired] ?? job.minTierRequired} ou superior` });
         }
 
         const matchScore = calculateMatchScore(rep, job);
