@@ -232,25 +232,25 @@ export default function BuscarRepresentantes() {
                       </div>
                     </div>
 
-                    {/* Availability + KYC/CORE badges */}
-                    {isPaid && (
-                      <div className="mb-3 flex flex-wrap gap-1.5">
+                    {/* Availability + KYC/CORE badges — visible for ALL tiers */}
+                    <div className="mb-3 flex flex-wrap gap-1.5">
+                      {isPaid && (
                         <span className="inline-flex items-center gap-1 text-xs bg-green-500/10 text-green-400 border border-green-500/20 rounded-full px-2.5 py-0.5">
                           <Clock className="w-3 h-3" />
                           {AVAILABILITY_LABEL[(rep as any).availability ?? "negociavel"] ?? "Negociável"}
                         </span>
-                        {(rep as any).kycStatus === "approved" && (
-                          <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full px-2.5 py-0.5">
-                            <Shield className="w-3 h-3" /> Verificado
-                          </span>
-                        )}
-                        {(rep as any).coreStatus === "active" && (
-                          <span className="inline-flex items-center gap-1 text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full px-2.5 py-0.5">
-                            <Award className="w-3 h-3" /> CORE Ativo
-                          </span>
-                        )}
-                      </div>
-                    )}
+                      )}
+                      {(rep as any).kycStatus === "approved" && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                          <Shield className="w-3 h-3" /> Identidade Verificada
+                        </span>
+                      )}
+                      {(rep as any).coreStatus === "active" && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                          <Award className="w-3 h-3" /> CORE Ativo
+                        </span>
+                      )}
+                    </div>
 
                     {/* Blur overlay for contact */}
                     <div className="border-t border-border pt-3">

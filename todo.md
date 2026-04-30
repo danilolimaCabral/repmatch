@@ -280,3 +280,8 @@
 - [x] Backend: adicionar os mesmos filtros na busca do CompanyDashboard
 - [x] Frontend BuscarRepresentantes: adicionar toggles "Apenas Verificados" e "CORE Ativo"
 - [x] Frontend CompanyDashboard: adicionar os mesmos filtros na aba de busca
+
+## Selos Visuais nos Cards de Representantes
+- [ ] BuscarRepresentantes: adicionar selos "Identidade Verificada" e "CORE Ativo" nos cards
+- [ ] CompanyDashboard: adicionar selos nos cards da aba de busca
+- [ ] RepDashboard: exibir selos no perfil próprio do representante

@@ -754,6 +754,24 @@ export default function CompanyDashboard() {
                               <Badge className={`text-xs mt-0.5 ${tierBadge}`}>{tierLabel}</Badge>
                             </div>
                           </div>
+                          {/* KYC / CORE verification badges */}
+                          {((rep as any).kycStatus === "approved" || (rep as any).coreStatus === "active") && (
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                              {(rep as any).kycStatus === "approved" && (
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                                  <Shield className="w-3 h-3" /> Identidade Verificada
+                                </span>
+                              )}
+                              {(rep as any).coreStatus === "active" && (
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                                  <Award className="w-3 h-3" /> CORE Ativo
+                                  {(rep as any).coreValidUntil && (
+                                    <span className="opacity-70 ml-0.5">· vál. {new Date((rep as any).coreValidUntil).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <div className="space-y-1.5 text-xs text-muted-foreground mb-4">
                             <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{rep.region ?? "Brasil"}</div>
                             <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3" />{rep.segment ?? "Geral"}</div>

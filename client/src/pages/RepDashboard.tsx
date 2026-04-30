@@ -470,7 +470,22 @@ export default function RepDashboard() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold">{profile.fullName}</h2>
-                    <Badge className={`mt-1 ${tierConfig.color}`}>{tierConfig.label}</Badge>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      <Badge className={tierConfig.color}>{tierConfig.label}</Badge>
+                      {(profile as any).kycStatus === "approved" && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                          <Shield className="w-3 h-3" /> Identidade Verificada
+                        </span>
+                      )}
+                      {(profile as any).coreStatus === "active" && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                          <Award className="w-3 h-3" /> CORE Ativo
+                          {(profile as any).coreValidUntil && (
+                            <span className="opacity-70 ml-0.5">· vál. {new Date((profile as any).coreValidUntil).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -507,28 +522,61 @@ export default function RepDashboard() {
                   </div>
                 </div>
               </div>
-              {/* KYC Verification Card */}
-              <div className="mt-6 rounded-xl border border-emerald-800/50 bg-emerald-900/10 p-5">
+              {/* KYC / CORE Verification Card — dynamic based on status */}
+              <div className="mt-6 rounded-xl border border-border bg-card p-5 space-y-3">
+                <h3 className="font-bold text-sm flex items-center gap-2"><Shield className="w-4 h-4 text-emerald-400" /> Verificação de Perfil</h3>
+                {/* KYC row */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-500/20 rounded-lg">
-                      <Shield className="w-5 h-5 text-emerald-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm">Verificação de Identidade</h3>
-                      <p className="text-xs text-muted-foreground">Obtenha o badge de representante verificado</p>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    {(profile as any).kycStatus === "approved" ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-full px-3 py-1 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                        <Shield className="w-3.5 h-3.5" /> Identidade Verificada
+                      </span>
+                    ) : (profile as any).kycStatus === "pending" ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-3 py-1">
+                        <Shield className="w-3.5 h-3.5" /> Em análise...
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-full px-3 py-1">
+                        <Shield className="w-3.5 h-3.5" /> Identidade não verificada
+                      </span>
+                    )}
                   </div>
-                  <a href="/verificacao">
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                      <Shield className="w-3 h-3 mr-1" /> Verificar
-                    </Button>
-                  </a>
+                  {(profile as any).kycStatus !== "approved" && (profile as any).kycStatus !== "pending" && (
+                    <a href="/verificacao">
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-7">
+                        Verificar agora
+                      </Button>
+                    </a>
+                  )}
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="text-xs bg-emerald-900/30 text-emerald-300 px-2 py-1 rounded-full">✓ Badge no perfil</span>
-                  <span className="text-xs bg-emerald-900/30 text-emerald-300 px-2 py-1 rounded-full">✓ Prioridade na busca</span>
-                  <span className="text-xs bg-emerald-900/30 text-emerald-300 px-2 py-1 rounded-full">✓ Validação CORE</span>
+                {/* CORE row */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {(profile as any).coreStatus === "active" ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded-full px-3 py-1 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                        <Award className="w-3.5 h-3.5" /> CORE Ativo
+                        {(profile as any).coreValidUntil && (
+                          <span className="opacity-70 ml-0.5">· vál. {new Date((profile as any).coreValidUntil).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
+                        )}
+                      </span>
+                    ) : (profile as any).coreStatus === "inactive" ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30 rounded-full px-3 py-1">
+                        <Award className="w-3.5 h-3.5" /> CORE Inativo
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-full px-3 py-1">
+                        <Award className="w-3.5 h-3.5" /> CORE não validado
+                      </span>
+                    )}
+                  </div>
+                  {(profile as any).coreStatus !== "active" && (
+                    <a href="/verificacao">
+                      <Button size="sm" variant="outline" className="text-xs h-7 border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
+                        Validar CORE
+                      </Button>
+                    </a>
+                  )}
                 </div>
               </div>
 
