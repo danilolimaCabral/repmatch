@@ -40,8 +40,8 @@ export const STRIPE_PRODUCTS = {
   // ─── Empresa Plans ─────────────────────────────────────────────────────────
   COMPANY_STARTER: {
     name: "RepMatch Starter — Empresa",
-    description: "3 vagas ativas, acesso a reps Bronze+, ranking Bronze",
-    priceAmount: 9900, // R$ 99,00
+    description: "3 vagas ativas, acesso a reps Bronze+, desbloqueio de até 5 contatos/mês",
+    priceAmount: 4900, // R$ 49,00
     currency: "brl",
     interval: "month" as const,
     tier: "starter" as const,
@@ -49,8 +49,8 @@ export const STRIPE_PRODUCTS = {
   },
   COMPANY_PRO: {
     name: "RepMatch Pro — Empresa",
-    description: "10 vagas ativas, acesso a todos os reps, ranking Gold, match por IA",
-    priceAmount: 29900, // R$ 299,00
+    description: "10 vagas ativas, acesso a todos os reps, match por IA, 15 desbloqueos/mês",
+    priceAmount: 14900, // R$ 149,00
     currency: "brl",
     interval: "month" as const,
     tier: "pro" as const,
@@ -58,8 +58,8 @@ export const STRIPE_PRODUCTS = {
   },
   COMPANY_ENTERPRISE: {
     name: "RepMatch Enterprise — Empresa",
-    description: "Vagas ilimitadas, acesso a reps Ouro em primeiro, ranking Platinum, gerente dedicado",
-    priceAmount: 99900, // R$ 999,00
+    description: "Vagas ilimitadas, reps Ouro em destaque, desbloqueos ilimitados, gerente dedicado",
+    priceAmount: 39900, // R$ 399,00
     currency: "brl",
     interval: "month" as const,
     tier: "enterprise" as const,

@@ -698,9 +698,9 @@ export default function Home() {
             </div>
             <div className="grid md:grid-cols-3 gap-5">
               {([
-                { name: "Starter", monthly: 99, border: "border-border", bg: "bg-card", features: ["Até 3 vagas simultâneas", "Top 10 matches por vaga", "Chat com candidatos", "Ranking Bronze/Silver"], cta: "Começar agora", highlight: false },
-                { name: "Pro", monthly: 299, border: "border-primary/40", bg: "bg-primary/5", features: ["Vagas ilimitadas", "Acesso a reps Premium", "Ranking Gold", "Relatórios de performance", "Notificações de candidatos"], cta: "Assinar Pro", highlight: true },
-                { name: "Enterprise", monthly: 999, border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Tudo do Pro", "Acesso a reps Elite", "Ranking Platinum", "Gerente de conta dedicado", "API de integração", "SLA garantido"], cta: "Falar com vendas", highlight: false },
+                { name: "Starter", monthly: 49, border: "border-border", bg: "bg-card", features: ["Até 3 vagas ativas", "5 desbloqueos de contato/mês", "Acesso a reps Bronze+", "Ranking Bronze", "Chat com candidatos"], cta: "Começar agora", highlight: false },
+                { name: "Pro", monthly: 149, border: "border-primary/40", bg: "bg-primary/5", features: ["Até 10 vagas ativas", "15 desbloqueos de contato/mês", "Acesso a todos os reps", "Match por IA", "Ranking Gold", "Notificações de candidatos"], cta: "Assinar Pro", highlight: true },
+                { name: "Enterprise", monthly: 399, border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Vagas ilimitadas", "Desbloqueos ilimitados", "Reps Ouro em destaque", "Ranking Platinum", "Gerente de conta dedicado", "API de integração"], cta: "Falar com vendas", highlight: false },
               ] as const).map(({ name, monthly, border, bg, features, cta, highlight }) => {
                 const annualMonthly = Math.round(monthly * 0.8);
                 const price = isAnnual ? `R$${annualMonthly}` : `R$${monthly}`;
@@ -800,7 +800,8 @@ export default function Home() {
               { q: "Posso cancelar minha assinatura a qualquer momento?", a: "Sim. Não há fidelidade ou multa. Você cancela quando quiser diretamente pelo painel, e o acesso permanece até o fim do período pago." },
               { q: "O que é o ranking Bronze, Silver, Gold e Platinum?", a: "É a classificação das empresas dentro da plataforma, baseada em histórico de vagas publicadas, avaliações dos representantes, taxa de resposta e comissão oferecida. Empresas bem ranqueadas atraem representantes mais qualificados e experientes." },
               { q: "Representantes Free conseguem boas vagas?", a: "Sim! O plano Free dá acesso a vagas abertas para todos. Para aparecer em destaque na busca das empresas e acessar vagas exclusivas, os planos Bronze (R$9,99), Prata (R$19,90) e Ouro (R$29,90) oferecem visibilidade crescente." },
-              { q: "Como funciona o desbloqueio de contato (R$29)?", a: "Por padrão, os contatos dos representantes ficam ocultos para proteger a privacidade. Quando a empresa deseja negociar fora da plataforma, pode desbloquear o contato de um representante específico por R$29 — uma cobrança única, sem recorrência." },
+              { q: "Quanto custa para empresas?", a: "Temos três planos: Starter (R$49/mês) com até 3 vagas e 5 desbloqueos, Pro (R$149/mês) com 10 vagas, 15 desbloqueos e match por IA, e Enterprise (R$399/mês) com vagas e desbloqueos ilimitados. Todos com 20% de desconto no plano anual." },
+              { q: "Como funciona o desbloqueio de contato (R$29)?", a: "Por padrão, os contatos dos representantes ficam ocultos para proteger a privacidade. Quando a empresa deseja negociar fora da plataforma, pode desbloquear o contato de um representante específico por R$29 — uma cobrança única, sem recorrência. Planos Pro e Enterprise incluem desbloqueos mensais no pacote." },
               { q: "Posso importar minha base de clientes/representantes?", a: "Sim. O painel Admin permite importação em massa via planilha Excel. A plataforma valida CNPJs automaticamente via BrasilAPI e normaliza todos os telefones durante a importação." },
             ].map(({ q, a }, i) => (
               <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
