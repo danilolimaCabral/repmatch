@@ -502,12 +502,14 @@ export async function adminStats() {
 }
 
 // ─── Preview Inteligente ──────────────────────────────────────────────────────
-export async function getRepresentativePreview(filters?: { region?: string; segment?: string; subscriptionTier?: string }) {
+export async function getRepresentativePreview(filters?: { region?: string; segment?: string; subscriptionTier?: string; kycApproved?: boolean; coreActive?: boolean }) {
   const db = await getDb();
   if (!db) return { count: 0, previews: [], regions: [], segments: [] };
   const conditions = [eq(representatives.isActive, true)];
   if (filters?.region) conditions.push(eq(representatives.region, filters.region));
   if (filters?.segment) conditions.push(eq(representatives.segment, filters.segment));
+  if (filters?.kycApproved) conditions.push(eq(representatives.kycStatus, 'approved'));
+  if (filters?.coreActive) conditions.push(eq(representatives.coreStatus, 'active'));
   
   const allReps = await db
     .select({
@@ -562,6 +564,8 @@ export async function listRepresentativesForCompany(
     tier?: string;
     page?: number;
     limit?: number;
+    kycApproved?: boolean;
+    coreActive?: boolean;
   }
 ) {
   const db = await getDb();
@@ -575,6 +579,8 @@ export async function listRepresentativesForCompany(
   if (filters?.region) conditions.push(eq(representatives.region, filters.region));
   if (filters?.segment) conditions.push(eq(representatives.segment, filters.segment));
   if (filters?.tier) conditions.push(eq(representatives.subscriptionTier, filters.tier as "free" | "bronze" | "prata" | "ouro"));
+  if (filters?.kycApproved) conditions.push(eq(representatives.kycStatus, 'approved'));
+  if (filters?.coreActive) conditions.push(eq(representatives.coreStatus, 'active'));
 
   // Get total count
   const countResult = await db

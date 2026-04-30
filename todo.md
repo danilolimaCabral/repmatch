@@ -264,13 +264,19 @@
 - [x] Registrar rotas /privacidade e /termos no App.tsx
 
 ## KYC e Verificação de Identidade + CORE
-- [ ] Schema: adicionar campos kycStatus, kycDocumentUrl, kycSelfieUrl, kycReviewedAt, kycNotes, coreNumber, coreState, coreStatus, coreValidUntil, coreCheckedAt na tabela representatives
-- [ ] Gerar e aplicar migration SQL dos novos campos
-- [ ] Procedure: uploadKycDocuments (salva doc + selfie no S3, muda status para pending_review)
-- [ ] Procedure: verifyKycWithAI (usa LLM vision para comparar selfie com documento e extrair dados)
-- [ ] Procedure: lookupCore (scraping do CONFERE por CPF/número de registro)
-- [ ] Procedure: adminReviewKyc (admin aprova/rejeita verificação manual)
-- [ ] Frontend: fluxo de verificação no RepDashboard (upload doc + selfie + número CORE)
-- [ ] Frontend: badge "Identidade Verificada" e "CORE Ativo" nos cards de representante
-- [ ] Frontend: painel admin para revisar KYC pendentes com imagens e dados extraídos
-- [ ] Frontend: exibir validade do CORE e estado nos cards para empresas
+- [x] Schema: adicionar campos kycStatus, kycDocumentUrl, kycSelfieUrl, kycReviewedAt, kycNotes, coreNumber, coreState, coreStatus, coreValidUntil, coreCheckedAt na tabela representatives
+- [x] Gerar e aplicar migration SQL dos novos campos
+- [x] Procedure: uploadKycDocuments (salva doc + selfie no S3, muda status para pending_review)
+- [x] Procedure: verifyKycWithAI (usa LLM vision para comparar selfie com documento e extrair dados)
+- [x] Procedure: lookupCore (scraping do CONFERE por CPF/número de registro)
+- [x] Procedure: adminReviewKyc (admin aprova/rejeita verificação manual)
+- [x] Frontend: fluxo de verificação no RepDashboard (upload doc + selfie + número CORE)
+- [x] Frontend: badge "Identidade Verificada" e "CORE Ativo" nos cards de representante
+- [x] Frontend: painel admin para revisar KYC pendentes com imagens e dados extraídos
+- [x] Frontend: exibir validade do CORE e estado nos cards para empresas
+
+## Filtros de Verificação na Busca
+- [x] Backend: adicionar parâmetros kycApproved e coreActive na procedure de busca pública
+- [x] Backend: adicionar os mesmos filtros na busca do CompanyDashboard
+- [x] Frontend BuscarRepresentantes: adicionar toggles "Apenas Verificados" e "CORE Ativo"
+- [x] Frontend CompanyDashboard: adicionar os mesmos filtros na aba de busca

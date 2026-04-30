@@ -27,12 +27,14 @@ export default function BuscarRepresentantes() {
   const [, navigate] = useLocation();
   const [region, setRegion] = useState("");
   const [segment, setSegment] = useState("");
+  const [kycApproved, setKycApproved] = useState(false);
+  const [coreActive, setCoreActive] = useState(false);
 
   const regionFilter = region === "all" ? undefined : region || undefined;
   const segmentFilter = segment === "all" ? undefined : segment || undefined;
 
   const { data, isLoading } = trpc.representatives.preview.useQuery(
-    { region: regionFilter, segment: segmentFilter }
+    { region: regionFilter, segment: segmentFilter, kycApproved: kycApproved || undefined, coreActive: coreActive || undefined }
   );
 
   const count = data?.count ?? 0;
@@ -104,6 +106,42 @@ export default function BuscarRepresentantes() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* ─── Verification Filters ────────────────────────────────────────── */}
+          <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
+            <button
+              onClick={() => setKycApproved(!kycApproved)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                kycApproved
+                  ? "bg-emerald-600 text-white border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                  : "bg-secondary text-muted-foreground border-border hover:border-emerald-500/50 hover:text-emerald-400"
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              Identidade Verificada
+              {kycApproved && <span className="ml-1 text-xs bg-white/20 px-1.5 py-0.5 rounded-full">✓ Ativo</span>}
+            </button>
+            <button
+              onClick={() => setCoreActive(!coreActive)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                coreActive
+                  ? "bg-amber-600 text-white border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]"
+                  : "bg-secondary text-muted-foreground border-border hover:border-amber-500/50 hover:text-amber-400"
+              }`}
+            >
+              <Award className="w-4 h-4" />
+              CORE Ativo
+              {coreActive && <span className="ml-1 text-xs bg-white/20 px-1.5 py-0.5 rounded-full">✓ Ativo</span>}
+            </button>
+            {(kycApproved || coreActive) && (
+              <button
+                onClick={() => { setKycApproved(false); setCoreActive(false); }}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Limpar filtros
+              </button>
+            )}
           </div>
         </div>
       </section>

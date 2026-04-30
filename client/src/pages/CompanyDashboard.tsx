@@ -10,7 +10,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Briefcase, Building2, Users, LogOut, Plus, MapPin, DollarSign,
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
-  ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil
+  ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil, Shield
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -74,6 +74,8 @@ export default function CompanyDashboard() {
   const [searchRegion, setSearchRegion] = useState<string | undefined>(undefined);
   const [searchSegment, setSearchSegment] = useState<string | undefined>(undefined);
   const [searchTier, setSearchTier] = useState<"free" | "bronze" | "prata" | "ouro" | undefined>(undefined);
+  const [searchKycApproved, setSearchKycApproved] = useState(false);
+  const [searchCoreActive, setSearchCoreActive] = useState(false);
   const [createJobOpen, setCreateJobOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
@@ -107,7 +109,7 @@ export default function CompanyDashboard() {
     { enabled: !!selectedJobId }
   );
   const { data: searchData, isLoading: searchLoading } = trpc.representatives.listForCompany.useQuery(
-    { region: searchRegion, segment: searchSegment, tier: searchTier, page: searchPage, limit: 20 },
+    { region: searchRegion, segment: searchSegment, tier: searchTier, page: searchPage, limit: 20, kycApproved: searchKycApproved || undefined, coreActive: searchCoreActive || undefined },
     { enabled: activeTab === "search" }
   );
 
@@ -682,11 +684,38 @@ export default function CompanyDashboard() {
                     <SelectItem value="ouro">Ouro</SelectItem>
                   </SelectContent>
                 </Select>
-                {(searchRegion || searchSegment || searchTier) && (
-                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { setSearchRegion(undefined); setSearchSegment(undefined); setSearchTier(undefined); setSearchPage(1); }}>
+                {(searchRegion || searchSegment || searchTier || searchKycApproved || searchCoreActive) && (
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { setSearchRegion(undefined); setSearchSegment(undefined); setSearchTier(undefined); setSearchKycApproved(false); setSearchCoreActive(false); setSearchPage(1); }}>
                     Limpar filtros
                   </Button>
                 )}
+              </div>
+              {/* Verification filters */}
+              <div className="flex flex-wrap gap-2 mb-5">
+                <button
+                  onClick={() => { setSearchKycApproved(!searchKycApproved); setSearchPage(1); }}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    searchKycApproved
+                      ? "bg-emerald-600 text-white border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.35)]"
+                      : "bg-secondary text-muted-foreground border-border hover:border-emerald-500/50 hover:text-emerald-400"
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  Identidade Verificada
+                  {searchKycApproved && <span className="ml-0.5">✓</span>}
+                </button>
+                <button
+                  onClick={() => { setSearchCoreActive(!searchCoreActive); setSearchPage(1); }}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    searchCoreActive
+                      ? "bg-amber-600 text-white border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.35)]"
+                      : "bg-secondary text-muted-foreground border-border hover:border-amber-500/50 hover:text-amber-400"
+                  }`}
+                >
+                  <Award className="w-3.5 h-3.5" />
+                  CORE Ativo
+                  {searchCoreActive && <span className="ml-0.5">✓</span>}
+                </button>
               </div>
               {/* Count */}
               {!searchLoading && searchData && (
