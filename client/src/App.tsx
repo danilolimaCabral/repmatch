@@ -9,10 +9,6 @@ import Onboarding from "./pages/Onboarding";
 import RepDashboard from "./pages/RepDashboard";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import BuscarRepresentantes from "./pages/BuscarRepresentantes";
 import Vagas from "./pages/Vagas";
 import Planos from "./pages/Planos";
@@ -21,10 +17,6 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/buscar" component={BuscarRepresentantes} />
       <Route path="/vagas" component={Vagas} />
       <Route path="/planos" component={Planos} />

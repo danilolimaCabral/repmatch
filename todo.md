@@ -126,11 +126,11 @@
 - [x] Adicionar aba de "Histórico de Contratações" no Company Dashboard
 
 ## Envio Real de E-mail (Resend)
-- [ ] Instalar SDK do Resend no projeto
-- [ ] Configurar RESEND_API_KEY via webdev_request_secrets
-- [ ] Criar helper server/emailService.ts com função sendEmail
-- [ ] Atualizar /api/auth/forgot-password para enviar e-mail real via Resend
-- [ ] Template HTML de e-mail de recuperação de senha
+- [x] Remover autenticação própria (email/senha) — apenas Manus OAuth
+- [x] Remover páginas Login, Register, ForgotPassword, ResetPassword
+- [x] Remover authRoutes.ts do servidor
+- [x] Limpar schema: remover passwordHash, loginMethod, emailVerified, resetToken, resetTokenExpiry
+- [x] Corrigir referências loginMethod em oauth.ts e sdk.ts
 
 ## Página Pública de Busca (/buscar)
 - [x] Criar página client/src/pages/BuscarRepresentantes.tsx
