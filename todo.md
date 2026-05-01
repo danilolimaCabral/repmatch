@@ -326,3 +326,15 @@
 - [x] Backend: procedure auth.changePassword (senha atual + nova)
 - [x] Página /perfil com formulários de edição
 - [x] Link para /perfil no DashboardLayout e menus de usuário
+
+## Auth Avançado: Reset de Senha + Verificação de E-mail + Exclusão de Conta
+- [x] Schema: tabela password_reset_tokens (token, userId, expiresAt, usedAt)
+- [x] Schema: coluna emailVerified e emailVerificationToken nos users
+- [x] Backend: POST /api/auth/forgot-password (gera token, notifica owner com link)
+- [x] Backend: POST /api/auth/reset-password (valida token, atualiza senha)
+- [x] Backend: POST /api/auth/verify-email (valida token de verificação)
+- [x] Backend: procedure auth.deleteAccount (confirma senha, apaga dados LGPD)
+- [x] Frontend: página /esqueci-senha com formulário de e-mail
+- [x] Frontend: página /redefinir-senha?token=... com formulário nova senha
+- [x] Frontend: banner de e-mail não verificado no dashboard
+- [x] Frontend: botão "Excluir minha conta" na página /perfil com modal de confirmação

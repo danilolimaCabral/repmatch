@@ -141,6 +141,50 @@ export const appRouter = router({
           .where(eq(users.id, ctx.user.id));
         return { success: true };
       }),
+
+    deleteAccount: protectedProcedure
+      .input(z.object({
+        confirmPassword: z.string().min(1, "Senha de confirmação é obrigatória"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const bcrypt = await import("bcryptjs");
+        const db = await getDb();
+        const { users, representatives, companies, dataDeletionRequests } = await import("../drizzle/schema");
+        const [user] = await db!.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+        if (!user?.passwordHash) {
+          throw new Error("Conta sem senha cadastrada.");
+        }
+        const valid = await bcrypt.compare(input.confirmPassword, user.passwordHash);
+        if (!valid) {
+          throw new Error("Senha incorreta. Não foi possível confirmar a exclusão.");
+        }
+        // LGPD: anonymize user data instead of hard delete
+        const anonymizedEmail = `deleted_${ctx.user.id}_${Date.now()}@deleted.invalid`;
+        await db!.update(users).set({
+          name: "Usuário Excluído",
+          email: anonymizedEmail,
+          passwordHash: null,
+          emailVerified: false,
+          emailVerificationToken: null,
+          isActive: false,
+          updatedAt: new Date(),
+        }).where(eq(users.id, ctx.user.id));
+        // Deactivate representative profile (companies table has no isActive)
+        await db!.update(representatives).set({ isActive: false }).where(eq(representatives.userId, ctx.user.id));
+        // Log deletion request for LGPD compliance
+        await db!.insert(dataDeletionRequests).values({
+          userId: ctx.user.id,
+          reason: "Solicitação de exclusão pelo próprio usuário",
+          status: "completed",
+          processedAt: new Date(),
+        });
+        // Notify owner
+        await notifyOwner({
+          title: "🗑️ Conta excluída",
+          content: `O usuário ${user.name} (${user.email}) solicitou e confirmou a exclusão da conta. Dados anonimizados conforme LGPD.`,
+        }).catch(() => {});
+        return { success: true };
+      }),
   }),
 
   // ─── Onboarding ─────────────────────────────────────────────────────────────

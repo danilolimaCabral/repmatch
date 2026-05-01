@@ -71,6 +71,13 @@
       "when": 1777592209142,
       "tag": "0009_late_squadron_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1777643826759,
+      "tag": "0010_slow_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }

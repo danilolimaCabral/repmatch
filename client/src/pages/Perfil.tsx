@@ -7,8 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { ArrowLeft, User, Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { ArrowLeft, User, Lock, Eye, EyeOff, CheckCircle, Trash2, AlertTriangle } from "lucide-react";
 import { useLocation } from "wouter";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function Perfil() {
   const { user, refresh } = useAuth();
@@ -25,6 +36,20 @@ export default function Perfil() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Delete account state
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const deleteAccount = trpc.auth.deleteAccount.useMutation({
+    onSuccess: () => {
+      toast.success("Conta excluída. Seus dados foram anonimizados conforme a LGPD.");
+      navigate("/");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Erro ao excluir conta.");
+    },
+  });
 
   const updateProfile = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
@@ -273,6 +298,63 @@ export default function Perfil() {
                 {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : "—"}
               </span>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Danger zone */}
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <CardTitle className="text-base text-destructive">Zona de perigo</CardTitle>
+            </div>
+            <CardDescription>
+              A exclusão da conta é permanente. Seus dados serão anonimizados conforme a LGPD (Lei 13.709/2018).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Excluir minha conta
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
+                    Excluir conta permanentemente
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <span className="block">Esta ação <strong>não pode ser desfeita</strong>. Seus dados serão anonimizados e você perderá acesso à plataforma.</span>
+                    <span className="block">Para confirmar, digite sua senha atual:</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-2">
+                  <Input
+                    type="password"
+                    placeholder="Sua senha atual"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDeletePassword("")}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={!deletePassword || deleteAccount.isPending}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      deleteAccount.mutate({ confirmPassword: deletePassword });
+                    }}
+                  >
+                    {deleteAccount.isPending ? "Excluindo..." : "Excluir conta"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </main>

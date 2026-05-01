@@ -15,6 +15,8 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   passwordHash: varchar("passwordHash", { length: 255 }),
+  emailVerified: boolean("emailVerified").default(false).notNull(),
+  emailVerificationToken: varchar("emailVerificationToken", { length: 128 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   userType: mysqlEnum("userType", ["representative", "company", "pending"]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -204,3 +206,15 @@ export const dataDeletionRequests = mysqlTable("data_deletion_requests", {
 
 export type DataDeletionRequest = typeof dataDeletionRequests.$inferSelect;
 export type InsertDataDeletionRequest = typeof dataDeletionRequests.$inferInsert;
+
+// Password Reset Tokens
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;

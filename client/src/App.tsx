@@ -19,6 +19,9 @@ import VerificacaoKYC from "./pages/VerificacaoKYC";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Perfil from "./pages/Perfil";
+import EsqueciSenha from "./pages/EsqueciSenha";
+import RedefinirSenha from "./pages/RedefinirSenha";
+import VerificarEmail from "./pages/VerificarEmail";
 import CookieConsent from "./components/CookieConsent";
 
 function Router() {
@@ -33,6 +36,9 @@ function Router() {
       <Route path="/termos" component={Termos} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/esqueci-senha" component={EsqueciSenha} />
+      <Route path="/redefinir-senha" component={RedefinirSenha} />
+      <Route path="/verificar-email" component={VerificarEmail} />
 
       {/* Protected routes — require authentication */}
       <Route path="/onboarding">
