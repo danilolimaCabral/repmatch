@@ -318,3 +318,11 @@
 - [x] Frontend: remover todos os botões/links de login Manus (getLoginUrl)
 - [x] Frontend: remover callback OAuth do App.tsx
 - [x] Remover dependências OAuth do package.json se houver
+
+## ProtectedRoute + Página de Perfil
+- [x] Componente ProtectedRoute com redirect para /login
+- [x] Aplicar ProtectedRoute nas rotas protegidas (dashboard/rep, dashboard/company, admin, onboarding, verificacao, perfil)
+- [x] Backend: procedure auth.updateProfile (nome, email)
+- [x] Backend: procedure auth.changePassword (senha atual + nova)
+- [x] Página /perfil com formulários de edição
+- [x] Link para /perfil no DashboardLayout e menus de usuário

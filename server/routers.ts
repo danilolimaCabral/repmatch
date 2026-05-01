@@ -103,6 +103,44 @@ export const appRouter = router({
       ctx.res.clearCookie("rm_session", { path: "/", maxAge: -1 });
       return { success: true } as const;
     }),
+
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().min(2, "Nome deve ter ao menos 2 caracteres"),
+        email: z.string().email("E-mail inválido"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        const { users } = await import("../drizzle/schema");
+        await db!.update(users)
+          .set({ name: input.name, email: input.email, updatedAt: new Date() })
+          .where(eq(users.id, ctx.user.id));
+        return { success: true };
+      }),
+
+    changePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string().min(1, "Senha atual é obrigatória"),
+        newPassword: z.string().min(8, "Nova senha deve ter ao menos 8 caracteres"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const bcrypt = await import("bcryptjs");
+        const db = await getDb();
+        const { users } = await import("../drizzle/schema");
+        const [user] = await db!.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+        if (!user?.passwordHash) {
+          throw new Error("Conta sem senha cadastrada. Use a opção de cadastrar senha.");
+        }
+        const valid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+        if (!valid) {
+          throw new Error("Senha atual incorreta.");
+        }
+        const hash = await bcrypt.hash(input.newPassword, 12);
+        await db!.update(users)
+          .set({ passwordHash: hash, updatedAt: new Date() })
+          .where(eq(users.id, ctx.user.id));
+        return { success: true };
+      }),
   }),
 
   // ─── Onboarding ─────────────────────────────────────────────────────────────
