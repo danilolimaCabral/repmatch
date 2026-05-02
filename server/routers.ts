@@ -1064,6 +1064,133 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
             kycReviewedAt: new Date(),
           })
           .where(eq(representatives.id, input.representativeId));
+        await notifyOwner({
+          title: `KYC ${input.decision === 'approved' ? 'Aprovado' : 'Rejeitado'}`,
+          content: `Representante #${input.representativeId} teve KYC ${input.decision === 'approved' ? 'aprovado' : 'rejeitado'}${input.notes ? ': ' + input.notes : ''}`,
+        });
+        return { success: true };
+      }),
+
+    // Admin: listar todos os documentos com filtros
+    listAllDocuments: protectedProcedure
+      .input(z.object({
+        status: z.enum(["all", "not_started", "pending_review", "approved", "rejected"]).default("all"),
+        type: z.enum(["all", "kyc", "core", "cnpj"]).default("all"),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(50).default(20),
+        search: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { sql, like, and, or } = await import("drizzle-orm");
+        const page = input?.page ?? 1;
+        const limit = input?.limit ?? 20;
+        const offset = (page - 1) * limit;
+        const conditions: ReturnType<typeof eq>[] = [];
+        const status = input?.status ?? "all";
+        if (status !== "all") {
+          conditions.push(eq(representatives.kycStatus, status as "not_started" | "pending_review" | "approved" | "rejected"));
+        }
+        if (input?.search) {
+          const q = `%${input.search}%`;
+          conditions.push(or(
+            like(representatives.fullName, q),
+            like(representatives.coreNumber, q),
+            like(representatives.cnpj, q),
+          ) as ReturnType<typeof eq>);
+        }
+        const where = conditions.length > 0 ? and(...conditions) : undefined;
+        const [rows, countRows] = await Promise.all([
+          db.select({
+            id: representatives.id,
+            userId: representatives.userId,
+            fullName: representatives.fullName,
+            phone: representatives.phone,
+            segment: representatives.segment,
+            region: representatives.region,
+            kycStatus: representatives.kycStatus,
+            kycDocumentUrl: representatives.kycDocumentUrl,
+            kycSelfieUrl: representatives.kycSelfieUrl,
+            kycDocumentType: representatives.kycDocumentType,
+            kycExtractedName: representatives.kycExtractedName,
+            kycExtractedCpf: representatives.kycExtractedCpf,
+            kycNotes: representatives.kycNotes,
+            kycReviewedAt: representatives.kycReviewedAt,
+            coreNumber: representatives.coreNumber,
+            coreState: representatives.coreState,
+            coreStatus: representatives.coreStatus,
+            coreDocUrl: representatives.coreDocUrl,
+            coreValidUntil: representatives.coreValidUntil,
+            cnpj: representatives.cnpj,
+            createdAt: representatives.createdAt,
+          })
+          .from(representatives)
+          .where(where)
+          .orderBy(representatives.createdAt)
+          .limit(limit)
+          .offset(offset),
+          db.select({ count: sql<number>`count(*)` }).from(representatives).where(where),
+        ]);
+        return {
+          items: rows,
+          total: Number(countRows[0]?.count ?? 0),
+          page,
+          limit,
+          totalPages: Math.ceil(Number(countRows[0]?.count ?? 0) / limit),
+        };
+      }),
+
+    // Admin: estatísticas de documentos
+    documentStats: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const { sql } = await import("drizzle-orm");
+      const [kycStats, coreStats] = await Promise.all([
+        db.select({ status: representatives.kycStatus, count: sql<number>`count(*)` })
+          .from(representatives).groupBy(representatives.kycStatus),
+        db.select({ status: representatives.coreStatus, count: sql<number>`count(*)` })
+          .from(representatives).groupBy(representatives.coreStatus),
+      ]);
+      const kycMap = Object.fromEntries(kycStats.map(r => [r.status, Number(r.count)]));
+      const coreMap = Object.fromEntries(coreStats.map(r => [r.status, Number(r.count)]));
+      return {
+        kyc: {
+          not_started: kycMap['not_started'] ?? 0,
+          pending_review: kycMap['pending_review'] ?? 0,
+          approved: kycMap['approved'] ?? 0,
+          rejected: kycMap['rejected'] ?? 0,
+        },
+        core: {
+          not_checked: coreMap['not_checked'] ?? 0,
+          active: coreMap['active'] ?? 0,
+          inactive: coreMap['inactive'] ?? 0,
+          not_found: coreMap['not_found'] ?? 0,
+        },
+      };
+    }),
+
+    // Admin: validar CORE manualmente
+    reviewCore: protectedProcedure
+      .input(z.object({
+        representativeId: z.number(),
+        coreStatus: z.enum(["active", "inactive", "not_found"]),
+        coreValidUntil: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.update(representatives)
+          .set({
+            coreStatus: input.coreStatus,
+            coreValidUntil: input.coreValidUntil ?? null,
+            coreCheckedAt: new Date(),
+          })
+          .where(eq(representatives.id, input.representativeId));
         return { success: true };
       }),
   }),

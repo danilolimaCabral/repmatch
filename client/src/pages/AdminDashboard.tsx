@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search } from "lucide-react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw } from "lucide-react";
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -21,7 +21,12 @@ function normalizePhone(raw: string): string | null {
 export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"stats" | "import" | "users" | "jobs" | "pagamentos">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "import" | "users" | "jobs" | "pagamentos" | "documentos">("stats");
+  const [docStatusFilter, setDocStatusFilter] = useState("all");
+  const [docSearch, setDocSearch] = useState("");
+  const [reviewModal, setReviewModal] = useState<{ rep: Record<string, unknown>; mode: "kyc" | "core" } | null>(null);
+  const [reviewDecision, setReviewDecision] = useState<string>("approved");
+  const [reviewNotes, setReviewNotes] = useState("");
   const [pixSearch, setPixSearch] = useState("");
   const [activatingId, setActivatingId] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
@@ -44,6 +49,35 @@ export default function AdminDashboard() {
     onSuccess: (_, vars) => { toast.success(vars.isActive ? "Usuário reativado!" : "Usuário desativado!"); refetchUsers(); },
     onError: () => toast.error("Erro ao alterar status do usuário"),
   });
+  // KYC/Documents queries
+  const { data: docStats, refetch: refetchDocStats } = trpc.kyc.documentStats.useQuery();
+  const { data: allDocs, isLoading: docsLoading, refetch: refetchDocs } = trpc.kyc.listAllDocuments.useQuery({
+    status: docStatusFilter as "all" | "not_started" | "pending_review" | "approved" | "rejected",
+    search: docSearch || undefined,
+    page: 1,
+    limit: 50,
+  });
+  const reviewKycMutation = trpc.kyc.reviewKyc.useMutation({
+    onSuccess: () => {
+      toast.success("Decisão KYC registrada!");
+      setReviewModal(null);
+      setReviewNotes("");
+      refetchDocs();
+      refetchDocStats();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const reviewCoreMutation = trpc.kyc.reviewCore.useMutation({
+    onSuccess: () => {
+      toast.success("Status CORE atualizado!");
+      setReviewModal(null);
+      setReviewNotes("");
+      refetchDocs();
+      refetchDocStats();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const importMutation = trpc.admin.importData.useMutation({
     onSuccess: (result) => {
       setImportResult(result);
@@ -147,6 +181,7 @@ export default function AdminDashboard() {
             {[
               { id: "stats", label: "Dashboard", icon: TrendingUp },
               { id: "pagamentos", label: "Pagamentos PIX", icon: CreditCard },
+              { id: "documentos", label: "Documentos", icon: FileText },
               { id: "jobs", label: "Vagas", icon: Briefcase },
               { id: "import", label: "Importar Dados", icon: Upload },
               { id: "users", label: "Usuários", icon: Users },
@@ -643,6 +678,291 @@ export default function AdminDashboard() {
                         ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          )}
+          {/* ─── ABA DOCUMENTOS ─────────────────────────────────────────────────── */}
+          {activeTab === "documentos" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-black">Validação de Documentos</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Revise identidade (KYC), registro CORE e CNPJ dos representantes</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => { refetchDocs(); refetchDocStats(); }}>
+                  <RefreshCw className="w-4 h-4 mr-2" />Atualizar
+                </Button>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {[
+                  { label: "Pendentes KYC", value: docStats?.kyc.pending_review ?? 0, color: "text-yellow-400", bg: "bg-yellow-400/10", icon: Clock },
+                  { label: "KYC Aprovados", value: docStats?.kyc.approved ?? 0, color: "text-green-400", bg: "bg-green-400/10", icon: CheckCircle },
+                  { label: "KYC Rejeitados", value: docStats?.kyc.rejected ?? 0, color: "text-red-400", bg: "bg-red-400/10", icon: XCircle },
+                  { label: "CORE Ativos", value: docStats?.core.active ?? 0, color: "text-blue-400", bg: "bg-blue-400/10", icon: ShieldCheck },
+                ].map((s) => (
+                  <div key={s.label} className="rounded-xl border border-border bg-card p-4">
+                    <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center mb-2`}>
+                      <s.icon className={`w-4 h-4 ${s.color}`} />
+                    </div>
+                    <div className="text-2xl font-black">{s.value}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Filters */}
+              <div className="flex gap-3 mb-4">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    className="w-full pl-9 pr-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    placeholder="Buscar por nome, CORE ou CNPJ..."
+                    value={docSearch}
+                    onChange={(e) => setDocSearch(e.target.value)}
+                  />
+                </div>
+                <select
+                  className="px-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none"
+                  value={docStatusFilter}
+                  onChange={(e) => setDocStatusFilter(e.target.value)}
+                >
+                  <option value="all">Todos os status</option>
+                  <option value="pending_review">Pendente</option>
+                  <option value="approved">Aprovado</option>
+                  <option value="rejected">Rejeitado</option>
+                  <option value="not_started">Não enviado</option>
+                </select>
+              </div>
+
+              {/* Table */}
+              {docsLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border bg-card overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/30">
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Representante</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">KYC</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">CORE</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">CNPJ</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {(allDocs?.items ?? []).length === 0 ? (
+                        <tr><td colSpan={5} className="text-center py-12 text-muted-foreground">Nenhum representante encontrado</td></tr>
+                      ) : (allDocs?.items ?? []).map((rep) => {
+                        const kycStatus = rep.kycStatus as string;
+                        const coreStatus = rep.coreStatus as string;
+                        const kycColors: Record<string, string> = {
+                          not_started: "bg-zinc-700/30 text-zinc-400",
+                          pending_review: "bg-yellow-500/20 text-yellow-400",
+                          approved: "bg-green-500/20 text-green-400",
+                          rejected: "bg-red-500/20 text-red-400",
+                        };
+                        const kycLabels: Record<string, string> = {
+                          not_started: "Não enviado",
+                          pending_review: "Pendente",
+                          approved: "Aprovado",
+                          rejected: "Rejeitado",
+                        };
+                        const coreColors: Record<string, string> = {
+                          not_checked: "bg-zinc-700/30 text-zinc-400",
+                          active: "bg-green-500/20 text-green-400",
+                          inactive: "bg-orange-500/20 text-orange-400",
+                          not_found: "bg-red-500/20 text-red-400",
+                        };
+                        const coreLabels: Record<string, string> = {
+                          not_checked: "Não verificado",
+                          active: "Ativo",
+                          inactive: "Inativo",
+                          not_found: "Não encontrado",
+                        };
+                        return (
+                          <tr key={rep.id as number} className="hover:bg-secondary/20 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-foreground">{rep.fullName as string || "—"}</div>
+                              <div className="text-xs text-muted-foreground">{rep.segment as string} • {rep.region as string}</div>
+                              {rep.phone && <div className="text-xs text-muted-foreground">{rep.phone as string}</div>}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${kycColors[kycStatus] || "bg-zinc-700/30 text-zinc-400"}`}>
+                                {kycLabels[kycStatus] || kycStatus}
+                              </span>
+                              {rep.kycDocumentType && <div className="text-xs text-muted-foreground mt-0.5">{rep.kycDocumentType as string}</div>}
+                              {rep.kycExtractedName && <div className="text-xs text-muted-foreground">{rep.kycExtractedName as string}</div>}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${coreColors[coreStatus] || "bg-zinc-700/30 text-zinc-400"}`}>
+                                {coreLabels[coreStatus] || coreStatus}
+                              </span>
+                              {rep.coreNumber && <div className="text-xs text-muted-foreground mt-0.5">CORE {rep.coreNumber as string}/{rep.coreState as string}</div>}
+                              {rep.coreValidUntil && <div className="text-xs text-muted-foreground">Válido até {rep.coreValidUntil as string}</div>}
+                            </td>
+                            <td className="px-4 py-3">
+                              {rep.cnpj ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+                                  {rep.cnpj as string}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Não informado</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex gap-2">
+                                {rep.kycDocumentUrl && (
+                                  <a href={rep.kycDocumentUrl as string} target="_blank" rel="noreferrer">
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
+                                      <Eye className="w-3 h-3 mr-1" />Doc
+                                    </Button>
+                                  </a>
+                                )}
+                                {rep.kycSelfieUrl && (
+                                  <a href={rep.kycSelfieUrl as string} target="_blank" rel="noreferrer">
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
+                                      <Eye className="w-3 h-3 mr-1" />Selfie
+                                    </Button>
+                                  </a>
+                                )}
+                                {kycStatus === "pending_review" && (
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-2 text-xs bg-primary/10 text-primary hover:bg-primary/20"
+                                    onClick={() => {
+                                      setReviewModal({ rep: rep as Record<string, unknown>, mode: "kyc" });
+                                      setReviewDecision("approved");
+                                      setReviewNotes("");
+                                    }}
+                                  >
+                                    <ShieldCheck className="w-3 h-3 mr-1" />Revisar KYC
+                                  </Button>
+                                )}
+                                {rep.coreNumber && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => {
+                                      setReviewModal({ rep: rep as Record<string, unknown>, mode: "core" });
+                                      setReviewDecision(coreStatus === "active" ? "active" : "active");
+                                      setReviewNotes("");
+                                    }}
+                                  >
+                                    <RefreshCw className="w-3 h-3 mr-1" />CORE
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Review Modal */}
+              {reviewModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                  <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                    <h2 className="text-lg font-bold mb-1">
+                      {reviewModal.mode === "kyc" ? "Revisar Identidade (KYC)" : "Atualizar Status CORE"}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {reviewModal.rep.fullName as string}
+                    </p>
+
+                    {reviewModal.mode === "kyc" ? (
+                      <div className="space-y-3 mb-4">
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">Decisão</div>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => setReviewDecision("approved")}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                              reviewDecision === "approved"
+                                ? "bg-green-500/20 border-green-500/40 text-green-400"
+                                : "border-border text-muted-foreground hover:bg-secondary"
+                            }`}
+                          >
+                            <ThumbsUp className="w-4 h-4" />Aprovar
+                          </button>
+                          <button
+                            onClick={() => setReviewDecision("rejected")}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                              reviewDecision === "rejected"
+                                ? "bg-red-500/20 border-red-500/40 text-red-400"
+                                : "border-border text-muted-foreground hover:bg-secondary"
+                            }`}
+                          >
+                            <ThumbsDown className="w-4 h-4" />Rejeitar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 mb-4">
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">Status CORE</div>
+                        {["active", "inactive", "not_found"].map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => setReviewDecision(s)}
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                              reviewDecision === s
+                                ? s === "active" ? "bg-green-500/20 border-green-500/40 text-green-400"
+                                  : s === "inactive" ? "bg-orange-500/20 border-orange-500/40 text-orange-400"
+                                  : "bg-red-500/20 border-red-500/40 text-red-400"
+                                : "border-border text-muted-foreground hover:bg-secondary"
+                            }`}
+                          >
+                            {s === "active" ? "Ativo" : s === "inactive" ? "Inativo" : "Não encontrado"}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mb-4">
+                      <label className="text-xs text-muted-foreground uppercase tracking-wide font-semibold block mb-1">Observação (opcional)</label>
+                      <textarea
+                        className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+                        rows={3}
+                        placeholder="Motivo da decisão, notas para o representante..."
+                        value={reviewNotes}
+                        onChange={(e) => setReviewNotes(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button variant="outline" className="flex-1" onClick={() => setReviewModal(null)}>Cancelar</Button>
+                      <Button
+                        className="flex-1"
+                        disabled={reviewKycMutation.isPending || reviewCoreMutation.isPending}
+                        onClick={() => {
+                          if (reviewModal.mode === "kyc") {
+                            reviewKycMutation.mutate({
+                              representativeId: reviewModal.rep.id as number,
+                              decision: reviewDecision as "approved" | "rejected",
+                              notes: reviewNotes || undefined,
+                            });
+                          } else {
+                            reviewCoreMutation.mutate({
+                              representativeId: reviewModal.rep.id as number,
+                              coreStatus: reviewDecision as "active" | "inactive" | "not_found",
+                              notes: reviewNotes || undefined,
+                            });
+                          }
+                        }}
+                      >
+                        {(reviewKycMutation.isPending || reviewCoreMutation.isPending) ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : "Confirmar"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

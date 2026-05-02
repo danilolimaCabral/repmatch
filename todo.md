@@ -419,3 +419,14 @@
 - [x] Toggle Dark/Light no header da landing page e nos dashboards
 - [x] Marcar job agendado de disponibilidade como concluído
 - [x] Checkpoint final e publicação
+
+## Painel Admin — Validação de Documentos (CORE, CNPJ, Identidade)
+- [x] Backend: procedure admin.listPendingDocuments (KYC + CORE + CNPJ pendentes)
+- [x] Backend: procedure admin.reviewKyc já existe — adicionar reviewCnpj e reviewCore
+- [x] Backend: procedure admin.listAllDocuments com filtros (status, tipo)
+- [x] Backend: procedure admin.getDocumentStats (contadores por status)
+- [x] Frontend: aba "Documentos" no AdminDashboard com tabela de pendências
+- [x] Frontend: modal de revisão com visualização de imagens (documento + selfie)
+- [x] Frontend: botões Aprovar / Rejeitar com campo de observação
+- [x] Frontend: filtros por tipo (KYC/CORE/CNPJ) e status
+- [x] Frontend: badge de contador de pendências na aba
