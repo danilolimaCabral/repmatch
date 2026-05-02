@@ -85,7 +85,7 @@ const LOGO_URL = "/manus-storage/repmatch-logo-clean_68a7f78f.png";
 function LiveCounterSection() {
   const { data } = trpc.representatives.preview.useQuery({ region: "", segment: "" });
   const { data: jobsData } = trpc.jobs.listPublic.useQuery({ page: 1, limit: 1 });
-  const totalReps = data?.count ?? 9677;
+  const totalReps = 173987;
   const totalJobs = jobsData?.total ?? 0;
   const [pulse, setPulse] = useState(false);
   useEffect(() => {
@@ -94,10 +94,10 @@ function LiveCounterSection() {
   }, []);
 
   const stats = [
-    { value: totalReps, suffix: "+", label: "Representantes cadastrados", sublabel: "Base verificada e ativa", icon: Users, pulsed: pulse },
+    { value: totalReps, suffix: "+", label: "Representantes cadastrados", sublabel: "Base nacional Receita Federal", icon: Users, pulsed: pulse },
     { value: totalJobs, suffix: "", label: "Vagas abertas agora", sublabel: "Atualizado em tempo real", icon: Briefcase, pulsed: !pulse },
     { value: 12, suffix: "", label: "Segmentos cobertos", sublabel: "Do agro ao tech", icon: BarChart3, pulsed: pulse },
-    { value: 13, suffix: "", label: "Estados atendidos", sublabel: "Cobertura nacional", icon: MapPin, pulsed: !pulse },
+    { value: 27, suffix: "", label: "Estados atendidos", sublabel: "Cobertura nacional", icon: MapPin, pulsed: !pulse },
   ];
 
   return (
@@ -581,9 +581,9 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             {[
-              { value: 10000, suffix: "+", label: "Representantes ativos", icon: Users },
-              { value: 400000, suffix: "+", label: "Fornecedores cadastrados", icon: Building2 },
-              { value: 98, suffix: "%", label: "Taxa de match qualificado", icon: Target },
+              { value: 173987, suffix: "+", label: "Representantes na base", icon: Users },
+              { value: 27, suffix: "", label: "Estados cobertos", icon: Building2 },
+              { value: 12, suffix: "", label: "Segmentos de atuação", icon: Target },
               { value: 48, suffix: "h", label: "Tempo médio para conexão", icon: Clock },
             ].map(({ value, suffix, label, icon: Icon }) => (
               <div key={label} className="text-center group">
