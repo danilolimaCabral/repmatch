@@ -12,7 +12,7 @@ import {
   Briefcase, Building2, Users, LogOut, Plus, MapPin, DollarSign,
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
   ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil, Shield,
-  BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight
+  BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight, MessageSquare, Send
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
@@ -75,10 +75,159 @@ async function startCheckout(productKey: string, userId: number, userEmail: stri
   }
 }
 
+// ─── Direct Chat Tab Component ──────────────────────────────────────────────
+function DirectChatTab({
+  companyId,
+  companyUserId,
+  activeChatRepId,
+  setActiveChatRepId,
+  activeChatCompanyId,
+  setActiveChatCompanyId,
+  directChatInput,
+  setDirectChatInput,
+}: {
+  companyId: number;
+  companyUserId: number;
+  activeChatRepId: number | null;
+  setActiveChatRepId: (id: number | null) => void;
+  activeChatCompanyId: number | null;
+  setActiveChatCompanyId: (id: number | null) => void;
+  directChatInput: string;
+  setDirectChatInput: (v: string) => void;
+}) {
+  const utils = trpc.useUtils();
+  const { data: conversations, isLoading: convsLoading } = trpc.directChat.listConversations.useQuery(undefined, { refetchInterval: 5000 });
+  const { data: messages, isLoading: msgsLoading } = trpc.directChat.getMessages.useQuery(
+    { companyId: activeChatCompanyId ?? companyId, representativeId: activeChatRepId! },
+    { enabled: !!activeChatRepId, refetchInterval: 4000 }
+  );
+  const sendMutation = trpc.directChat.sendMessage.useMutation({
+    onSuccess: () => {
+      setDirectChatInput("");
+      utils.directChat.getMessages.invalidate();
+      utils.directChat.listConversations.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleSend = () => {
+    if (!directChatInput.trim() || !activeChatRepId) return;
+    sendMutation.mutate({ companyId: activeChatCompanyId ?? companyId, representativeId: activeChatRepId, content: directChatInput.trim() });
+  };
+
+  return (
+    <div className="p-8 flex gap-6 h-full">
+      {/* Conversation List */}
+      <div className="w-72 shrink-0">
+        <h2 className="text-lg font-bold text-slate-800 mb-4">Mensagens</h2>
+        {convsLoading ? (
+          <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-emerald-600" /></div>
+        ) : !conversations?.length ? (
+          <div className="text-center py-12 text-slate-400">
+            <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">Nenhuma conversa ainda.</p>
+            <p className="text-xs mt-1">Desbloqueie um contato na aba Buscar Representantes para iniciar uma conversa.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {(conversations as any[]).map((conv: any) => (
+              <button
+                key={conv.representativeId}
+                onClick={() => { setActiveChatRepId(conv.representativeId); setActiveChatCompanyId(companyId); }}
+                className={`w-full text-left p-3 rounded-xl border transition-all ${
+                  activeChatRepId === conv.representativeId
+                    ? "bg-emerald-50 border-emerald-200"
+                    : "bg-white border-slate-200 hover:border-emerald-200 hover:bg-slate-50"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs shrink-0">
+                    {conv.repName?.charAt(0) ?? "R"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-sm text-slate-800 truncate">{conv.repName}</div>
+                    <div className="text-xs text-slate-400 truncate">{conv.lastMessage}</div>
+                  </div>
+                  {conv.unread > 0 && (
+                    <span className="bg-emerald-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0">{conv.unread}</span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        {!activeChatRepId ? (
+          <div className="flex-1 flex items-center justify-center text-slate-400">
+            <div className="text-center">
+              <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">Selecione uma conversa para ver as mensagens</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-emerald-600" />
+              <span className="font-semibold text-sm text-slate-700">
+                {(conversations as any[])?.find((c: any) => c.representativeId === activeChatRepId)?.repName ?? "Representante"}
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {msgsLoading ? (
+                <div className="flex justify-center pt-8"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+              ) : !messages?.length ? (
+                <p className="text-center text-slate-400 text-sm pt-8">Nenhuma mensagem ainda. Inicie a conversa!</p>
+              ) : (
+                (messages as any[]).map((msg: any) => {
+                  const isMe = msg.senderUserId === companyUserId;
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
+                        isMe ? "bg-emerald-600 text-white rounded-br-sm" : "bg-slate-100 text-slate-800 rounded-bl-sm"
+                      }`}>
+                        <p>{msg.content}</p>
+                        <p className={`text-xs mt-1 ${isMe ? "text-white/60" : "text-slate-400"}`}>
+                          {new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <div className="p-3 border-t border-slate-100 flex gap-2">
+              <input
+                className="flex-1 text-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                placeholder="Digite sua mensagem..."
+                value={directChatInput}
+                onChange={(e) => setDirectChatInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!directChatInput.trim() || sendMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl px-4 py-2 flex items-center gap-1.5 text-sm font-medium transition-colors"
+              >
+                {sendMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function CompanyDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search" | "messages">("overview");
+  const [activeChatRepId, setActiveChatRepId] = useState<number | null>(null);
+  const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
+  const [directChatInput, setDirectChatInput] = useState("");
   const [searchPage, setSearchPage] = useState(1);
   const [searchRegion, setSearchRegion] = useState<string | undefined>(undefined);
   const [searchSegment, setSearchSegment] = useState<string | undefined>(undefined);
@@ -273,6 +422,7 @@ export default function CompanyDashboard() {
     { id: "jobs", label: "Minhas Vagas", icon: Briefcase },
     { id: "applications", label: "Candidaturas", icon: Users },
     { id: "search", label: "Buscar Representantes", icon: Eye },
+    { id: "messages", label: "Mensagens", icon: MessageSquare },
     { id: "profile", label: "Perfil da Empresa", icon: Building2 },
   ];
 
@@ -951,6 +1101,20 @@ export default function CompanyDashboard() {
               </>
             )}
           </div>
+        )}
+
+        {/* ─── Messages Tab ─────────────────────────────────────────── */}
+        {activeTab === "messages" && (
+          <DirectChatTab
+            companyId={profile.id}
+            companyUserId={user?.id ?? 0}
+            activeChatRepId={activeChatRepId}
+            setActiveChatRepId={setActiveChatRepId}
+            activeChatCompanyId={activeChatCompanyId}
+            setActiveChatCompanyId={setActiveChatCompanyId}
+            directChatInput={directChatInput}
+            setDirectChatInput={setDirectChatInput}
+          />
         )}
 
         {/* ─── Profile Tab ─────────────────────────────────────────────── */}

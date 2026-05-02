@@ -37,10 +37,14 @@ import {
   listPublicJobs,
   listPendingPayments,
   activateRepPlan,
+  createDirectMessage,
+  getDirectMessages,
+  getDirectChatConversations,
+  markDirectMessagesRead,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, managerCredits, managerUnlocks } from "../drizzle/schema";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages } from "../drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
@@ -1275,6 +1279,65 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         ...r,
         unlockedAt: unlocks.find(u => u.representativeId === r.id)?.unlockedAt,
       }));
+    }),
+  }),
+
+  // ─── Direct Chat (Company ↔ Representative) ─────────────────────────────────
+  directChat: router({
+    // Send a message (company or rep)
+    sendMessage: protectedProcedure
+      .input(z.object({
+        companyId: z.number(),
+        representativeId: z.number(),
+        content: z.string().min(1).max(2000),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        // Verify unlock exists (company must have unlocked the rep)
+        const [unlock] = await db.select().from(unlockedContacts)
+          .where(and(eq(unlockedContacts.companyId, input.companyId), eq(unlockedContacts.representativeId, input.representativeId)))
+          .limit(1);
+        if (!unlock) throw new TRPCError({ code: "FORBIDDEN", message: "Contato não desbloqueado" });
+        const msg = await createDirectMessage({
+          companyId: input.companyId,
+          representativeId: input.representativeId,
+          senderUserId: ctx.user.id,
+          content: input.content,
+        });
+        return msg;
+      }),
+
+    // Get messages for a conversation
+    getMessages: protectedProcedure
+      .input(z.object({
+        companyId: z.number(),
+        representativeId: z.number(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        // Verify the user is part of this conversation
+        const [company] = await db.select().from(companies).where(eq(companies.id, input.companyId)).limit(1);
+        const [rep] = await db.select().from(representatives).where(eq(representatives.id, input.representativeId)).limit(1);
+        const isCompany = company?.userId === ctx.user.id;
+        const isRep = rep?.userId === ctx.user.id;
+        if (!isCompany && !isRep) throw new TRPCError({ code: "FORBIDDEN" });
+        // Mark as read
+        await markDirectMessagesRead(input.companyId, input.representativeId, isCompany);
+        return getDirectMessages(input.companyId, input.representativeId);
+      }),
+
+    // List all conversations for the current user
+    listConversations: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      // Determine user type
+      const [company] = await db.select().from(companies).where(eq(companies.userId, ctx.user.id)).limit(1);
+      if (company) return getDirectChatConversations(ctx.user.id, "company");
+      const [rep] = await db.select().from(representatives).where(eq(representatives.userId, ctx.user.id)).limit(1);
+      if (rep) return getDirectChatConversations(ctx.user.id, "representative");
+      return [];
     }),
   }),
 });

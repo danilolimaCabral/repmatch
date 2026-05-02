@@ -693,3 +693,109 @@ export async function listRepresentativesForCompany(
 
   return { reps, total, unlockedIds };
 }
+
+// ─── Direct Chat (Company ↔ Representative) ───────────────────────────────────
+
+export async function createDirectMessage(data: {
+  companyId: number;
+  representativeId: number;
+  senderUserId: number;
+  content: string;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { directChatMessages } = await import("../drizzle/schema");
+  const result = await db.insert(directChatMessages).values(data);
+  const insertId = (result as unknown as [{ insertId: number }])[0]?.insertId;
+  if (!insertId) return undefined;
+  const { eq } = await import("drizzle-orm");
+  const rows = await db.select().from(directChatMessages).where(eq(directChatMessages.id, insertId)).limit(1);
+  return rows[0];
+}
+
+export async function getDirectMessages(companyId: number, representativeId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { directChatMessages } = await import("../drizzle/schema");
+  const { and, eq } = await import("drizzle-orm");
+  return db
+    .select()
+    .from(directChatMessages)
+    .where(and(eq(directChatMessages.companyId, companyId), eq(directChatMessages.representativeId, representativeId)))
+    .orderBy(directChatMessages.createdAt);
+}
+
+export async function markDirectMessagesRead(companyId: number, representativeId: number, readerIsCompany: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  const { directChatMessages } = await import("../drizzle/schema");
+  const { and, eq } = await import("drizzle-orm");
+  if (readerIsCompany) {
+    await db.update(directChatMessages)
+      .set({ isReadByCompany: true })
+      .where(and(eq(directChatMessages.companyId, companyId), eq(directChatMessages.representativeId, representativeId)));
+  } else {
+    await db.update(directChatMessages)
+      .set({ isReadByRep: true })
+      .where(and(eq(directChatMessages.companyId, companyId), eq(directChatMessages.representativeId, representativeId)));
+  }
+}
+
+export async function getDirectChatConversations(userId: number, userType: "company" | "representative") {
+  const db = await getDb();
+  if (!db) return [];
+  const { directChatMessages, companies, representatives } = await import("../drizzle/schema");
+  const { eq, desc, sql } = await import("drizzle-orm");
+
+  if (userType === "company") {
+    const company = await db.select().from(companies).where(eq(companies.userId, userId)).limit(1);
+    if (!company[0]) return [];
+    const companyId = company[0].id;
+    // Get distinct representative IDs that have messages with this company
+    const rows = await db
+      .select({
+        representativeId: directChatMessages.representativeId,
+        lastMessage: sql<string>`MAX(${directChatMessages.content})`,
+        lastAt: sql<Date>`MAX(${directChatMessages.createdAt})`,
+        unread: sql<number>`SUM(CASE WHEN ${directChatMessages.isReadByCompany} = 0 THEN 1 ELSE 0 END)`,
+      })
+      .from(directChatMessages)
+      .where(eq(directChatMessages.companyId, companyId))
+      .groupBy(directChatMessages.representativeId)
+      .orderBy(desc(sql`MAX(${directChatMessages.createdAt})`));
+    // Enrich with rep names
+    const repIds = rows.map(r => r.representativeId);
+    if (!repIds.length) return [];
+    const { inArray } = await import("drizzle-orm");
+    const reps = await db.select({ id: representatives.id, fullName: representatives.fullName }).from(representatives).where(inArray(representatives.id, repIds));
+    return rows.map(r => ({
+      ...r,
+      companyId,
+      repName: reps.find(rep => rep.id === r.representativeId)?.fullName ?? "Representante",
+    }));
+  } else {
+    const rep = await db.select().from(representatives).where(eq(representatives.userId, userId)).limit(1);
+    if (!rep[0]) return [];
+    const repId = rep[0].id;
+    const rows = await db
+      .select({
+        companyId: directChatMessages.companyId,
+        lastMessage: sql<string>`MAX(${directChatMessages.content})`,
+        lastAt: sql<Date>`MAX(${directChatMessages.createdAt})`,
+        unread: sql<number>`SUM(CASE WHEN ${directChatMessages.isReadByRep} = 0 THEN 1 ELSE 0 END)`,
+      })
+      .from(directChatMessages)
+      .where(eq(directChatMessages.representativeId, repId))
+      .groupBy(directChatMessages.companyId)
+      .orderBy(desc(sql`MAX(${directChatMessages.createdAt})`));
+    const companyIds = rows.map(r => r.companyId);
+    if (!companyIds.length) return [];
+    const { inArray } = await import("drizzle-orm");
+    const companiesList = await db.select({ id: companies.id, companyName: companies.companyName }).from(companies).where(inArray(companies.id, companyIds));
+    return rows.map(r => ({
+      ...r,
+      representativeId: repId,
+      companyName: companiesList.find(c => c.id === r.companyId)?.companyName ?? "Empresa",
+    }));
+  }
+}

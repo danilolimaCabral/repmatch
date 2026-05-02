@@ -412,3 +412,10 @@
 ## Créditos para Empresa e Representante na Landing Page
 - [x] Adicionar sub-seção de créditos para Empresa (desbloqueio de contatos por crédito)
 - [x] Adicionar sub-seção de créditos para Representante (destaque/visibilidade por crédito)
+
+## Preparação para Publicação (Sprint Final)
+
+- [ ] Chat direto empresa ↔ rep após desbloqueio de contato (backend + UI)
+- [ ] Toggle Dark/Light no header da landing page e nos dashboards
+- [ ] Marcar job agendado de disponibilidade como concluído
+- [ ] Checkpoint final e publicação
