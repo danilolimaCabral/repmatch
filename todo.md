@@ -380,16 +380,27 @@
 - [x] Adicionar aviso "Vire seu celular para ver melhor" para mobile em portrait
 
 ## Expansão de Perfis — Gerente Comercial + Documentação Obrigatória
-- [ ] Schema: adicionar tipo 'manager' no userType enum
-- [ ] Schema: adicionar campo cpf na tabela users (para gerente)
-- [ ] Schema: adicionar campos core_number, core_doc_url, core_status na tabela representatives
-- [ ] Schema: criar tabela rep_opportunities (rep publica sua disponibilidade)
-- [ ] Migração SQL aplicada
-- [ ] Onboarding: fluxo para Gerente Comercial (CPF obrigatório, região, segmento, tamanho de equipe)
-- [ ] Onboarding: CNPJ obrigatório para Empresa com validação de formato
-- [ ] Onboarding: CNPJ + CORE + upload de documentos obrigatórios para Representante
-- [ ] Dashboard Gerente: busca de reps, montar equipe, ver candidaturas
+- [x] Schema: adicionar tipo 'manager' no userType enum
+- [x] Schema: adicionar campo cpf na tabela users (para gerente)
+- [x] Schema: adicionar campos core_number, core_doc_url, core_status na tabela representatives
+- [x] Schema: criar tabela rep_opportunities (rep publica sua disponibilidade)
+- [x] Migração SQL aplicada
+- [x] Onboarding: fluxo para Gerente Comercial (CPF obrigatório, região, segmento, tamanho de equipe)
+- [x] Onboarding: CNPJ obrigatório para Empresa com validação de formato
+- [x] Onboarding: CNPJ + CORE + upload de documentos obrigatórios para Representante
+- [x] Dashboard Gerente: busca de reps, montar equipe, ver candidaturas
 - [ ] Rep: seção "Minhas Oportunidades" — rep publica vaga/disponibilidade própria
 - [ ] Página pública /oportunidades-reps — empresas e gerentes encontram reps disponíveis
-- [ ] Landing page: mostrar os 3 perfis (Empresa, Gerente, Representante)
+- [x] Landing page: mostrar os 3 perfis (Empresa, Gerente, Representante)
 - [ ] Admin: painel de validação de documentos (CORE, CNPJ, identidade)
+
+## Planos e Créditos do Gerente Comercial
+- [ ] Criar produtos Stripe: avulso R$29,90, Pacote Starter (5 créditos R$99,90), Pacote Pro (15 créditos R$249,90), Pacote Ilimitado (R$499,90/mês)
+- [ ] Schema: tabela manager_credits (userId, credits, totalPurchased, stripeCustomerId)
+- [ ] Schema: tabela manager_unlocks (managerId, repId, unlockedAt)
+- [ ] Migração SQL aplicada
+- [ ] Procedures: getManagerCredits, purchaseCredits (checkout Stripe), unlockRepContact (consome 1 crédito)
+- [ ] Webhook Stripe: creditar manager após pagamento confirmado
+- [ ] Página /planos-gerente com 4 opções de compra
+- [ ] ManagerDashboard: mostrar saldo de créditos no sidebar
+- [ ] ManagerDashboard: botão "Desbloquear contato" consome 1 crédito ou redireciona para compra

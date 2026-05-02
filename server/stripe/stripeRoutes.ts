@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { Router, Request, Response } from "express";
 import { getDb } from "../db";
-import { representatives, companies, unlockedContacts, jobs } from "../../drizzle/schema";
+import { representatives, companies, unlockedContacts, jobs, managerCredits, managerUnlocks } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { STRIPE_PRODUCTS, ProductKey } from "./products";
 
@@ -29,7 +29,7 @@ stripeRouter.post("/checkout", async (req: Request, res: Response) => {
     const origin = req.headers.origin ?? "http://localhost:3000";
 
     // Build success URL — include rep_id for UNLOCK_CONTACT so frontend can show the contact
-    let successPath = `/dashboard/${product.userType === "company" ? "company" : "rep"}?payment=success`;
+    let successPath = `/dashboard/${product.userType === "company" ? "company" : product.userType === "manager" ? "manager" : "rep"}?payment=success`;
     if (productKey === "UNLOCK_CONTACT" && repId) {
       successPath += `&rep_id=${repId}`;
     }
@@ -180,6 +180,39 @@ stripeRouter.post("/webhook", async (req: Request, res: Response) => {
           await db.update(jobs).set({ isFeatured: true }).where(eq(jobs.id, jobId));
           console.log(`[Webhook] Job ${jobId} marked as featured`);
         }
+        return res.json({ received: true });
+      }
+
+      // ── Handle MANAGER credit packages ─────────────────────────────────────
+      if (productKey.startsWith("MANAGER_")) {
+        const managerProduct = STRIPE_PRODUCTS[productKey] as { credits: number; interval: string | null };
+        const creditsToAdd = managerProduct.credits;
+        const isUnlimited = managerProduct.interval === "month" && creditsToAdd >= 9999;
+        const unlimitedExpiresAt = isUnlimited ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+
+        // Upsert manager_credits row
+        const existing = await db.select().from(managerCredits).where(eq(managerCredits.userId, userId)).limit(1);
+        if (existing.length === 0) {
+          await db.insert(managerCredits).values({
+            userId,
+            credits: isUnlimited ? 0 : creditsToAdd,
+            totalPurchased: creditsToAdd,
+            isUnlimited,
+            unlimitedExpiresAt: unlimitedExpiresAt ?? undefined,
+            stripeCustomerId: session.customer?.toString() ?? null,
+          });
+        } else {
+          await db.update(managerCredits)
+            .set({
+              credits: isUnlimited ? existing[0].credits : existing[0].credits + creditsToAdd,
+              totalPurchased: existing[0].totalPurchased + creditsToAdd,
+              isUnlimited: isUnlimited || existing[0].isUnlimited,
+              unlimitedExpiresAt: unlimitedExpiresAt ?? existing[0].unlimitedExpiresAt,
+              stripeCustomerId: session.customer?.toString() ?? existing[0].stripeCustomerId,
+            })
+            .where(eq(managerCredits.userId, userId));
+        }
+        console.log(`[Webhook] Manager ${userId} credited with ${creditsToAdd} credits (unlimited: ${isUnlimited})`);
         return res.json({ received: true });
       }
 

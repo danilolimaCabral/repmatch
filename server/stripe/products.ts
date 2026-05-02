@@ -84,5 +84,46 @@ export const STRIPE_PRODUCTS = {
     tier: null,
     userType: "company" as const,
   },
+  // ─── Gerente Comercial — Créditos para desbloquear contatos de reps ─────────
+  MANAGER_AVULSO: {
+    name: "RepMatch Gerente — Contato Avulso",
+    description: "Desbloqueie o contato completo de 1 representante",
+    priceAmount: 2990,  // R$ 29,90
+    currency: "brl",
+    interval: null,
+    credits: 1,
+    tier: null,
+    userType: "manager" as const,
+  },
+  MANAGER_STARTER: {
+    name: "RepMatch Gerente — Pacote Starter (5 créditos)",
+    description: "Desbloqueie 5 contatos de representantes. Ideal para montar uma equipe pequena.",
+    priceAmount: 9990,  // R$ 99,90
+    currency: "brl",
+    interval: null,
+    credits: 5,
+    tier: null,
+    userType: "manager" as const,
+  },
+  MANAGER_PRO: {
+    name: "RepMatch Gerente — Pacote Pro (15 créditos)",
+    description: "Desbloqueie 15 contatos de representantes. Para gerentes que precisam de mais opções.",
+    priceAmount: 24990, // R$ 249,90
+    currency: "brl",
+    interval: null,
+    credits: 15,
+    tier: null,
+    userType: "manager" as const,
+  },
+  MANAGER_ILIMITADO: {
+    name: "RepMatch Gerente — Pacote Ilimitado",
+    description: "Desbloqueios ilimitados por 30 dias. Para gerentes que montam equipes grandes.",
+    priceAmount: 49990, // R$ 499,90
+    currency: "brl",
+    interval: "month" as const,
+    credits: 9999, // representa ilimitado
+    tier: null,
+    userType: "manager" as const,
+  },
 } as const;
 export type ProductKey = keyof typeof STRIPE_PRODUCTS;

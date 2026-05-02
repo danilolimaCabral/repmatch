@@ -40,8 +40,8 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, managerCredits, managerUnlocks } from "../drizzle/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -1186,6 +1186,95 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       return db.select().from(dataDeletionRequests).orderBy(dataDeletionRequests.requestedAt);
+    }),
+  }),
+
+  // ─── Manager Credits ────────────────────────────────────────────────────────
+  manager: router({
+    // Get current credit balance
+    getCredits: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [row] = await db.select().from(managerCredits).where(eq(managerCredits.userId, ctx.user.id)).limit(1);
+      if (!row) return { credits: 0, totalPurchased: 0, isUnlimited: false, unlimitedExpiresAt: null };
+      // Check if unlimited plan has expired
+      const isUnlimitedActive = row.isUnlimited && (!row.unlimitedExpiresAt || new Date(row.unlimitedExpiresAt) > new Date());
+      return {
+        credits: row.credits,
+        totalPurchased: row.totalPurchased,
+        isUnlimited: isUnlimitedActive,
+        unlimitedExpiresAt: row.unlimitedExpiresAt,
+      };
+    }),
+
+    // Check if a rep is already unlocked by this manager
+    isRepUnlocked: protectedProcedure
+      .input(z.object({ repId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return { unlocked: false };
+        const [row] = await db.select()
+          .from(managerUnlocks)
+          .where(and(eq(managerUnlocks.managerId, ctx.user.id), eq(managerUnlocks.representativeId, input.repId)))
+          .limit(1);
+        return { unlocked: !!row, unlockedAt: row?.unlockedAt ?? null };
+      }),
+
+    // Unlock a rep contact (consumes 1 credit)
+    unlockRepContact: protectedProcedure
+      .input(z.object({ repId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        // Check if already unlocked
+        const [existing] = await db.select()
+          .from(managerUnlocks)
+          .where(and(eq(managerUnlocks.managerId, ctx.user.id), eq(managerUnlocks.representativeId, input.repId)))
+          .limit(1);
+        if (existing) return { success: true, alreadyUnlocked: true };
+
+        // Check credits
+        const [credits] = await db.select().from(managerCredits).where(eq(managerCredits.userId, ctx.user.id)).limit(1);
+        const isUnlimitedActive = credits?.isUnlimited && (!credits.unlimitedExpiresAt || new Date(credits.unlimitedExpiresAt) > new Date());
+
+        if (!credits || (!isUnlimitedActive && credits.credits < 1)) {
+          throw new TRPCError({ code: "PAYMENT_REQUIRED", message: "Créditos insuficientes. Adquira um pacote para desbloquear contatos." });
+        }
+
+        // Consume 1 credit (unless unlimited)
+        if (!isUnlimitedActive) {
+          await db.update(managerCredits)
+            .set({ credits: credits.credits - 1 })
+            .where(eq(managerCredits.userId, ctx.user.id));
+        }
+
+        // Record unlock
+        await db.insert(managerUnlocks).values({
+          managerId: ctx.user.id,
+          representativeId: input.repId,
+          productKey: isUnlimitedActive ? "MANAGER_ILIMITADO" : "MANAGER_AVULSO",
+        });
+
+        // Get rep details to return
+        const [rep] = await db.select().from(representatives).where(eq(representatives.id, input.repId)).limit(1);
+        return { success: true, alreadyUnlocked: false, rep };
+      }),
+
+    // List all unlocked reps for this manager
+    listUnlockedReps: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const unlocks = await db.select()
+        .from(managerUnlocks)
+        .where(eq(managerUnlocks.managerId, ctx.user.id));
+      if (unlocks.length === 0) return [];
+      const repIds = unlocks.map(u => u.representativeId);
+      const reps = await db.select().from(representatives).where(inArray(representatives.id, repIds));
+      return reps.map(r => ({
+        ...r,
+        unlockedAt: unlocks.find(u => u.representativeId === r.id)?.unlockedAt,
+      }));
     }),
   }),
 });

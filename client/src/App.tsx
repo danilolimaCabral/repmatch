@@ -10,6 +10,7 @@ import Onboarding from "./pages/Onboarding";
 import RepDashboard from "./pages/RepDashboard";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import ManagerDashboard from "./pages/ManagerDashboard";
+import ManagerPlans from "./pages/ManagerPlans";
 import AdminDashboard from "./pages/AdminDashboard";
 import BuscarRepresentantes from "./pages/BuscarRepresentantes";
 import Vagas from "./pages/Vagas";
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/dashboard/manager">
         <ProtectedRoute><ManagerDashboard /></ProtectedRoute>
       </Route>
+      <Route path="/planos-gerente" component={ManagerPlans} />
       <Route path="/verificacao">
         <ProtectedRoute><VerificacaoKYC /></ProtectedRoute>
       </Route>

@@ -299,3 +299,30 @@ export const repOpportunities = mysqlTable("rep_opportunities", {
 });
 export type RepOpportunity = typeof repOpportunities.$inferSelect;
 export type InsertRepOpportunity = typeof repOpportunities.$inferInsert;
+
+// ─── Manager Credits (créditos para desbloquear contatos de reps) ──────────────
+export const managerCredits = mysqlTable("manager_credits", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  credits: int("credits").default(0).notNull(),
+  totalPurchased: int("totalPurchased").default(0).notNull(),
+  isUnlimited: boolean("isUnlimited").default(false).notNull(),
+  unlimitedExpiresAt: timestamp("unlimitedExpiresAt"),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ManagerCredits = typeof managerCredits.$inferSelect;
+export type InsertManagerCredits = typeof managerCredits.$inferInsert;
+
+// ─── Manager Unlocks (contatos desbloqueados pelo gerente) ────────────────────
+export const managerUnlocks = mysqlTable("manager_unlocks", {
+  id: int("id").autoincrement().primaryKey(),
+  managerId: int("managerId").notNull(),
+  representativeId: int("representativeId").notNull(),
+  stripePaymentId: varchar("stripePaymentId", { length: 100 }),
+  productKey: varchar("productKey", { length: 50 }),
+  unlockedAt: timestamp("unlockedAt").defaultNow().notNull(),
+});
+export type ManagerUnlock = typeof managerUnlocks.$inferSelect;
+export type InsertManagerUnlock = typeof managerUnlocks.$inferInsert;

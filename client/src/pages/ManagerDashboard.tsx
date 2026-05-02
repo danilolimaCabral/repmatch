@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Users, Search, LogOut, UserCog, MapPin, Star, Briefcase,
-  Phone, Mail, Eye, ChevronRight, TrendingUp, Target, Award, Clock
+  Phone, Mail, Eye, ChevronRight, TrendingUp, Target, Award, Clock,
+  Coins, ShoppingCart, Unlock, CheckCircle, Infinity
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -40,9 +41,10 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 export default function ManagerDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"overview" | "search" | "team">("overview");
+  const [unlockingRepId, setUnlockingRepId] = useState<number | null>(null);
 
   // Search filters
   const [searchRegion, setSearchRegion] = useState("Todos");
@@ -58,10 +60,44 @@ export default function ManagerDashboard() {
     page: 1,
   });
 
+  const creditsQuery = trpc.manager.getCredits.useQuery(undefined, { enabled: isAuthenticated });
+  const unlockedRepsQuery = trpc.manager.listUnlockedReps.useQuery(undefined, { enabled: isAuthenticated });
+
+  const unlockMutation = trpc.manager.unlockRepContact.useMutation({
+    onSuccess: (data) => {
+      if (data.alreadyUnlocked) {
+        toast.info("Este representante já está desbloqueado na sua equipe.");
+      } else {
+        toast.success("Contato desbloqueado! Acesse a aba Minha Equipe para ver os dados.");
+      }
+      creditsQuery.refetch();
+      unlockedRepsQuery.refetch();
+      setUnlockingRepId(null);
+    },
+    onError: (err) => {
+      setUnlockingRepId(null);
+      if (err.data?.code === "PAYMENT_REQUIRED") {
+        toast.error("Créditos insuficientes. Adquira um pacote para continuar.", {
+          action: { label: "Ver Planos", onClick: () => navigate("/planos-gerente") },
+        });
+      } else {
+        toast.error(err.message || "Erro ao desbloquear contato.");
+      }
+    },
+  });
+
+  const handleUnlock = (repId: number) => {
+    setUnlockingRepId(repId);
+    unlockMutation.mutate({ repId });
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate("/");
   };
+
+  const credits = creditsQuery.data;
+  const unlockedRepIds = new Set((unlockedRepsQuery.data ?? []).map((r) => r.id));
 
   const tabs = [
     { id: "overview", label: "Visão Geral", icon: TrendingUp },
@@ -90,6 +126,33 @@ export default function ManagerDashboard() {
           </div>
         </div>
 
+        {/* Credits balance */}
+        <div className="p-4 border-b border-border">
+          <div className="bg-blue-400/10 border border-blue-400/20 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Coins className="w-3 h-3" /> Créditos
+              </span>
+              {credits?.isUnlimited && (
+                <Infinity className="w-3 h-3 text-yellow-400" />
+              )}
+            </div>
+            <div className="text-xl font-black text-blue-400">
+              {creditsQuery.isLoading ? "..." : credits?.isUnlimited ? "∞" : (credits?.credits ?? 0)}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {credits?.isUnlimited ? "Ilimitado ativo" : "disponíveis"}
+            </div>
+            <button
+              onClick={() => navigate("/planos-gerente")}
+              className="mt-2 w-full text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+            >
+              <ShoppingCart className="w-3 h-3" />
+              Comprar créditos
+            </button>
+          </div>
+        </div>
+
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1">
           {tabs.map((tab) => {
@@ -106,12 +169,24 @@ export default function ManagerDashboard() {
               >
                 <Icon className="w-4 h-4 shrink-0" />
                 {tab.label}
+                {tab.id === "team" && (unlockedRepsQuery.data?.length ?? 0) > 0 && (
+                  <span className="ml-auto text-xs bg-blue-400/20 text-blue-400 rounded-full px-1.5 py-0.5">
+                    {unlockedRepsQuery.data?.length}
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
 
         <div className="p-3 border-t border-border space-y-1">
+          <button
+            onClick={() => navigate("/planos-gerente")}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-blue-400 hover:bg-blue-400/10 transition-colors font-medium"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Planos & Créditos
+          </button>
           <button
             onClick={() => navigate("/perfil")}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
@@ -160,6 +235,23 @@ export default function ManagerDashboard() {
               })}
             </div>
 
+            {/* Credits CTA if no credits */}
+            {!creditsQuery.isLoading && !credits?.isUnlimited && (credits?.credits ?? 0) === 0 && (
+              <div className="bg-blue-400/10 border border-blue-400/30 rounded-xl p-6 mb-6 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-blue-400 mb-1">Você não tem créditos</h3>
+                  <p className="text-sm text-muted-foreground">Adquira créditos para desbloquear contatos de representantes</p>
+                </div>
+                <Button
+                  onClick={() => navigate("/planos-gerente")}
+                  className="bg-blue-500 hover:bg-blue-600 text-white shrink-0"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Ver Planos
+                </Button>
+              </div>
+            )}
+
             {/* Quick actions */}
             <div className="bg-card border border-border rounded-xl p-6 mb-6">
               <h2 className="font-semibold mb-4">Ações Rápidas</h2>
@@ -182,7 +274,11 @@ export default function ManagerDashboard() {
                   <Users className="w-5 h-5 text-green-400 shrink-0" />
                   <div>
                     <div className="font-medium text-sm">Minha Equipe</div>
-                    <div className="text-xs text-muted-foreground">Gerencie seus representantes</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(unlockedRepsQuery.data?.length ?? 0) > 0
+                        ? `${unlockedRepsQuery.data?.length} representante(s) desbloqueado(s)`
+                        : "Gerencie seus representantes"}
+                    </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
                 </button>
@@ -196,7 +292,7 @@ export default function ManagerDashboard() {
                 {[
                   { step: "1", title: "Busque representantes", desc: "Filtre por região, segmento e disponibilidade para encontrar os melhores perfis", icon: Search },
                   { step: "2", title: "Analise os perfis", desc: "Veja experiência, regiões de atuação, score e histórico de cada representante", icon: Award },
-                  { step: "3", title: "Faça o match", desc: "Desbloqueie o contato e conecte-se diretamente com o representante ideal", icon: Target },
+                  { step: "3", title: "Faça o match", desc: "Desbloqueie o contato com 1 crédito e conecte-se diretamente com o representante ideal", icon: Target },
                 ].map((item) => {
                   const Icon = item.icon;
                   return (
@@ -219,9 +315,25 @@ export default function ManagerDashboard() {
         {/* Search Tab */}
         {activeTab === "search" && (
           <div className="p-8">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold">Buscar Representantes</h1>
-              <p className="text-muted-foreground mt-1">Encontre representantes comerciais para sua equipe</p>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold">Buscar Representantes</h1>
+                <p className="text-muted-foreground mt-1">Encontre representantes comerciais para sua equipe</p>
+              </div>
+              {/* Credits badge */}
+              <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-4 py-2">
+                <Coins className="w-4 h-4 text-blue-400" />
+                <span className="text-sm text-muted-foreground">Créditos:</span>
+                <span className="font-bold text-blue-400">
+                  {creditsQuery.isLoading ? "..." : credits?.isUnlimited ? "∞ Ilimitado" : (credits?.credits ?? 0)}
+                </span>
+                <button
+                  onClick={() => navigate("/planos-gerente")}
+                  className="ml-2 text-xs text-blue-400 hover:underline"
+                >
+                  + Comprar
+                </button>
+              </div>
             </div>
 
             {/* Filters */}
@@ -281,62 +393,85 @@ export default function ManagerDashboard() {
                     {repsQuery.data?.total?.toLocaleString("pt-BR") ?? 0} representantes encontrados
                   </p>
                 </div>
-                {(repsQuery.data?.reps ?? []).map((rep) => (
-                  <div key={rep.id} className="bg-card border border-border rounded-xl p-5 hover:border-blue-400/40 transition-colors">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-4 flex-1 min-w-0">
-                        <div className="w-11 h-11 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0 text-blue-400 font-bold text-lg">
-                          {rep.fullName?.[0] ?? "R"}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold">{rep.fullName}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${PLAN_COLORS[rep.subscriptionTier ?? "free"]}`}>
-                              {(rep.subscriptionTier ?? "free").charAt(0).toUpperCase() + (rep.subscriptionTier ?? "free").slice(1)}
-                            </span>
-                            {rep.availability === "imediata" && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 font-medium">
-                                🟢 Disponível agora
+                {(repsQuery.data?.reps ?? []).map((rep) => {
+                  const isUnlocked = unlockedRepIds.has(rep.id);
+                  const isUnlocking = unlockingRepId === rep.id;
+                  return (
+                    <div key={rep.id} className={`bg-card border rounded-xl p-5 transition-colors ${isUnlocked ? "border-green-500/40" : "border-border hover:border-blue-400/40"}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                          <div className="w-11 h-11 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0 text-blue-400 font-bold text-lg">
+                            {rep.fullName?.[0] ?? "R"}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold">{rep.fullName}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${PLAN_COLORS[rep.subscriptionTier ?? "free"]}`}>
+                                {(rep.subscriptionTier ?? "free").charAt(0).toUpperCase() + (rep.subscriptionTier ?? "free").slice(1)}
                               </span>
+                              {rep.availability === "imediata" && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 font-medium">
+                                  🟢 Disponível agora
+                                </span>
+                              )}
+                              {isUnlocked && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 font-medium flex items-center gap-1">
+                                  <CheckCircle className="w-3 h-3" /> Desbloqueado
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 mt-1.5 text-sm text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{rep.region}</span>
+                              <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{rep.segment}</span>
+                              {rep.experienceYears != null && rep.experienceYears > 0 && (
+                                <span className="flex items-center gap-1"><Star className="w-3 h-3" />{rep.experienceYears} anos</span>
+                              )}
+                              {rep.availability && (
+                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{AVAILABILITY_LABELS[rep.availability] ?? rep.availability}</span>
+                              )}
+                            </div>
+                            {isUnlocked && rep.phone && (
+                              <div className="flex items-center gap-4 mt-2 text-sm">
+                                <span className="flex items-center gap-1 text-green-400"><Phone className="w-3 h-3" />{rep.phone}</span>
+                                {rep.email && <span className="flex items-center gap-1 text-green-400"><Mail className="w-3 h-3" />{rep.email}</span>}
+                              </div>
+                            )}
+                            {rep.bio && !isUnlocked && (
+                              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{rep.bio}</p>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 mt-1.5 text-sm text-muted-foreground flex-wrap">
-                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{rep.region}</span>
-                            <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{rep.segment}</span>
-                            {rep.experienceYears != null && rep.experienceYears > 0 && (
-                              <span className="flex items-center gap-1"><Star className="w-3 h-3" />{rep.experienceYears} anos</span>
-                            )}
-                            {rep.availability && (
-                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{AVAILABILITY_LABELS[rep.availability] ?? rep.availability}</span>
-                            )}
-                          </div>
-                          {rep.bio && (
-                            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{rep.bio}</p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          {isUnlocked ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs border-green-500/40 text-green-400"
+                              onClick={() => toast.info("Contato já desbloqueado na sua equipe")}
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Ver na Equipe
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="text-xs bg-blue-500 hover:bg-blue-600 text-white"
+                              disabled={isUnlocking}
+                              onClick={() => handleUnlock(rep.id)}
+                            >
+                              {isUnlocking ? (
+                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin mr-1" />
+                              ) : (
+                                <Unlock className="w-3 h-3 mr-1" />
+                              )}
+                              {isUnlocking ? "Desbloqueando..." : "Desbloquear (1 crédito)"}
+                            </Button>
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2 shrink-0">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs"
-                          onClick={() => toast.info("Desbloqueie o contato para ver o perfil completo")}
-                        >
-                          <Eye className="w-3 h-3 mr-1" />
-                          Ver perfil
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="text-xs bg-blue-500 hover:bg-blue-600 text-white"
-                          onClick={() => toast.info("Funcionalidade de contato disponível após desbloqueio")}
-                        >
-                          <Phone className="w-3 h-3 mr-1" />
-                          Contato
-                        </Button>
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {(repsQuery.data?.reps ?? []).length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
                     <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -353,22 +488,65 @@ export default function ManagerDashboard() {
           <div className="p-8">
             <div className="mb-6">
               <h1 className="text-2xl font-bold">Minha Equipe</h1>
-              <p className="text-muted-foreground mt-1">Representantes que fazem parte da sua equipe</p>
+              <p className="text-muted-foreground mt-1">Representantes desbloqueados e prontos para contato</p>
             </div>
-            <div className="bg-card border border-border rounded-xl p-12 text-center">
-              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
-              <h3 className="font-semibold mb-2">Sua equipe está vazia</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                Busque representantes e desbloqueie contatos para montar sua equipe
-              </p>
-              <Button
-                onClick={() => setActiveTab("search")}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Buscar Representantes
-              </Button>
-            </div>
+            {unlockedRepsQuery.isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (unlockedRepsQuery.data?.length ?? 0) === 0 ? (
+              <div className="bg-card border border-border rounded-xl p-12 text-center">
+                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+                <h3 className="font-semibold mb-2">Sua equipe está vazia</h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Busque representantes e desbloqueie contatos para montar sua equipe
+                </p>
+                <Button
+                  onClick={() => setActiveTab("search")}
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Buscar Representantes
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(unlockedRepsQuery.data ?? []).map((rep) => (
+                  <div key={rep.id} className="bg-card border border-green-500/30 rounded-xl p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-11 h-11 rounded-full bg-green-400/20 flex items-center justify-center shrink-0 text-green-400 font-bold text-lg">
+                        {rep.fullName?.[0] ?? "R"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-semibold">{rep.fullName}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${PLAN_COLORS[rep.subscriptionTier ?? "free"]}`}>
+                            {(rep.subscriptionTier ?? "free").charAt(0).toUpperCase() + (rep.subscriptionTier ?? "free").slice(1)}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 font-medium flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" /> Desbloqueado
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap mb-2">
+                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{rep.region}</span>
+                          <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{rep.segment}</span>
+                          {rep.experienceYears != null && rep.experienceYears > 0 && (
+                            <span className="flex items-center gap-1"><Star className="w-3 h-3" />{rep.experienceYears} anos</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                          {rep.phone && (
+                            <a href={`tel:${rep.phone}`} className="flex items-center gap-1 text-green-400 hover:text-green-300 transition-colors">
+                              <Phone className="w-3 h-3" />{rep.phone}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
