@@ -22,7 +22,6 @@ import Perfil from "./pages/Perfil";
 import EsqueciSenha from "./pages/EsqueciSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import VerificarEmail from "./pages/VerificarEmail";
-import BaseCNPJ from "./pages/BaseCNPJ";
 import CookieConsent from "./components/CookieConsent";
 
 function Router() {
@@ -57,9 +56,6 @@ function Router() {
       <Route path="/perfil">
         <ProtectedRoute><Perfil /></ProtectedRoute>
       </Route>
-
-      {/* Public CNPJ base */}
-      <Route path="/base-cnpj" component={BaseCNPJ} />
 
       {/* Admin-only route */}
       <Route path="/admin">

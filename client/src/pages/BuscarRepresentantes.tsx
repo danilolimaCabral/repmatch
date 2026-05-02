@@ -8,7 +8,7 @@ import { useLocation } from "wouter";
 import { Search, MapPin, Briefcase, Star, Lock, Users, Filter, ArrowRight, Loader2, TrendingUp, Clock, Award, Crown, Medal, Shield } from "lucide-react";
 import { getLoginUrl } from "@/const";
 
-const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
+const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
 const TIER_BADGE: Record<string, { label: string; color: string; icon: React.ReactNode; highlight: boolean }> = {
   free: { label: "Pendente", color: "bg-zinc-700/60 text-zinc-300", icon: null, highlight: false },

@@ -8,7 +8,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
-const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
+const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
 function normalizePhone(raw: string): string | null {
   if (!raw) return null;

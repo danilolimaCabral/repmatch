@@ -302,9 +302,9 @@
 - [x] Frontend CompanyDashboard: select de ordenação (Mais disponíveis / Melhor avaliados / Plano)
 
 ## Badge Disponibilidade + Contador + Job Agendado
-- [ ] Badge de disponibilidade nos cards do CompanyDashboard e BuscarRepresentantes
-- [ ] Contador "X disponíveis agora" no topo da aba de busca
-- [ ] Backend: countAvailableNow procedure + /api/scheduled/availability-reminder endpoint
+- [x] Badge de disponibilidade nos cards do CompanyDashboard e BuscarRepresentantes
+- [x] Contador "X disponíveis agora" no topo da aba de busca
+- [x] Backend: countAvailableNow procedure + /api/scheduled/availability-reminder endpoint
 - [ ] Job agendado mensal para lembrar reps de atualizar disponibilidade
 
 ## Substituição Auth Manus → Auth Própria (email/senha)
@@ -360,3 +360,17 @@
 - [x] RepDashboard: gráfico de barras — vagas por segmento
 - [x] RepDashboard: gráfico de pizza — candidaturas por status
 - [x] Melhorar tipografia, espaçamento e hierarquia visual em ambos os dashboards
+
+## Logo e Chat Interno
+- [ ] Corrigir logo: remover fundo preto, gerar versão com fundo transparente
+- [ ] Chat interno: empresa pode abrir chat com rep após desbloquear contato (sem precisar de candidatura)
+- [ ] Chat interno: rep pode responder empresa no dashboard
+- [ ] Chat interno: notificação visual de mensagens não lidas
+
+## Toggle Dark/Light + Tema Roxo
+- [ ] Criar ThemeContext com persistência em localStorage (dark/light)
+- [ ] Adicionar variáveis CSS do tema claro branco+roxo no index.css
+- [ ] Botão toggle dark/light no header da landing page
+- [ ] Botão toggle dark/light no DashboardLayout (sidebar ou topbar)
+- [ ] Remover referências à Base CNPJ/Receita Federal de todas as páginas
+- [ ] Corrigir logo para fundo transparente

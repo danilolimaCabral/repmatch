@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
-const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
+const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
 const REGIONS = [
   "São Paulo - Capital", "São Paulo - Interior", "Rio de Janeiro", "Minas Gerais",
@@ -442,7 +442,7 @@ export default function Onboarding() {
                       className="shrink-0"
                       disabled={companyForm.cnpj.replace(/\D/g, "").length !== 14 || cnpjQuery.isFetching}
                       onClick={() => setCnpjLookupCnpj(companyForm.cnpj)}
-                      title="Consultar CNPJ na Receita Federal"
+                      title="Consultar CNPJ"
                     >
                       {cnpjQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                     </Button>

@@ -245,3 +245,17 @@ export const cnpjRepresentatives = mysqlTable("cnpj_representatives", {
   createdAt: datetime("created_at"),
 });
 export type CnpjRepresentative = typeof cnpjRepresentatives.$inferSelect;
+
+// ─── Direct Chat (empresa ↔ representante após desbloqueio) ──────────────────
+export const directChatMessages = mysqlTable("direct_chat_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  companyId: int("companyId").notNull(),
+  representativeId: int("representativeId").notNull(),
+  senderUserId: int("senderUserId").notNull(),
+  content: text("content").notNull(),
+  isReadByCompany: boolean("isReadByCompany").default(false).notNull(),
+  isReadByRep: boolean("isReadByRep").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type DirectChatMessage = typeof directChatMessages.$inferSelect;
+export type InsertDirectChatMessage = typeof directChatMessages.$inferInsert;

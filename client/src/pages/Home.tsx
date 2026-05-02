@@ -79,7 +79,7 @@ function VagasDestaque() {
   );
 }
 
-const LOGO_URL = "/manus-storage/repmatch-logo-clean_68a7f78f.png";
+const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
 // ─── Live Counter Section ────────────────────────────────────────────────────
 function LiveCounterSection() {
@@ -94,7 +94,7 @@ function LiveCounterSection() {
   }, []);
 
   const stats = [
-    { value: totalReps, suffix: "+", label: "Representantes cadastrados", sublabel: "Base nacional Receita Federal", icon: Users, pulsed: pulse },
+    { value: totalReps, suffix: "+", label: "Representantes cadastrados", sublabel: "Cadastrados na plataforma", icon: Users, pulsed: pulse },
     { value: totalJobs, suffix: "", label: "Vagas abertas agora", sublabel: "Atualizado em tempo real", icon: Briefcase, pulsed: !pulse },
     { value: 12, suffix: "", label: "Segmentos cobertos", sublabel: "Do agro ao tech", icon: BarChart3, pulsed: pulse },
     { value: 27, suffix: "", label: "Estados atendidos", sublabel: "Cobertura nacional", icon: MapPin, pulsed: !pulse },

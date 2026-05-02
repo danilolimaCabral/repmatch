@@ -11,7 +11,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 
-const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
+const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
 const REGIONS = [
   "São Paulo - Capital", "São Paulo - Interior", "Rio de Janeiro", "Minas Gerais",

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const LOGO_URL = "/manus-storage/repmatch-logo-clean_68a7f78f.png";
+const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 const PIX_KEY = "41999499815";
 const WHATSAPP_NUMBER = "5541999499815";
 

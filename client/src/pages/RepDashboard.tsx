@@ -21,7 +21,7 @@ import {
   PieChart, Pie, Cell, Legend
 } from "recharts";
 
-const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
+const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
 const REGIONS = [
   "São Paulo - Capital", "São Paulo - Interior", "Rio de Janeiro", "Minas Gerais",

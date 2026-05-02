@@ -23,7 +23,7 @@ import {
   PieChart, Pie, Cell, Legend
 } from "recharts";
 
-const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
+const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
 const REGIONS = [
   "São Paulo - Capital", "São Paulo - Interior", "Rio de Janeiro", "Minas Gerais",
@@ -810,18 +810,8 @@ export default function CompanyDashboard() {
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-slate-800 mb-1">Buscar Representantes</h1>
               <p className="text-slate-500 text-sm">
-                Base com <span className="font-bold text-slate-700">173.987+ representantes</span> ativos. Contatos desbloqueados aparecem com dados completos.
+                Encontre representantes qualificados por região, segmento e disponibilidade. Contatos desbloqueados aparecem com dados completos.
               </p>
-            </div>
-            {/* CNPJ Base Banner */}
-            <div className="mb-5 p-4 rounded-xl border border-emerald-200 bg-emerald-50 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-800">🏛️ Base Nacional da Receita Federal</p>
-                <p className="text-xs text-slate-500 mt-0.5">Acesse <strong className="text-emerald-700">173.987 representantes comerciais</strong> cadastrados no CNPJ — MEI, ME, EPP e mais.</p>
-              </div>
-              <a href="/base-cnpj" target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
-                Ver Base CNPJ
-              </a>
             </div>
 
             {/* Filters */}
