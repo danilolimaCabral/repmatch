@@ -362,7 +362,7 @@
 - [x] Melhorar tipografia, espaçamento e hierarquia visual em ambos os dashboards
 
 ## Logo e Chat Interno
-- [ ] Corrigir logo: remover fundo preto, gerar versão com fundo transparente
+- [x] Corrigir logo: remover fundo preto, gerar versão com fundo transparente
 - [ ] Chat interno: empresa pode abrir chat com rep após desbloquear contato (sem precisar de candidatura)
 - [ ] Chat interno: rep pode responder empresa no dashboard
 - [ ] Chat interno: notificação visual de mensagens não lidas
@@ -372,9 +372,24 @@
 - [ ] Adicionar variáveis CSS do tema claro branco+roxo no index.css
 - [ ] Botão toggle dark/light no header da landing page
 - [ ] Botão toggle dark/light no DashboardLayout (sidebar ou topbar)
-- [ ] Remover referências à Base CNPJ/Receita Federal de todas as páginas
-- [ ] Corrigir logo para fundo transparente
+- [x] Remover referências à Base CNPJ/Receita Federal de todas as páginas
+- [x] Corrigir logo para fundo transparente
 
 ## Banner Cookie/LGPD e Mobile
-- [ ] Remover banner CookieConsent (popup LGPD) do App.tsx
-- [ ] Adicionar aviso "Vire seu celular para ver melhor" para mobile em portrait
+- [x] Remover banner CookieConsent (popup LGPD) do App.tsx
+- [x] Adicionar aviso "Vire seu celular para ver melhor" para mobile em portrait
+
+## Expansão de Perfis — Gerente Comercial + Documentação Obrigatória
+- [ ] Schema: adicionar tipo 'manager' no userType enum
+- [ ] Schema: adicionar campo cpf na tabela users (para gerente)
+- [ ] Schema: adicionar campos core_number, core_doc_url, core_status na tabela representatives
+- [ ] Schema: criar tabela rep_opportunities (rep publica sua disponibilidade)
+- [ ] Migração SQL aplicada
+- [ ] Onboarding: fluxo para Gerente Comercial (CPF obrigatório, região, segmento, tamanho de equipe)
+- [ ] Onboarding: CNPJ obrigatório para Empresa com validação de formato
+- [ ] Onboarding: CNPJ + CORE + upload de documentos obrigatórios para Representante
+- [ ] Dashboard Gerente: busca de reps, montar equipe, ver candidaturas
+- [ ] Rep: seção "Minhas Oportunidades" — rep publica vaga/disponibilidade própria
+- [ ] Página pública /oportunidades-reps — empresas e gerentes encontram reps disponíveis
+- [ ] Landing page: mostrar os 3 perfis (Empresa, Gerente, Representante)
+- [ ] Admin: painel de validação de documentos (CORE, CNPJ, identidade)

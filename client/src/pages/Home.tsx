@@ -5,7 +5,7 @@ import {
   Shield, Award, ChevronDown, BarChart3, MessageSquare,
   Target, Sparkles, Clock, MapPin, Briefcase, DollarSign, Lock,
   Search, LockOpen, UserPlus, Eye, FileText, Crown, Gem,
-  ThumbsUp, ThumbsDown, Frown, Smile, ChevronRight, Filter
+  ThumbsUp, ThumbsDown, Frown, Smile, ChevronRight, Filter, UserCog
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
@@ -456,7 +456,7 @@ export default function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleCTA = (type: "company" | "rep") => {
+  const handleCTA = (type: "company" | "rep" | "manager") => {
     if (isAuthenticated) {
       if (companyProfile) navigate("/dashboard/company");
       else if (repProfile) navigate("/dashboard/rep");
@@ -539,18 +539,26 @@ export default function Home() {
             O RepMatch conecta sua empresa com os representantes certos — por região, segmento e histórico real.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14 flex-wrap">
             <button
               onClick={() => handleCTA("company")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base px-9 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base px-8 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
             >
               <Building2 className="w-5 h-5" />
               Sou Empresa
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
             <button
+              onClick={() => handleCTA("manager")}
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-semibold text-base px-8 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+            >
+              <UserCog className="w-5 h-5" />
+              Sou Gerente
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button
               onClick={() => handleCTA("rep")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-secondary hover:bg-secondary/80 border border-border hover:border-primary/40 text-foreground font-semibold text-base px-9 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-secondary hover:bg-secondary/80 border border-border hover:border-primary/40 text-foreground font-semibold text-base px-8 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
             >
               <Users className="w-5 h-5" />
               Sou Representante
@@ -1005,18 +1013,26 @@ export default function Home() {
           <p className="text-muted-foreground text-lg mb-12 max-w-xl mx-auto">
             Mais de 10 mil representantes qualificados esperando pela sua vaga. Pare de garimpar — comece a conectar.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap">
             <button
               onClick={() => handleCTA("company")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base px-10 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base px-9 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
             >
               <Building2 className="w-5 h-5" />
               Sou Empresa
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <button
+              onClick={() => handleCTA("manager")}
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-semibold text-base px-9 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+            >
+              <UserCog className="w-5 h-5" />
+              Sou Gerente
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button
               onClick={() => handleCTA("rep")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-secondary hover:bg-secondary/80 border border-border hover:border-primary/40 text-foreground font-semibold text-base px-10 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-secondary hover:bg-secondary/80 border border-border hover:border-primary/40 text-foreground font-semibold text-base px-9 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
             >
               <Users className="w-5 h-5" />
               Sou Representante

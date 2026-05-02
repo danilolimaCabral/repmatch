@@ -22,7 +22,8 @@ export const users = mysqlTable("users", {
   emailVerified: boolean("emailVerified").default(false).notNull(),
   emailVerificationToken: varchar("emailVerificationToken", { length: 128 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  userType: mysqlEnum("userType", ["representative", "company", "pending"]).default("pending").notNull(),
+  userType: mysqlEnum("userType", ["representative", "company", "manager", "pending"]).default("pending").notNull(),
+  cpf: varchar("cpf", { length: 20 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   isActive: boolean("isActive").default(true).notNull(),
@@ -60,9 +61,11 @@ export const representatives = mysqlTable("representatives", {
   kycNotes: text("kycNotes"),
   kycReviewedAt: timestamp("kycReviewedAt"),
   // CORE — Conselho Regional dos Representantes Comerciais
+  cnpj: varchar("cnpj", { length: 20 }),
   coreNumber: varchar("coreNumber", { length: 30 }),
   coreState: varchar("coreState", { length: 2 }),
   coreStatus: mysqlEnum("coreStatus", ["not_checked", "active", "inactive", "not_found"]).default("not_checked").notNull(),
+  coreDocUrl: varchar("coreDocUrl", { length: 500 }),
   coreValidUntil: varchar("coreValidUntil", { length: 20 }),
   coreCheckedAt: timestamp("coreCheckedAt"),
   subscriptionTier: mysqlEnum("subscriptionTier", ["free", "bronze", "prata", "ouro"]).default("free").notNull(),
@@ -259,3 +262,40 @@ export const directChatMessages = mysqlTable("direct_chat_messages", {
 });
 export type DirectChatMessage = typeof directChatMessages.$inferSelect;
 export type InsertDirectChatMessage = typeof directChatMessages.$inferInsert;
+
+// ─── Managers (Gerentes Comerciais) ─────────────────────────────────────────
+export const managers = mysqlTable("managers", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  fullName: varchar("fullName", { length: 100 }).notNull(),
+  cpf: varchar("cpf", { length: 20 }),
+  phone: varchar("phone", { length: 20 }),
+  region: varchar("region", { length: 100 }),
+  segment: varchar("segment", { length: 100 }),
+  teamSize: int("teamSize").default(0),
+  bio: text("bio"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Manager = typeof managers.$inferSelect;
+export type InsertManager = typeof managers.$inferInsert;
+
+// ─── Rep Opportunities (Representante publica sua disponibilidade) ────────────
+export const repOpportunities = mysqlTable("rep_opportunities", {
+  id: int("id").autoincrement().primaryKey(),
+  representativeId: int("representativeId").notNull(),
+  title: varchar("title", { length: 150 }).notNull(),
+  description: text("description"),
+  region: varchar("region", { length: 100 }),
+  segment: varchar("segment", { length: 100 }),
+  availability: mysqlEnum("availability", ["imediata", "30dias", "60dias", "negociavel"]).default("imediata"),
+  workModel: mysqlEnum("workModel", ["exclusivo", "multiplas", "indifferente"]).default("multiplas"),
+  expectedCommission: varchar("expectedCommission", { length: 50 }),
+  status: mysqlEnum("status", ["active", "paused", "closed"]).default("active").notNull(),
+  viewCount: int("viewCount").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type RepOpportunity = typeof repOpportunities.$inferSelect;
+export type InsertRepOpportunity = typeof repOpportunities.$inferInsert;

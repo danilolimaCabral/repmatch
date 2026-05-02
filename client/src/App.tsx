@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
 import RepDashboard from "./pages/RepDashboard";
 import CompanyDashboard from "./pages/CompanyDashboard";
+import ManagerDashboard from "./pages/ManagerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import BuscarRepresentantes from "./pages/BuscarRepresentantes";
 import Vagas from "./pages/Vagas";
@@ -49,6 +50,9 @@ function Router() {
       </Route>
       <Route path="/dashboard/company">
         <ProtectedRoute><CompanyDashboard /></ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/manager">
+        <ProtectedRoute><ManagerDashboard /></ProtectedRoute>
       </Route>
       <Route path="/verificacao">
         <ProtectedRoute><VerificacaoKYC /></ProtectedRoute>

@@ -190,9 +190,41 @@ export const appRouter = router({
   // ─── Onboarding ─────────────────────────────────────────────────────────────
   onboarding: router({
     setUserType: protectedProcedure
-      .input(z.object({ userType: z.enum(["representative", "company"]) }))
+      .input(z.object({ userType: z.enum(["representative", "company", "manager"]) }))
       .mutation(async ({ ctx, input }) => {
-        await updateUserType(ctx.user.id, input.userType);
+        const type = input.userType === "manager" ? "company" : input.userType;
+        await updateUserType(ctx.user.id, type as "representative" | "company");
+        return { success: true };
+      }),
+
+    completeManagerProfile: protectedProcedure
+      .input(
+        z.object({
+          fullName: z.string().min(2),
+          cpf: z.string().optional(),
+          phone: z.string().optional(),
+          region: z.string().min(2),
+          segment: z.string().min(2),
+          teamSize: z.number().min(0).optional(),
+          bio: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        const { managers, users } = await import("../drizzle/schema");
+        // Check if manager profile already exists
+        const existing = await db!.select().from(managers).where(eq(managers.userId, ctx.user.id)).limit(1);
+        if (existing.length > 0) {
+          await db!.update(managers).set({ ...input, updatedAt: new Date() }).where(eq(managers.userId, ctx.user.id));
+        } else {
+          await db!.insert(managers).values({ ...input, userId: ctx.user.id });
+        }
+        // Update user type to manager
+        await db!.update(users).set({ userType: "manager" as any }).where(eq(users.id, ctx.user.id));
+        await notifyOwner({
+          title: "👤 Novo Gerente Comercial Cadastrado",
+          content: `${input.fullName} (${input.region} • ${input.segment}) acabou de completar o cadastro como Gerente Comercial. Telefone: ${input.phone ?? "não informado"}.`,
+        });
         return { success: true };
       }),
 
@@ -210,6 +242,10 @@ export const appRouter = router({
           additionalSegments: z.string().optional(),
           cities: z.string().optional(),
           linkedinUrl: z.string().url().optional().or(z.literal("")),
+          cnpj: z.string().optional(),
+          coreNumber: z.string().optional(),
+          coreState: z.string().optional(),
+          coreDocUrl: z.string().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -218,7 +254,22 @@ export const appRouter = router({
           await updateRepresentative(existing.id, input);
           return { success: true };
         }
-        await createRepresentative({ ...input, userId: ctx.user.id });
+        const { cnpj, coreNumber, coreState, coreDocUrl, ...repData } = input;
+        await createRepresentative({ ...repData, userId: ctx.user.id });
+        // Update CNPJ and CORE fields if provided
+        if (cnpj || coreNumber || coreDocUrl) {
+          const db = await getDb();
+          const { representatives: repsTable } = await import("../drizzle/schema");
+          const newRep = await getRepresentativeByUserId(ctx.user.id);
+          if (newRep) {
+            await db!.update(repsTable).set({
+              cnpj: cnpj ?? null,
+              coreNumber: coreNumber ?? null,
+              coreState: coreState ?? null,
+              coreDocUrl: coreDocUrl ?? null,
+            }).where(eq(repsTable.id, newRep.id));
+          }
+        }
         await updateUserType(ctx.user.id, "representative");
         // Notify owner of new representative registration
         await notifyOwner({

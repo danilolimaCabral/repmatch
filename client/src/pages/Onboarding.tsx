@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { Building2, Users, Loader2, CheckCircle, Briefcase, MapPin, Clock, Link, Search, BadgeCheck } from "lucide-react";
+import { Building2, Users, Loader2, CheckCircle, Briefcase, MapPin, Clock, Link, Search, BadgeCheck, UserCog, FileText, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -28,11 +28,13 @@ const SEGMENTS = [
   "Serviços Financeiros", "Educação", "Logística", "Outros",
 ];
 
+const STATES = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+
 export default function Onboarding() {
   const { user, isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
-  const [step, setStep] = useState<"choose" | "rep-form" | "company-form">("choose");
-  const [userType, setUserType] = useState<"representative" | "company" | null>(null);
+  const [step, setStep] = useState<"choose" | "rep-form" | "company-form" | "manager-form">("choose");
+  const [userType, setUserType] = useState<"representative" | "company" | "manager" | null>(null);
 
   // Rep form state
   const [repForm, setRepForm] = useState({
@@ -47,6 +49,24 @@ export default function Onboarding() {
     additionalSegments: "",
     cities: "",
     linkedinUrl: "",
+  });
+
+  // Rep CNPJ + CORE state
+  const [repCnpj, setRepCnpj] = useState("");
+  const [repCoreNumber, setRepCoreNumber] = useState("");
+  const [repCoreState, setRepCoreState] = useState("");
+  const [repCoreDocUploading, setRepCoreDocUploading] = useState(false);
+  const [repCoreDocUrl, setRepCoreDocUrl] = useState("");
+
+  // Manager form state
+  const [managerForm, setManagerForm] = useState({
+    fullName: user?.name ?? "",
+    cpf: "",
+    phone: "",
+    region: "",
+    segment: "",
+    teamSize: 0,
+    bio: "",
   });
 
   // Company form state
@@ -108,6 +128,13 @@ export default function Onboarding() {
     },
     onError: (e) => toast.error(e.message),
   });
+  const completeManagerMutation = trpc.onboarding.completeManagerProfile.useMutation({
+    onSuccess: () => {
+      toast.success("Perfil criado com sucesso!");
+      navigate("/dashboard/manager");
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   if (loading) {
     return (
@@ -122,10 +149,30 @@ export default function Onboarding() {
     return null;
   }
 
-  const handleChooseType = async (type: "representative" | "company") => {
+  const handleChooseType = async (type: "representative" | "company" | "manager") => {
     setUserType(type);
     await setTypeMutation.mutateAsync({ userType: type });
-    setStep(type === "representative" ? "rep-form" : "company-form");
+    if (type === "representative") setStep("rep-form");
+    else if (type === "company") setStep("company-form");
+    else setStep("manager-form");
+  };
+
+  const handleRepCoreDocUpload = async (file: File) => {
+    setRepCoreDocUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd, credentials: "include" });
+      const data = await res.json();
+      if (data.url) {
+        setRepCoreDocUrl(data.url);
+        toast.success("Documento CORE enviado!");
+      }
+    } catch {
+      toast.error("Erro ao enviar documento");
+    } finally {
+      setRepCoreDocUploading(false);
+    }
   };
 
   const handleRepSubmit = (e: React.FormEvent) => {
@@ -136,6 +183,10 @@ export default function Onboarding() {
     }
     if (!repForm.region || !repForm.segment) {
       toast.error("Preencha região e segmento");
+      return;
+    }
+    if (!repCnpj || repCnpj.replace(/\D/g, "").length !== 14) {
+      toast.error("CNPJ é obrigatório para representantes comerciais");
       return;
     }
     completeRepMutation.mutate({
@@ -150,6 +201,10 @@ export default function Onboarding() {
       additionalSegments: repForm.additionalSegments || undefined,
       cities: repForm.cities || undefined,
       linkedinUrl: repForm.linkedinUrl || undefined,
+      cnpj: repCnpj || undefined,
+      coreNumber: repCoreNumber || undefined,
+      coreState: repCoreState || undefined,
+      coreDocUrl: repCoreDocUrl || undefined,
     });
   };
 
@@ -163,8 +218,52 @@ export default function Onboarding() {
       toast.error("Preencha nome da empresa e segmento");
       return;
     }
+    if (!companyForm.cnpj || companyForm.cnpj.replace(/\D/g, "").length !== 14) {
+      toast.error("CNPJ é obrigatório para empresas");
+      return;
+    }
     completeCompanyMutation.mutate(companyForm);
   };
+
+  const handleManagerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lgpdConsent) {
+      toast.error("Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar");
+      return;
+    }
+    if (!managerForm.region || !managerForm.segment) {
+      toast.error("Preencha região e segmento");
+      return;
+    }
+    completeManagerMutation.mutate({
+      fullName: managerForm.fullName || user?.name || "Gerente",
+      cpf: managerForm.cpf || undefined,
+      phone: managerForm.phone || undefined,
+      region: managerForm.region,
+      segment: managerForm.segment,
+      teamSize: Number(managerForm.teamSize),
+      bio: managerForm.bio || undefined,
+    });
+  };
+
+  const lgpdBlock = (id: string) => (
+    <div className="flex items-start gap-3 p-4 bg-muted/20 rounded-lg border border-border">
+      <input
+        type="checkbox"
+        id={id}
+        checked={lgpdConsent}
+        onChange={(e) => setLgpdConsent(e.target.checked)}
+        className="mt-0.5 w-4 h-4 accent-green-500 cursor-pointer shrink-0"
+      />
+      <label htmlFor={id} className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+        Li e concordo com os{" "}
+        <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Termos de Uso</a>{" "}
+        e a{" "}
+        <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Política de Privacidade</a>,
+        incluindo o tratamento dos meus dados pessoais conforme a LGPD (Lei 13.709/2018).
+      </label>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -180,27 +279,43 @@ export default function Onboarding() {
           {step === "choose" && (
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-2">Bem-vindo ao RepMatch!</h1>
-              <p className="text-muted-foreground mb-10">Como você vai usar a plataforma?</p>
+              <p className="text-muted-foreground mb-8">Como você vai usar a plataforma?</p>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="flex flex-col gap-4">
                 <button
                   onClick={() => handleChooseType("company")}
                   disabled={setTypeMutation.isPending}
-                  className="group rounded-2xl border-2 border-border bg-card p-8 text-center hover:border-primary transition-all cursor-pointer disabled:opacity-50"
+                  className="group rounded-2xl border-2 border-border bg-card p-6 text-left hover:border-primary transition-all cursor-pointer disabled:opacity-50 flex items-center gap-5"
                 >
-                  <Building2 className="w-12 h-12 text-primary mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                  <div className="font-semibold text-lg mb-2">Sou Empresa</div>
-                  <div className="text-sm text-muted-foreground">Quero encontrar representantes comerciais</div>
+                  <Building2 className="w-10 h-10 text-primary shrink-0 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <div className="font-semibold text-lg">Sou Empresa / Indústria</div>
+                    <div className="text-sm text-muted-foreground">CNPJ obrigatório · Publico vagas e busco representantes</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => handleChooseType("manager")}
+                  disabled={setTypeMutation.isPending}
+                  className="group rounded-2xl border-2 border-border bg-card p-6 text-left hover:border-primary transition-all cursor-pointer disabled:opacity-50 flex items-center gap-5"
+                >
+                  <UserCog className="w-10 h-10 text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <div className="font-semibold text-lg">Sou Gerente Comercial</div>
+                    <div className="text-sm text-muted-foreground">Pessoa física · Monto equipe de vendas para minha empresa</div>
+                  </div>
                 </button>
 
                 <button
                   onClick={() => handleChooseType("representative")}
                   disabled={setTypeMutation.isPending}
-                  className="group rounded-2xl border-2 border-border bg-card p-8 text-center hover:border-primary transition-all cursor-pointer disabled:opacity-50"
+                  className="group rounded-2xl border-2 border-border bg-card p-6 text-left hover:border-primary transition-all cursor-pointer disabled:opacity-50 flex items-center gap-5"
                 >
-                  <Users className="w-12 h-12 text-blue-400 mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                  <div className="font-semibold text-lg mb-2">Sou Representante</div>
-                  <div className="text-sm text-muted-foreground">Quero encontrar empresas para representar</div>
+                  <Users className="w-10 h-10 text-green-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <div className="font-semibold text-lg">Sou Representante Comercial</div>
+                    <div className="text-sm text-muted-foreground">CNPJ + CORE obrigatórios · Busco empresas para representar</div>
+                  </div>
                 </button>
               </div>
 
@@ -217,8 +332,8 @@ export default function Onboarding() {
           {step === "rep-form" && (
             <div>
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 rounded-full bg-blue-400/20 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-blue-400" />
+                <div className="w-10 h-10 rounded-full bg-green-400/20 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-green-400" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">Complete seu perfil</h1>
@@ -246,6 +361,66 @@ export default function Onboarding() {
                     placeholder="(11) 99999-9999"
                     className="mt-1 bg-secondary border-border"
                   />
+                </div>
+
+                {/* CNPJ obrigatório */}
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <Label className="flex items-center gap-2 text-yellow-400 font-semibold mb-2">
+                    <FileText className="w-4 h-4" /> CNPJ do Representante *
+                  </Label>
+                  <Input
+                    value={repCnpj}
+                    onChange={(e) => setRepCnpj(e.target.value)}
+                    placeholder="00.000.000/0001-00"
+                    className="bg-secondary border-border"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Obrigatório para representantes comerciais</p>
+                </div>
+
+                {/* CORE */}
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-3">
+                  <Label className="flex items-center gap-2 text-blue-400 font-semibold">
+                    <BadgeCheck className="w-4 h-4" /> Registro CORE (Conselho dos Representantes)
+                  </Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <Input
+                        value={repCoreNumber}
+                        onChange={(e) => setRepCoreNumber(e.target.value)}
+                        placeholder="Nº do CORE"
+                        className="bg-secondary border-border"
+                      />
+                    </div>
+                    <div>
+                      <Select onValueChange={setRepCoreState}>
+                        <SelectTrigger className="bg-secondary border-border">
+                          <SelectValue placeholder="UF" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground mb-1 block">Documento CORE (PDF ou imagem)</Label>
+                    <label className="flex items-center gap-2 cursor-pointer border border-dashed border-blue-500/40 rounded-lg p-3 hover:bg-blue-500/5 transition-colors">
+                      <Upload className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm text-muted-foreground">
+                        {repCoreDocUploading ? "Enviando..." : repCoreDocUrl ? "✅ Documento enviado" : "Clique para enviar documento"}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleRepCoreDocUpload(file);
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -357,23 +532,7 @@ export default function Onboarding() {
                   />
                 </div>
 
-                {/* LGPD Consent */}
-                <div className="flex items-start gap-3 p-4 bg-muted/20 rounded-lg border border-border">
-                  <input
-                    type="checkbox"
-                    id="lgpd-consent-rep"
-                    checked={lgpdConsent}
-                    onChange={(e) => setLgpdConsent(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-green-500 cursor-pointer shrink-0"
-                  />
-                  <label htmlFor="lgpd-consent-rep" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
-                    Li e concordo com os{" "}
-                    <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Termos de Uso</a>{" "}
-                    e a{" "}
-                    <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Política de Privacidade</a>,
-                    incluindo o tratamento dos meus dados pessoais conforme a LGPD (Lei 13.709/2018).
-                  </label>
-                </div>
+                {lgpdBlock("lgpd-consent-rep")}
 
                 <Button
                   type="submit"
@@ -381,6 +540,117 @@ export default function Onboarding() {
                   disabled={completeRepMutation.isPending || !lgpdConsent}
                 >
                   {completeRepMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Criando perfil...</>
+                  ) : (
+                    <><CheckCircle className="w-4 h-4 mr-2" />Criar meu perfil</>
+                  )}
+                </Button>
+              </form>
+            </div>
+          )}
+
+          {/* Step: Manager Form */}
+          {step === "manager-form" && (
+            <div>
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 rounded-full bg-blue-400/20 flex items-center justify-center">
+                  <UserCog className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">Complete seu perfil</h1>
+                  <p className="text-muted-foreground text-sm">Gerente Comercial</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleManagerSubmit} className="space-y-5">
+                <div>
+                  <Label>Nome completo *</Label>
+                  <Input
+                    value={managerForm.fullName}
+                    onChange={(e) => setManagerForm({ ...managerForm, fullName: e.target.value })}
+                    placeholder="Seu nome completo"
+                    className="mt-1 bg-secondary border-border"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>CPF</Label>
+                    <Input
+                      value={managerForm.cpf}
+                      onChange={(e) => setManagerForm({ ...managerForm, cpf: e.target.value })}
+                      placeholder="000.000.000-00"
+                      className="mt-1 bg-secondary border-border"
+                    />
+                  </div>
+                  <div>
+                    <Label>Telefone</Label>
+                    <Input
+                      value={managerForm.phone}
+                      onChange={(e) => setManagerForm({ ...managerForm, phone: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                      className="mt-1 bg-secondary border-border"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Região de atuação *</Label>
+                    <Select onValueChange={(v) => setManagerForm({ ...managerForm, region: v })}>
+                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REGIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Segmento *</Label>
+                    <Select onValueChange={(v) => setManagerForm({ ...managerForm, segment: v })}>
+                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SEGMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Tamanho da equipe atual</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={managerForm.teamSize}
+                    onChange={(e) => setManagerForm({ ...managerForm, teamSize: Number(e.target.value) })}
+                    placeholder="Quantos vendedores você gerencia hoje?"
+                    className="mt-1 bg-secondary border-border"
+                  />
+                </div>
+
+                <div>
+                  <Label>Bio / Apresentação</Label>
+                  <Textarea
+                    value={managerForm.bio}
+                    onChange={(e) => setManagerForm({ ...managerForm, bio: e.target.value })}
+                    placeholder="Descreva sua experiência como gerente, segmentos que atua, objetivos..."
+                    className="mt-1 bg-secondary border-border"
+                    rows={3}
+                  />
+                </div>
+
+                {lgpdBlock("lgpd-consent-manager")}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-500 text-white font-bold py-6 hover:bg-blue-600"
+                  disabled={completeManagerMutation.isPending || !lgpdConsent}
+                >
+                  {completeManagerMutation.isPending ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Criando perfil...</>
                   ) : (
                     <><CheckCircle className="w-4 h-4 mr-2" />Criar meu perfil</>
@@ -417,7 +687,7 @@ export default function Onboarding() {
 
                 <div>
                   <Label className="flex items-center gap-2">
-                    CNPJ
+                    CNPJ *
                     {cnpjVerified && (
                       <span className="flex items-center gap-1 text-xs text-green-500 font-medium">
                         <BadgeCheck className="w-3.5 h-3.5" /> Verificado
@@ -434,6 +704,7 @@ export default function Onboarding() {
                       }}
                       placeholder="00.000.000/0001-00"
                       className="bg-secondary border-border"
+                      required
                     />
                     <Button
                       type="button"
@@ -501,23 +772,7 @@ export default function Onboarding() {
                   />
                 </div>
 
-                {/* LGPD Consent */}
-                <div className="flex items-start gap-3 p-4 bg-muted/20 rounded-lg border border-border">
-                  <input
-                    type="checkbox"
-                    id="lgpd-consent-company"
-                    checked={lgpdConsent}
-                    onChange={(e) => setLgpdConsent(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-green-500 cursor-pointer shrink-0"
-                  />
-                  <label htmlFor="lgpd-consent-company" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
-                    Li e concordo com os{" "}
-                    <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Termos de Uso</a>{" "}
-                    e a{" "}
-                    <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-medium">Política de Privacidade</a>,
-                    incluindo o tratamento dos meus dados pessoais conforme a LGPD (Lei 13.709/2018).
-                  </label>
-                </div>
+                {lgpdBlock("lgpd-consent-company")}
 
                 <Button
                   type="submit"
