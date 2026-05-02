@@ -408,3 +408,7 @@
 ## Seção de Créditos na Landing Page
 - [x] Adicionar seção "Sistema de Créditos" na landing page explicando como funciona para Gerente
 - [x] Mostrar os 4 planos do Gerente na landing page com CTA para cadastro
+
+## Créditos para Empresa e Representante na Landing Page
+- [x] Adicionar sub-seção de créditos para Empresa (desbloqueio de contatos por crédito)
+- [x] Adicionar sub-seção de créditos para Representante (destaque/visibilidade por crédito)

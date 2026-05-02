@@ -881,10 +881,11 @@ export default function Home() {
 
           {/* Representantes */}
           <div className="mb-16">
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-3 mb-2">
               <Users className="w-5 h-5 text-primary" />
               <h3 className="text-xl font-bold text-foreground">Para Representantes</h3>
             </div>
+            <p className="text-muted-foreground text-sm mb-8 ml-8">Assine um plano mensal e apareça em destaque para empresas e gerentes — ou compre créditos avulsos para impulsionar seu perfil quando precisar.</p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {([
                 { name: "Free", monthly: 0, free: true, border: "border-border", bg: "bg-card", features: ["Perfil visível na base", "Candidaturas ilimitadas", "Chat com empresas", "Aparece no fim da lista"], cta: "Cadastrar agora", highlight: false },
@@ -934,6 +935,33 @@ export default function Home() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Rep — Créditos Avulsos */}
+            <div className="mt-10 p-6 rounded-2xl border border-primary/20 bg-primary/5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-bold text-foreground">Créditos Avulsos para Representantes</span>
+                  </div>
+                  <p className="text-muted-foreground text-sm">Não quer assinar? Compre créditos para impulsionar seu perfil, aparecer em destaque por períodos específicos ou desbloquear vagas premium.</p>
+                </div>
+                <div className="flex gap-3 flex-shrink-0">
+                  <div className="text-center px-5 py-3 rounded-xl border border-border bg-card">
+                    <div className="text-2xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$9,90</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">1 semana destaque</div>
+                  </div>
+                  <div className="text-center px-5 py-3 rounded-xl border border-primary/30 bg-primary/10">
+                    <div className="text-2xl font-black text-primary" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$24,90</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">1 mês destaque</div>
+                  </div>
+                  <div className="text-center px-5 py-3 rounded-xl border border-yellow-500/30 bg-yellow-900/10">
+                    <div className="text-2xl font-black text-yellow-400" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$59,90</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">3 meses destaque</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1043,6 +1071,33 @@ export default function Home() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Empresa — Créditos Avulsos */}
+            <div className="mt-10 p-6 rounded-2xl border border-primary/20 bg-primary/5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-bold text-foreground">Créditos Avulsos para Empresas</span>
+                  </div>
+                  <p className="text-muted-foreground text-sm">Precisa de mais desbloqueos este mês? Compre créditos extras sem mudar de plano — cada crédito libera o contato completo de 1 representante.</p>
+                </div>
+                <div className="flex gap-3 flex-shrink-0">
+                  <div className="text-center px-5 py-3 rounded-xl border border-border bg-card">
+                    <div className="text-2xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$19,90</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">5 créditos</div>
+                  </div>
+                  <div className="text-center px-5 py-3 rounded-xl border border-primary/30 bg-primary/10">
+                    <div className="text-2xl font-black text-primary" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$39,90</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">15 créditos</div>
+                  </div>
+                  <div className="text-center px-5 py-3 rounded-xl border border-yellow-500/30 bg-yellow-900/10">
+                    <div className="text-2xl font-black text-yellow-400" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$69,90</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">30 créditos</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
