@@ -320,6 +320,15 @@ export const appRouter = router({
         if (!company) throw new TRPCError({ code: "FORBIDDEN", message: "Crie seu perfil de empresa primeiro" });
         return listRepresentativesForCompany(company.id, input);
       }),
+
+    countAvailableNow: publicProcedure.query(async () => {
+      const db = await getDb();
+      const { sql: sqlFn } = await import("drizzle-orm");
+      const result = await db!.select({ count: sqlFn<number>`count(*)` })
+        .from(representatives)
+        .where(eq(representatives.availability, "imediata"));
+      return { count: Number(result[0]?.count ?? 0) };
+    }),
   }),
 
   // ─── Companies ──────────────────────────────────────────────────────────────

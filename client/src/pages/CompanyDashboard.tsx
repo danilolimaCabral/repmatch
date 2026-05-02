@@ -122,6 +122,7 @@ export default function CompanyDashboard() {
     { region: searchRegion, segment: searchSegment, tier: searchTier, page: searchPage, limit: 20, kycApproved: searchKycApproved || undefined, coreActive: searchCoreActive || undefined, availability: searchAvailability, sortBy: searchSortBy },
     { enabled: activeTab === "search" }
   );
+  const { data: availableNowData } = trpc.representatives.countAvailableNow.useQuery(undefined, { staleTime: 60_000 });
 
   const utils = trpc.useUtils();
 
@@ -888,10 +889,13 @@ export default function CompanyDashboard() {
                 </Select>
               </div>
               {!searchLoading && searchData && (
-                <div className="text-sm text-slate-500">
-                  <span className="font-bold text-slate-800">{searchData.total}</span> representantes encontrados
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                  <span><span className="font-bold text-slate-800">{searchData.total}</span> representantes encontrados</span>
                   {searchData.unlockedIds.length > 0 && (
-                    <span className="ml-2 text-emerald-600 font-medium">· {searchData.unlockedIds.length} contato{searchData.unlockedIds.length > 1 ? "s" : ""} desbloqueado{searchData.unlockedIds.length > 1 ? "s" : ""}</span>
+                    <span className="text-emerald-600 font-medium">· {searchData.unlockedIds.length} contato{searchData.unlockedIds.length > 1 ? "s" : ""} desbloqueado{searchData.unlockedIds.length > 1 ? "s" : ""}</span>
+                  )}
+                  {availableNowData && availableNowData.count > 0 && (
+                    <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">🟢 {availableNowData.count} disponíveis agora</span>
                   )}
                 </div>
               )}
@@ -921,6 +925,9 @@ export default function CompanyDashboard() {
                           <div className="min-w-0">
                             <div className="font-bold text-sm truncate text-slate-800">{isUnlocked ? rep.fullName : `${rep.fullName?.split(" ")[0]} ${rep.fullName?.split(" ").slice(1).map(() => "●").join("") ?? "●●"}`}</div>
                             <Badge className={`text-xs mt-0.5 border ${tierBadge}`}>{tierLabel}</Badge>
+                            {rep.availability === "imediata" && (
+                              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs mt-0.5">🟢 Disponível agora</Badge>
+                            )}
                           </div>
                         </div>
                         <div className="space-y-1.5 text-xs text-slate-500 mb-4">

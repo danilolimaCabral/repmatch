@@ -48,6 +48,30 @@ async function startServer() {
   // Stripe routes
   app.use("/api/stripe", stripeRouter);
 
+  // Scheduled task endpoint: availability reminder
+  app.post("/api/scheduled/availability-reminder", async (req, res) => {
+    try {
+      const { getDb } = await import("../db");
+      const { representatives } = await import("../../drizzle/schema");
+      const { sql } = await import("drizzle-orm");
+      const db = await getDb();
+      // Count reps who haven't updated availability in 30+ days
+      const result = await db!.select({ count: sql<number>`count(*)` })
+        .from(representatives)
+        .where(sql`updated_at < DATE_SUB(NOW(), INTERVAL 30 DAY) OR availability IS NULL`);
+      const count = Number(result[0]?.count ?? 0);
+      const { notifyOwner } = await import("../_core/notification");
+      await notifyOwner({
+        title: "\uD83D\uDCC5 Lembrete de Disponibilidade",
+        content: `${count} representantes n\u00e3o atualizam a disponibilidade h\u00e1 mais de 30 dias. Considere enviar um e-mail de lembrete.`,
+      });
+      res.json({ success: true, count });
+    } catch (err) {
+      console.error("[availability-reminder]", err);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",
