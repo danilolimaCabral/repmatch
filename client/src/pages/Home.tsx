@@ -937,6 +937,58 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Gerente Comercial — Sistema de Créditos */}
+          <div className="mb-16">
+            <div className="flex items-center gap-3 mb-2">
+              <UserCog className="w-5 h-5 text-blue-400" />
+              <h3 className="text-xl font-bold text-foreground">Para Gerentes Comerciais</h3>
+            </div>
+            <p className="text-muted-foreground text-sm mb-8 ml-8">Monte sua equipe de vendas por créditos — pague só pelos contatos que desbloquear.</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {([
+                { name: "Avulso", credits: 1, price: 29.90, border: "border-border", bg: "bg-card", features: ["1 crédito = 1 contato", "Sem mensalidade", "Válido por 30 dias", "Ideal para testar"], cta: "Comprar 1 crédito", highlight: false },
+                { name: "Starter", credits: 5, price: 99.90, border: "border-blue-500/40", bg: "bg-blue-500/5", features: ["5 créditos", "R$19,98 por contato", "Válido por 60 dias", "Economia de 33%"], cta: "Comprar Starter", highlight: false },
+                { name: "Pro", credits: 15, price: 249.90, border: "border-primary/40", bg: "bg-primary/5", features: ["15 créditos", "R$16,66 por contato", "Válido por 90 dias", "Economia de 44%", "Suporte prioritário"], cta: "Comprar Pro", highlight: true },
+                { name: "Ilimitado", credits: 999, price: 499.90, border: "border-yellow-500/40", bg: "bg-yellow-900/5", features: ["Créditos ilimitados/mês", "Sem limite de desbloqueos", "Renovação mensal", "Gerente de conta", "Relatórios de equipe"], cta: "Assinar Ilimitado", highlight: false },
+              ] as const).map(({ name, credits, price, border, bg, features, cta, highlight }) => (
+                <div key={name} className={`relative rounded-2xl border ${border} ${bg} p-7 ${highlight ? "shadow-lg" : ""}`}>
+                  {highlight && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                      <span className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full">MAIS POPULAR</span>
+                    </div>
+                  )}
+                  <div className="mb-7">
+                    <div className="text-muted-foreground text-sm font-semibold mb-2">{name}</div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-4xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R${price.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    <div className="text-xs text-blue-400 font-semibold mt-1">
+                      {credits === 999 ? "créditos ilimitados/mês" : `${credits} crédito${credits > 1 ? 's' : ''}`}
+                    </div>
+                  </div>
+                  <ul className="space-y-3 mb-8">
+                    {features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                        <CheckCircle className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => navigate("/register?type=manager")}
+                    className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                      highlight
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+                        : "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30"
+                    }`}
+                  >
+                    {cta}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Empresas */}
           <div>
             <div className="flex items-center gap-3 mb-8">

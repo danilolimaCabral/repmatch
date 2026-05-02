@@ -395,12 +395,16 @@
 - [ ] Admin: painel de validação de documentos (CORE, CNPJ, identidade)
 
 ## Planos e Créditos do Gerente Comercial
-- [ ] Criar produtos Stripe: avulso R$29,90, Pacote Starter (5 créditos R$99,90), Pacote Pro (15 créditos R$249,90), Pacote Ilimitado (R$499,90/mês)
-- [ ] Schema: tabela manager_credits (userId, credits, totalPurchased, stripeCustomerId)
-- [ ] Schema: tabela manager_unlocks (managerId, repId, unlockedAt)
-- [ ] Migração SQL aplicada
-- [ ] Procedures: getManagerCredits, purchaseCredits (checkout Stripe), unlockRepContact (consome 1 crédito)
-- [ ] Webhook Stripe: creditar manager após pagamento confirmado
-- [ ] Página /planos-gerente com 4 opções de compra
-- [ ] ManagerDashboard: mostrar saldo de créditos no sidebar
-- [ ] ManagerDashboard: botão "Desbloquear contato" consome 1 crédito ou redireciona para compra
+- [x] Criar produtos Stripe: avulso R$29,90, Pacote Starter (5 créditos R$99,90), Pacote Pro (15 créditos R$249,90), Pacote Ilimitado (R$499,90/mês)
+- [x] Schema: tabela manager_credits (userId, credits, totalPurchased, stripeCustomerId)
+- [x] Schema: tabela manager_unlocks (managerId, repId, unlockedAt)
+- [x] Migração SQL aplicada
+- [x] Procedures: getManagerCredits, purchaseCredits (checkout Stripe), unlockRepContact (consome 1 crédito)
+- [x] Webhook Stripe: creditar manager após pagamento confirmado
+- [x] Página /planos-gerente com 4 opções de compra
+- [x] ManagerDashboard: mostrar saldo de créditos no sidebar
+- [x] ManagerDashboard: botão "Desbloquear contato" consome 1 crédito ou redireciona para compra
+
+## Seção de Créditos na Landing Page
+- [x] Adicionar seção "Sistema de Créditos" na landing page explicando como funciona para Gerente
+- [x] Mostrar os 4 planos do Gerente na landing page com CTA para cadastro
