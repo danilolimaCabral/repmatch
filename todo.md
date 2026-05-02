@@ -374,3 +374,7 @@
 - [ ] Botão toggle dark/light no DashboardLayout (sidebar ou topbar)
 - [ ] Remover referências à Base CNPJ/Receita Federal de todas as páginas
 - [ ] Corrigir logo para fundo transparente
+
+## Banner Cookie/LGPD e Mobile
+- [ ] Remover banner CookieConsent (popup LGPD) do App.tsx
+- [ ] Adicionar aviso "Vire seu celular para ver melhor" para mobile em portrait

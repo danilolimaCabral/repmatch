@@ -22,7 +22,7 @@ import Perfil from "./pages/Perfil";
 import EsqueciSenha from "./pages/EsqueciSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import VerificarEmail from "./pages/VerificarEmail";
-import CookieConsent from "./components/CookieConsent";
+import RotateScreen from "./components/RotateScreen";
 
 function Router() {
   return (
@@ -75,7 +75,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
-          <CookieConsent />
+          <RotateScreen />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
