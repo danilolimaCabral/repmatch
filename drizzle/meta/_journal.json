@@ -78,6 +78,13 @@
       "when": 1777643826759,
       "tag": "0010_slow_daimon_hellstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1777681518763,
+      "tag": "0011_lethal_redwing",
+      "breakpoints": true
     }
   ]
 }

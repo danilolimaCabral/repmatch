@@ -338,3 +338,12 @@
 - [x] Frontend: página /redefinir-senha?token=... com formulário nova senha
 - [x] Frontend: banner de e-mail não verificado no dashboard
 - [x] Frontend: botão "Excluir minha conta" na página /perfil com modal de confirmação
+
+## Integração Base CNPJ (173.987 representantes)
+
+- [x] Schema: adicionar tabela cnpjRepresentatives no drizzle/schema.ts
+- [x] Backend: procedure pública `cnpjBase.search` com filtros (uf, cnae, porte, nome, página)
+- [x] Backend: procedure pública `cnpjBase.stats` para totais por UF/segmento
+- [x] Frontend: página /base-cnpj com busca, filtros e cards de 173.987 representantes
+- [x] Frontend CompanyDashboard (Buscar Representantes): banner com link para Base CNPJ
+- [x] Checkpoint e deploy

@@ -653,6 +653,17 @@ export default function CompanyDashboard() {
                   Base com <span className="font-bold text-foreground">9.677 representantes</span> ativos. Contatos desbloqueados aparecem com dados completos.
                 </p>
               </div>
+              {/* CNPJ Base Banner */}
+              <div className="mb-5 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">🏛️ Base Nacional da Receita Federal</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Acesse <strong className="text-emerald-400">173.987 representantes comerciais</strong> cadastrados no CNPJ — MEI, ME, EPP e mais.</p>
+                </div>
+                <a href="/base-cnpj" target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
+                  Ver Base CNPJ
+                </a>
+              </div>
+
               {/* Filters */}
               <div className="flex flex-wrap gap-3 mb-6">
                 <Select value={searchRegion ?? "all"} onValueChange={v => { setSearchRegion(v === "all" ? undefined : v); setSearchPage(1); }}>

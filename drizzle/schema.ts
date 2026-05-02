@@ -1,11 +1,15 @@
 import {
   boolean,
+  char,
+  date,
+  datetime,
   decimal,
   int,
   mysqlEnum,
   mysqlTable,
   text,
   timestamp,
+  tinyint,
   varchar,
 } from "drizzle-orm/mysql-core";
 
@@ -218,3 +222,26 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 });
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+// ─── CNPJ Representatives (Base Nacional da Receita Federal) ─────────────────
+export const cnpjRepresentatives = mysqlTable("cnpj_representatives", {
+  id: int("id").autoincrement().primaryKey(),
+  cnpj: varchar("cnpj", { length: 20 }).notNull().unique(),
+  razaoSocial: varchar("razao_social", { length: 255 }),
+  nomeFantasia: varchar("nome_fantasia", { length: 255 }),
+  porte: varchar("porte", { length: 50 }),
+  isMei: tinyint("is_mei").default(0),
+  cnaePrincipal: varchar("cnae_principal", { length: 10 }),
+  cnaeDescricao: varchar("cnae_descricao", { length: 255 }),
+  uf: char("uf", { length: 2 }),
+  municipio: varchar("municipio", { length: 100 }),
+  cep: varchar("cep", { length: 10 }),
+  logradouro: varchar("logradouro", { length: 255 }),
+  telefone: varchar("telefone", { length: 50 }),
+  email: varchar("email", { length: 255 }),
+  dataAbertura: date("data_abertura"),
+  dataSituacao: date("data_situacao"),
+  cnpjUpdatedAt: datetime("cnpj_updated_at"),
+  createdAt: datetime("created_at"),
+});
+export type CnpjRepresentative = typeof cnpjRepresentatives.$inferSelect;

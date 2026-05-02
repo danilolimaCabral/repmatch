@@ -1,0 +1,22 @@
+CREATE TABLE `cnpj_representatives` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`cnpj` varchar(20) NOT NULL,
+	`razao_social` varchar(255),
+	`nome_fantasia` varchar(255),
+	`porte` varchar(50),
+	`is_mei` tinyint DEFAULT 0,
+	`cnae_principal` varchar(10),
+	`cnae_descricao` varchar(255),
+	`uf` char(2),
+	`municipio` varchar(100),
+	`cep` varchar(10),
+	`logradouro` varchar(255),
+	`telefone` varchar(50),
+	`email` varchar(255),
+	`data_abertura` date,
+	`data_situacao` date,
+	`cnpj_updated_at` datetime,
+	`createdAt` timestamp DEFAULT (now()),
+	CONSTRAINT `cnpj_representatives_id` PRIMARY KEY(`id`),
+	CONSTRAINT `cnpj_representatives_cnpj_unique` UNIQUE(`cnpj`)
+);

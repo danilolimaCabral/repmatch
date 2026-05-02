@@ -40,7 +40,7 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { consentLogs, dataDeletionRequests, representatives } from "../drizzle/schema";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
@@ -1002,6 +1002,69 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           .where(eq(representatives.id, input.representativeId));
         return { success: true };
       }),
+  }),
+
+  // ─── CNPJ Base Nacional ───────────────────────────────────────────────────────
+  cnpjBase: router({
+    search: publicProcedure
+      .input(z.object({
+        query: z.string().optional(),
+        uf: z.string().optional(),
+        cnae: z.string().optional(),
+        porte: z.string().optional(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(50).default(20),
+      }).optional())
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+        const { sql, like, and, or } = await import("drizzle-orm");
+        const page = input?.page ?? 1;
+        const limit = input?.limit ?? 20;
+        const offset = (page - 1) * limit;
+        const conditions: ReturnType<typeof like>[] = [];
+        if (input?.query) {
+          const q = `%${input.query}%`;
+          conditions.push(or(
+            like(cnpjRepresentatives.razaoSocial, q),
+            like(cnpjRepresentatives.nomeFantasia, q),
+            like(cnpjRepresentatives.cnpj, q),
+            like(cnpjRepresentatives.municipio, q),
+          ) as ReturnType<typeof like>);
+        }
+        if (input?.uf) conditions.push(eq(cnpjRepresentatives.uf, input.uf) as ReturnType<typeof like>);
+        if (input?.cnae) conditions.push(eq(cnpjRepresentatives.cnaePrincipal, input.cnae) as ReturnType<typeof like>);
+        if (input?.porte) conditions.push(eq(cnpjRepresentatives.porte, input.porte) as ReturnType<typeof like>);
+        const where = conditions.length > 0 ? and(...conditions) : undefined;
+        const [rows, countRows] = await Promise.all([
+          db.select().from(cnpjRepresentatives).where(where).limit(limit).offset(offset),
+          db.select({ count: sql<number>`count(*)` }).from(cnpjRepresentatives).where(where),
+        ]);
+        return {
+          items: rows,
+          total: Number(countRows[0]?.count ?? 0),
+          page,
+          limit,
+          totalPages: Math.ceil(Number(countRows[0]?.count ?? 0) / limit),
+        };
+      }),
+    stats: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const { sql } = await import("drizzle-orm");
+      const [totalRows, byUf, byCnae, byPorte] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(cnpjRepresentatives),
+        db.select({ uf: cnpjRepresentatives.uf, count: sql<number>`count(*)` }).from(cnpjRepresentatives).groupBy(cnpjRepresentatives.uf).orderBy(sql`count(*) desc`).limit(30),
+        db.select({ cnae: cnpjRepresentatives.cnaePrincipal, descricao: cnpjRepresentatives.cnaeDescricao, count: sql<number>`count(*)` }).from(cnpjRepresentatives).groupBy(cnpjRepresentatives.cnaePrincipal, cnpjRepresentatives.cnaeDescricao).orderBy(sql`count(*) desc`),
+        db.select({ porte: cnpjRepresentatives.porte, count: sql<number>`count(*)` }).from(cnpjRepresentatives).groupBy(cnpjRepresentatives.porte).orderBy(sql`count(*) desc`),
+      ]);
+      return {
+        total: Number(totalRows[0]?.count ?? 0),
+        byUf: byUf.map(r => ({ uf: r.uf, count: Number(r.count) })),
+        byCnae: byCnae.map(r => ({ cnae: r.cnae, descricao: r.descricao, count: Number(r.count) })),
+        byPorte: byPorte.map(r => ({ porte: r.porte, count: Number(r.count) })),
+      };
+    }),
   }),
 
   // ─── LGPD / Privacidade ─────────────────────────────────────────────────────
