@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -6,15 +5,23 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { trpc } from "@/lib/trpc";
 import {
   Briefcase, Building2, Users, LogOut, Plus, MapPin, DollarSign,
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
-  ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil, Shield
+  ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil, Shield,
+  BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from "recharts";
 
 const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
 
@@ -31,25 +38,27 @@ const SEGMENTS = [
 ];
 
 const RANK_CONFIG = {
-  bronze: { label: "Bronze", color: "text-amber-600", bg: "bg-amber-900/20", border: "border-amber-700/40" },
-  silver: { label: "Silver", color: "text-muted-foreground", bg: "bg-secondary", border: "border-border" },
-  gold: { label: "Gold", color: "text-yellow-400", bg: "bg-yellow-900/20", border: "border-yellow-600/40" },
-  platinum: { label: "Platinum", color: "text-foreground", bg: "bg-secondary", border: "border-border" },
+  bronze: { label: "Bronze", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200" },
+  silver: { label: "Silver", color: "text-slate-500", bg: "bg-slate-50", border: "border-slate-200" },
+  gold: { label: "Gold", color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
+  platinum: { label: "Platinum", color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-200" },
 };
 
 const TIER_CONFIG = {
-  starter: { label: "Starter", color: "bg-secondary text-muted-foreground" },
-  pro: { label: "Pro", color: "bg-primary/15 text-primary" },
-  enterprise: { label: "Enterprise", color: "bg-amber-500/15 text-amber-400" },
+  starter: { label: "Starter", color: "bg-slate-100 text-slate-600" },
+  pro: { label: "Pro", color: "bg-emerald-100 text-emerald-700" },
+  enterprise: { label: "Enterprise", color: "bg-amber-100 text-amber-700" },
 };
 
 const STATUS_CONFIG = {
-  pending: { label: "Aguardando", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
-  viewed: { label: "Visualizado", color: "bg-blue-500/20 text-blue-400", icon: Eye },
-  accepted: { label: "Aceito", color: "bg-green-500/20 text-green-400", icon: CheckCircle },
-  rejected: { label: "Recusado", color: "bg-red-500/20 text-red-400", icon: XCircle },
-  hired: { label: "Contratado", color: "bg-primary/20 text-primary", icon: Star },
+  pending: { label: "Aguardando", color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock },
+  viewed: { label: "Visualizado", color: "bg-blue-100 text-blue-700 border-blue-200", icon: Eye },
+  accepted: { label: "Aceito", color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle },
+  rejected: { label: "Recusado", color: "bg-red-100 text-red-700 border-red-200", icon: XCircle },
+  hired: { label: "Contratado", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: Star },
 };
+
+const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
 async function startCheckout(productKey: string, userId: number, userEmail: string, userName: string, extraData?: { jobId?: number; repId?: number }) {
   try {
@@ -69,7 +78,7 @@ async function startCheckout(productKey: string, userId: number, userEmail: stri
 export default function CompanyDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile" | "search">("jobs");
+  const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search">("overview");
   const [searchPage, setSearchPage] = useState(1);
   const [searchRegion, setSearchRegion] = useState<string | undefined>(undefined);
   const [searchSegment, setSearchSegment] = useState<string | undefined>(undefined);
@@ -85,7 +94,6 @@ export default function CompanyDashboard() {
   const [previewRegion, setPreviewRegion] = useState<string | undefined>(undefined);
   const [previewSegment, setPreviewSegment] = useState<string | undefined>(undefined);
 
-  // Profile edit state
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileEditForm, setProfileEditForm] = useState({ companyName: "", cnpj: "", segment: "", region: "", phone: "", description: "" });
   const [cnpjLookup, setCnpjLookup] = useState("");
@@ -181,7 +189,6 @@ export default function CompanyDashboard() {
     onError: (e) => toast.error(e.message),
   });
 
-  // Handle Stripe payment success redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get("payment");
@@ -207,29 +214,49 @@ export default function CompanyDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // MUST be before any conditional returns to comply with Rules of Hooks
   useEffect(() => {
     if (!profileLoading && !profile) {
       navigate("/onboarding");
     }
   }, [profileLoading, profile, navigate]);
 
+  // Computed chart data
+  const jobStatusData = useMemo(() => {
+    if (!myJobs) return [];
+    const counts: Record<string, number> = { Aberta: 0, Pausada: 0, Fechada: 0 };
+    myJobs.forEach(j => {
+      if (j.status === "open") counts["Aberta"]++;
+      else if (j.status === "paused") counts["Pausada"]++;
+      else counts["Fechada"]++;
+    });
+    return Object.entries(counts).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
+  }, [myJobs]);
+
+  const jobSegmentData = useMemo(() => {
+    if (!myJobs) return [];
+    const counts: Record<string, number> = {};
+    myJobs.forEach(j => { if (j.segment) counts[j.segment] = (counts[j.segment] ?? 0) + 1; });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name: name.split(" ")[0], value }));
+  }, [myJobs]);
+
   if (profileLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
       </div>
     );
   }
 
-  if (!profile) {
-    return null;
-  }
+  if (!profile) return null;
 
   const rank = profile.dynamicRank as keyof typeof RANK_CONFIG;
   const rankConfig = RANK_CONFIG[rank] ?? RANK_CONFIG.bronze;
   const tier = profile.subscriptionTier as keyof typeof TIER_CONFIG;
   const tierConfig = TIER_CONFIG[tier] ?? TIER_CONFIG.starter;
+
+  const activeJobs = myJobs?.filter(j => j.status === "open").length ?? 0;
+  const totalJobs = myJobs?.length ?? 0;
+  const featuredJobs = myJobs?.filter(j => j.isFeatured).length ?? 0;
 
   const handleCreateJob = (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,860 +267,868 @@ export default function CompanyDashboard() {
     });
   };
 
+  const navItems = [
+    { id: "overview", label: "Visão Geral", icon: BarChart3 },
+    { id: "jobs", label: "Minhas Vagas", icon: Briefcase },
+    { id: "applications", label: "Candidaturas", icon: Users },
+    { id: "search", label: "Buscar Representantes", icon: Eye },
+    { id: "profile", label: "Perfil da Empresa", icon: Building2 },
+  ];
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="flex h-screen">
-        {/* Sidebar */}
-        <aside className="w-64 border-r border-border bg-card flex flex-col">
-          <div className="p-6 border-b border-border">
-            <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-4" />
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                {profile.companyName.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="font-semibold text-sm truncate">{profile.companyName}</div>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <Badge className={`text-xs ${tierConfig.color}`}>{tierConfig.label}</Badge>
-                  <span className={`text-xs font-bold ${rankConfig.color}`}>{rankConfig.label}</span>
-                </div>
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
+      {/* ─── Sidebar ─────────────────────────────────────────────────────── */}
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm shrink-0">
+        <div className="p-5 border-b border-slate-100">
+          <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-4" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+              {profile.companyName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="font-semibold text-sm truncate text-slate-800">{profile.companyName}</div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${tierConfig.color}`}>{tierConfig.label}</span>
+                <span className={`text-xs font-bold ${rankConfig.color}`}>{rankConfig.label}</span>
               </div>
             </div>
           </div>
+        </div>
 
-          <nav className="flex-1 p-4 space-y-1">
-            {[
-              { id: "jobs", label: "Minhas Vagas", icon: Briefcase },
-              { id: "applications", label: "Candidaturas", icon: Users },
-              { id: "search", label: "Buscar Representantes", icon: Eye },
-              { id: "profile", label: "Perfil da Empresa", icon: Building2 },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id as typeof activeTab)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === item.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </button>
-            ))}
-          </nav>
-
-          <div className="p-4 border-t border-border">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="w-full text-muted-foreground hover:text-foreground"
-              onClick={() => { logout(); navigate("/"); }}
+        <nav className="flex-1 p-3 space-y-0.5">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as typeof activeTab)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === item.id
+                  ? "bg-emerald-50 text-emerald-700 shadow-sm"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+              }`}
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </Button>
-          </div>
-        </aside>
+              <item.icon className={`w-4 h-4 ${activeTab === item.id ? "text-emerald-600" : ""}`} />
+              {item.label}
+            </button>
+          ))}
+        </nav>
 
-        {/* Main */}
-        <main className="flex-1 overflow-auto">
-          {/* ─── Jobs Tab ─────────────────────────────────────────────────── */}
-          {activeTab === "jobs" && (
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-black">Minhas Vagas</h1>
-                  <p className="text-muted-foreground text-sm mt-1">Gerencie suas vagas e visualize candidatos</p>
-                </div>
-                <Dialog open={createJobOpen} onOpenChange={setCreateJobOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-primary text-primary-foreground font-bold">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nova Vaga
+        <div className="p-3 border-t border-slate-100">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="w-full text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+            onClick={() => { logout(); navigate("/"); }}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sair
+          </Button>
+        </div>
+      </aside>
+
+      {/* ─── Main ────────────────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-auto">
+
+        {/* ─── Overview Tab ─────────────────────────────────────────────── */}
+        {activeTab === "overview" && (
+          <div className="p-8">
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-slate-800">Visão Geral</h1>
+              <p className="text-slate-500 text-sm mt-1">Acompanhe o desempenho das suas vagas e candidaturas</p>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+              {[
+                {
+                  label: "Vagas Ativas",
+                  value: activeJobs,
+                  icon: Briefcase,
+                  color: "text-emerald-600",
+                  bg: "bg-emerald-50",
+                  sub: `${totalJobs} total`,
+                },
+                {
+                  label: "Em Destaque",
+                  value: featuredJobs,
+                  icon: Star,
+                  color: "text-amber-600",
+                  bg: "bg-amber-50",
+                  sub: "vagas destacadas",
+                },
+                {
+                  label: "Segmento",
+                  value: profile.segment ?? "—",
+                  icon: Target,
+                  color: "text-blue-600",
+                  bg: "bg-blue-50",
+                  sub: profile.region ?? "Brasil",
+                  isText: true,
+                },
+                {
+                  label: "Plano",
+                  value: tierConfig.label,
+                  icon: Zap,
+                  color: "text-violet-600",
+                  bg: "bg-violet-50",
+                  sub: rankConfig.label,
+                  isText: true,
+                },
+              ].map((kpi) => (
+                <Card key={kpi.label} className="border-slate-200 shadow-sm bg-white">
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-slate-500">{kpi.label}</span>
+                      <div className={`w-9 h-9 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+                        <kpi.icon className={`w-4.5 h-4.5 ${kpi.color}`} />
+                      </div>
+                    </div>
+                    <div className={`text-2xl font-bold ${kpi.isText ? "text-slate-800 text-lg" : "text-slate-900"}`}>
+                      {kpi.value}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">{kpi.sub}</div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid lg:grid-cols-2 gap-6 mb-8">
+              {/* Job Status Pie */}
+              <Card className="border-slate-200 shadow-sm bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-semibold text-slate-700">Status das Vagas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {jobStatusData.length === 0 ? (
+                    <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
+                      <Briefcase className="w-8 h-8 mr-2 opacity-30" />
+                      Nenhuma vaga publicada ainda
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={jobStatusData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={80}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {jobStatusData.map((_, index) => (
+                            <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(v) => [`${v} vaga(s)`, ""]} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Vagas por Segmento Bar */}
+              <Card className="border-slate-200 shadow-sm bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-semibold text-slate-700">Vagas por Segmento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {jobSegmentData.length === 0 ? (
+                    <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
+                      <BarChart3 className="w-8 h-8 mr-2 opacity-30" />
+                      Publique vagas com segmento para ver o gráfico
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={jobSegmentData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                        <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} allowDecimals={false} />
+                        <Tooltip formatter={(v) => [`${v} vaga(s)`, "Vagas"]} />
+                        <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Jobs */}
+            <Card className="border-slate-200 shadow-sm bg-white">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-base font-semibold text-slate-700">Vagas Recentes</CardTitle>
+                <Button size="sm" variant="ghost" className="text-emerald-600 hover:text-emerald-700 text-xs" onClick={() => setActiveTab("jobs")}>
+                  Ver todas <ChevronRight className="w-3 h-3 ml-1" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {jobsLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-emerald-600" /></div>
+                ) : !myJobs?.length ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">
+                    <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    Nenhuma vaga publicada ainda.
+                    <Button size="sm" className="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white block mx-auto" onClick={() => setActiveTab("jobs")}>
+                      <Plus className="w-3 h-3 mr-1" />Publicar primeira vaga
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-card border-border max-w-lg">
-                    <DialogHeader>
-                      <DialogTitle className="text-foreground">Publicar nova vaga</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleCreateJob} className="space-y-4 mt-2">
-                      <div>
-                        <Label>Título da vaga *</Label>
-                        <Input
-                          value={jobForm.title}
-                          onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
-                          placeholder="Ex: Representante Comercial SP - Alimentos"
-                          className="mt-1 bg-secondary border-border"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>Descrição</Label>
-                        <Textarea
-                          value={jobForm.description}
-                          onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
-                          placeholder="Descreva a vaga, produtos, metas, benefícios..."
-                          className="mt-1 bg-secondary border-border"
-                          rows={3}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {myJobs.slice(0, 3).map((job) => (
+                      <div key={job.id} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
                         <div>
-                          <Label>Comissão (%)</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={jobForm.commissionPercentage}
-                            onChange={(e) => setJobForm({ ...jobForm, commissionPercentage: e.target.value })}
-                            placeholder="Ex: 5"
-                            className="mt-1 bg-secondary border-border"
-                          />
+                          <div className="font-medium text-sm text-slate-800">{job.title}</div>
+                          <div className="text-xs text-slate-400 mt-0.5">{job.region ?? "Brasil"} · {job.segment ?? "Geral"}</div>
                         </div>
-                        <div>
-                          <Label>Acesso mínimo</Label>
-                          <Select
-                            value={jobForm.minTierRequired}
-                            onValueChange={(v) => setJobForm({ ...jobForm, minTierRequired: v as "bronze" | "prata" | "ouro" })}
-                          >
-                            <SelectTrigger className="mt-1 bg-secondary border-border">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="bronze">Bronze+ (R$9,99)</SelectItem>
-                              <SelectItem value="prata">Prata+ (R$19,90)</SelectItem>
-                              <SelectItem value="ouro">Ouro apenas (R$29,90)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <Badge className={
+                          job.status === "open" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                          job.status === "paused" ? "bg-yellow-100 text-yellow-700 border-yellow-200" :
+                          "bg-slate-100 text-slate-600 border-slate-200"
+                        }>
+                          {job.status === "open" ? "Aberta" : job.status === "paused" ? "Pausada" : "Fechada"}
+                        </Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label>Região</Label>
-                          <Select onValueChange={(v) => setJobForm({ ...jobForm, region: v })}>
-                            <SelectTrigger className="mt-1 bg-secondary border-border">
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {REGIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label>Segmento</Label>
-                          <Select onValueChange={(v) => setJobForm({ ...jobForm, segment: v })}>
-                            <SelectTrigger className="mt-1 bg-secondary border-border">
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {SEGMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <Button
-                        type="submit"
-                        className="w-full bg-primary text-primary-foreground font-bold"
-                        disabled={createJobMutation.isPending}
-                      >
-                        {createJobMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                        Publicar Vaga
-                      </Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-              {jobsLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
-              ) : myJobs?.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">
-                  <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p className="mb-4">Você ainda não publicou nenhuma vaga.</p>
-                  <Button className="bg-primary text-primary-foreground" onClick={() => setCreateJobOpen(true)}>
+        {/* ─── Jobs Tab ─────────────────────────────────────────────────── */}
+        {activeTab === "jobs" && (
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800">Minhas Vagas</h1>
+                <p className="text-slate-500 text-sm mt-1">Gerencie suas vagas e visualize candidatos</p>
+              </div>
+              <Dialog open={createJobOpen} onOpenChange={setCreateJobOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm">
                     <Plus className="w-4 h-4 mr-2" />
-                    Publicar primeira vaga
+                    Nova Vaga
                   </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {myJobs?.map((job) => (
-                    <div key={job.id} className="rounded-xl border border-border bg-card p-6">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className={job.status === "open" ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}>
-                              {job.status === "open" ? "Aberta" : job.status === "paused" ? "Pausada" : "Fechada"}
-                            </Badge>
-                            {job.isFeatured && (
-                              <Badge className="bg-yellow-500/20 text-yellow-400">
-                                <Star className="w-3 h-3 mr-1" />Destaque
-                              </Badge>
-                            )}
-                          </div>
-                          <h3 className="font-bold text-lg">{job.title}</h3>
-                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                            {job.region && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.region}</span>}
-                            {job.commissionPercentage && <span className="text-primary font-semibold">{job.commissionPercentage}% comissão</span>}
-                            {job.segment && <span>{job.segment}</span>}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-border"
-                            onClick={() => { setSelectedJobId(job.id); setActiveTab("applications"); }}
-                          >
-                            <Users className="w-3.5 h-3.5 mr-1" />
-                            Candidatos
-                          </Button>
-                          {job.status === "open" ? (
-                            <Button size="sm" variant="outline" className="border-yellow-700/50 text-yellow-400 hover:bg-yellow-900/20"
-                              onClick={() => updateJobMutation.mutate({ id: job.id, status: "paused" })} disabled={updateJobMutation.isPending}>
-                              Pausar
-                            </Button>
-                          ) : job.status === "paused" ? (
-                            <Button size="sm" variant="outline" className="border-green-700/50 text-green-400 hover:bg-green-900/20"
-                              onClick={() => updateJobMutation.mutate({ id: job.id, status: "open" })} disabled={updateJobMutation.isPending}>
-                              Reabrir
-                            </Button>
-                          ) : null}
-                          {job.status !== "closed" && (
-                            <Button size="sm" variant="outline" className="border-red-700/50 text-red-400 hover:bg-red-900/20"
-                              onClick={() => updateJobMutation.mutate({ id: job.id, status: "closed" })} disabled={updateJobMutation.isPending}>
-                              Fechar
-                            </Button>
-                          )}
-                        </div>
+                </DialogTrigger>
+                <DialogContent className="bg-white border-slate-200 max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="text-slate-800">Publicar nova vaga</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateJob} className="space-y-4 mt-2">
+                    <div>
+                      <Label className="text-slate-700">Título da vaga *</Label>
+                      <Input
+                        value={jobForm.title}
+                        onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
+                        placeholder="Ex: Representante Comercial SP - Alimentos"
+                        className="mt-1 border-slate-200 bg-white focus:border-emerald-400"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Descrição</Label>
+                      <Textarea
+                        value={jobForm.description}
+                        onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                        placeholder="Descreva a vaga, produtos, metas, benefícios..."
+                        className="mt-1 border-slate-200 bg-white"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-slate-700">Comissão (%)</Label>
+                        <Input
+                          type="number" min={0} max={100}
+                          value={jobForm.commissionPercentage}
+                          onChange={(e) => setJobForm({ ...jobForm, commissionPercentage: e.target.value })}
+                          placeholder="Ex: 5"
+                          className="mt-1 border-slate-200 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-slate-700">Acesso mínimo</Label>
+                        <Select
+                          value={jobForm.minTierRequired}
+                          onValueChange={(v) => setJobForm({ ...jobForm, minTierRequired: v as "bronze" | "prata" | "ouro" })}
+                        >
+                          <SelectTrigger className="mt-1 border-slate-200 bg-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bronze">Bronze+ (R$9,99)</SelectItem>
+                            <SelectItem value="prata">Prata+ (R$19,90)</SelectItem>
+                            <SelectItem value="ouro">Ouro apenas (R$29,90)</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ─── Applications Tab ─────────────────────────────────────────── */}
-          {activeTab === "applications" && (
-            <div className="p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <h1 className="text-2xl font-black">Candidaturas</h1>
-                {myJobs && myJobs.length > 0 && (
-                  <Select
-                    value={selectedJobId?.toString() ?? ""}
-                    onValueChange={(v) => setSelectedJobId(Number(v))}
-                  >
-                    <SelectTrigger className="w-64 bg-secondary border-border">
-                      <SelectValue placeholder="Selecione uma vaga" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {myJobs.map((j) => (
-                        <SelectItem key={j.id} value={j.id.toString()}>{j.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-
-              {!selectedJobId ? (
-                <div className="text-center py-16 text-muted-foreground">
-                  <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p>Selecione uma vaga para ver as candidaturas.</p>
-                </div>
-              ) : appsLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
-              ) : (
-                <div className="grid lg:grid-cols-2 gap-6">
-                  {/* Applications List */}
-                  <div>
-                    <h2 className="font-bold mb-4 text-muted-foreground text-sm uppercase tracking-wide">Candidatos ({jobApplications?.length ?? 0})</h2>
-                    <div className="space-y-3">
-                      {jobApplications?.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground text-sm">Nenhuma candidatura ainda.</div>
-                      ) : jobApplications?.map(({ application, rep }) => {
-                        const status = STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
-                        const StatusIcon = status.icon;
-                        return (
-                          <div key={application.id} className="rounded-xl border border-border bg-card p-4">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <div className="font-semibold">{rep.fullName}</div>
-                                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                                  {rep.region && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{rep.region}</span>}
-                                  {rep.segment && <span>{rep.segment}</span>}
-                                  {rep.experienceYears && <span>{rep.experienceYears}a exp.</span>}
-                                </div>
-                                {application.llmAnalysis && (
-                                  <p className="text-xs text-muted-foreground mt-1.5 italic">"{application.llmAnalysis}"</p>
-                                )}
-                              </div>
-                              <div className="text-right ml-3">
-                                <div className="text-primary font-black text-xl">{application.totalScore}</div>
-                                <div className="text-xs text-muted-foreground">score</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                              <Badge className={status.color}>
-                                <StatusIcon className="w-3 h-3 mr-1" />
-                                {status.label}
-                              </Badge>
-                              <div className="flex gap-2 flex-wrap">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-green-700 text-green-400 hover:bg-green-900/20 text-xs"
-                                  onClick={() => updateStatusMutation.mutate({ id: application.id, status: "accepted" })}
-                                >
-                                  Aceitar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-red-700 text-red-400 hover:bg-red-900/20 text-xs"
-                                  onClick={() => updateStatusMutation.mutate({ id: application.id, status: "rejected" })}
-                                >
-                                  Recusar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-primary/40 text-primary hover:bg-primary/10 text-xs"
-                                  onClick={() => { setOpenChatId(openChatId === application.id ? null : application.id); setChatInput(""); }}
-                                >
-                                  {openChatId === application.id ? "Fechar Chat" : "Chat"}
-                                </Button>
-                              </div>
-                            </div>
-                            {openChatId === application.id && (
-                              <div className="mt-3 pt-3 border-t border-border">
-                                <div className="h-40 overflow-y-auto space-y-2 mb-2 pr-1">
-                                  {!chatMessages?.length && (
-                                    <div className="text-xs text-muted-foreground text-center py-4">Nenhuma mensagem ainda. Inicie a conversa!</div>
-                                  )}
-                                  {chatMessages?.map((msg) => (
-                                    <div key={msg.id} className={`flex ${msg.senderUserId === user?.id ? "justify-end" : "justify-start"}`}>
-                                      <div className={`max-w-[80%] rounded-lg px-3 py-1.5 text-xs ${msg.senderUserId === user?.id ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
-                                        {msg.content}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                                <div className="flex gap-2">
-                                  <input
-                                    className="flex-1 text-xs rounded-lg border border-border bg-secondary px-3 py-1.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                                    placeholder="Digite uma mensagem..."
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    onKeyDown={(e) => { if (e.key === "Enter" && chatInput.trim()) sendMessageMutation.mutate({ applicationId: application.id, content: chatInput.trim() }); }}
-                                  />
-                                  <Button
-                                    size="sm"
-                                    className="bg-primary text-primary-foreground text-xs px-3"
-                                    disabled={!chatInput.trim() || sendMessageMutation.isPending}
-                                    onClick={() => sendMessageMutation.mutate({ applicationId: application.id, content: chatInput.trim() })}
-                                  >
-                                    Enviar
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-slate-700">Região</Label>
+                        <Select onValueChange={(v) => setJobForm({ ...jobForm, region: v })}>
+                          <SelectTrigger className="mt-1 border-slate-200 bg-white"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>{REGIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-slate-700">Segmento</Label>
+                        <Select onValueChange={(v) => setJobForm({ ...jobForm, segment: v })}>
+                          <SelectTrigger className="mt-1 border-slate-200 bg-white"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>{SEGMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </div>
+                    <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold" disabled={createJobMutation.isPending}>
+                      {createJobMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                      Publicar Vaga
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
 
-                  {/* Top Matches */}
-                  <div>
-                    <h2 className="font-bold mb-4 text-muted-foreground text-sm uppercase tracking-wide">
-                      Top Matches por IA
-                    </h2>
-                    <div className="space-y-3">
-                      {topMatches?.map(({ rep, score }, i) => (
-                        <div key={rep.id} className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                            {i + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-sm">{rep.fullName}</div>
-                            <div className="text-xs text-muted-foreground">{rep.region} · {rep.segment}</div>
-                          </div>
-                          <div className="flex flex-col items-end gap-1.5">
-                            <div className="text-primary font-black">{score}/100</div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-primary/40 text-primary hover:bg-primary/10 text-xs h-7 px-2"
-                              onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}
-                            >
-                              Desbloquear R$29
-                            </Button>
-                          </div>
+            {jobsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+              </div>
+            ) : myJobs?.length === 0 ? (
+              <div className="text-center py-16 text-slate-400">
+                <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                <p className="mb-4 text-slate-500">Você ainda não publicou nenhuma vaga.</p>
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setCreateJobOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />Publicar primeira vaga
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myJobs?.map((job) => (
+                  <div key={job.id} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Badge className={job.status === "open" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : job.status === "paused" ? "bg-yellow-100 text-yellow-700 border-yellow-200" : "bg-slate-100 text-slate-500 border-slate-200"}>
+                            {job.status === "open" ? "Aberta" : job.status === "paused" ? "Pausada" : "Fechada"}
+                          </Badge>
+                          {job.isFeatured && (
+                            <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                              <Star className="w-3 h-3 mr-1 fill-amber-500" />Destaque
+                            </Badge>
+                          )}
                         </div>
-                      ))}
+                        <h3 className="font-bold text-lg text-slate-800">{job.title}</h3>
+                        <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
+                          {job.region && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.region}</span>}
+                          {job.commissionPercentage && <span className="text-emerald-600 font-semibold">{job.commissionPercentage}% comissão</span>}
+                          {job.segment && <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs">{job.segment}</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap justify-end">
+                        <Button size="sm" variant="outline" className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                          onClick={() => { setSelectedJobId(job.id); setActiveTab("applications"); }}>
+                          <Users className="w-3.5 h-3.5 mr-1" />Candidatos
+                        </Button>
+                        {job.status === "open" ? (
+                          <Button size="sm" variant="outline" className="border-yellow-200 text-yellow-700 hover:bg-yellow-50"
+                            onClick={() => updateJobMutation.mutate({ id: job.id, status: "paused" })} disabled={updateJobMutation.isPending}>
+                            Pausar
+                          </Button>
+                        ) : job.status === "paused" ? (
+                          <Button size="sm" variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                            onClick={() => updateJobMutation.mutate({ id: job.id, status: "open" })} disabled={updateJobMutation.isPending}>
+                            Reabrir
+                          </Button>
+                        ) : null}
+                        {job.status !== "closed" && (
+                          <Button size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50"
+                            onClick={() => updateJobMutation.mutate({ id: job.id, status: "closed" })} disabled={updateJobMutation.isPending}>
+                            Fechar
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── Applications Tab ─────────────────────────────────────────── */}
+        {activeTab === "applications" && (
+          <div className="p-8">
+            <div className="flex items-center gap-4 mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800">Candidaturas</h1>
+                <p className="text-slate-500 text-sm mt-1">Gerencie os candidatos às suas vagas</p>
+              </div>
+              {myJobs && myJobs.length > 0 && (
+                <Select
+                  value={selectedJobId?.toString() ?? ""}
+                  onValueChange={(v) => setSelectedJobId(Number(v))}
+                >
+                  <SelectTrigger className="w-64 border-slate-200 bg-white ml-auto">
+                    <SelectValue placeholder="Selecione uma vaga" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {myJobs.map((j) => (
+                      <SelectItem key={j.id} value={j.id.toString()}>{j.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
-          )}
 
-          {/* ─── Search Tab ─────────────────────────────────────────────── */}
-          {activeTab === "search" && (
-            <div className="p-8">
-              <div className="mb-6">
-                <h1 className="text-2xl font-black mb-2">Buscar Representantes</h1>
-                <p className="text-muted-foreground text-sm">
-                  Base com <span className="font-bold text-foreground">9.677 representantes</span> ativos. Contatos desbloqueados aparecem com dados completos.
-                </p>
+            {!selectedJobId ? (
+              <div className="text-center py-16 text-slate-400">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                <p className="text-slate-500">Selecione uma vaga para ver as candidaturas.</p>
               </div>
-              {/* CNPJ Base Banner */}
-              <div className="mb-5 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex items-center justify-between gap-4">
+            ) : appsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+              </div>
+            ) : (
+              <div className="grid lg:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">🏛️ Base Nacional da Receita Federal</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Acesse <strong className="text-emerald-400">173.987 representantes comerciais</strong> cadastrados no CNPJ — MEI, ME, EPP e mais.</p>
-                </div>
-                <a href="/base-cnpj" target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
-                  Ver Base CNPJ
-                </a>
-              </div>
-
-              {/* Filters */}
-              <div className="flex flex-wrap gap-3 mb-6">
-                <Select value={searchRegion ?? "all"} onValueChange={v => { setSearchRegion(v === "all" ? undefined : v); setSearchPage(1); }}>
-                  <SelectTrigger className="w-52">
-                    <SelectValue placeholder="Todas as regiões" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as regiões</SelectItem>
-                    {REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={searchSegment ?? "all"} onValueChange={v => { setSearchSegment(v === "all" ? undefined : v); setSearchPage(1); }}>
-                  <SelectTrigger className="w-52">
-                    <SelectValue placeholder="Todos os segmentos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os segmentos</SelectItem>
-                    {SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={searchTier ?? "all"} onValueChange={v => { setSearchTier(v === "all" ? undefined : v as "bronze" | "prata" | "ouro"); setSearchPage(1); }}>
-                  <SelectTrigger className="w-44">
-                    <SelectValue placeholder="Todos os planos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os planos</SelectItem>
-                    <SelectItem value="bronze">Bronze</SelectItem>
-                    <SelectItem value="prata">Prata</SelectItem>
-                    <SelectItem value="ouro">Ouro</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={searchAvailability ?? "all"} onValueChange={v => { setSearchAvailability(v === "all" ? undefined : v); setSearchPage(1); }}>
-                  <SelectTrigger className="w-52">
-                    <SelectValue placeholder="Qualquer disponibilidade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Qualquer disponibilidade</SelectItem>
-                    <SelectItem value="imediata">🟢 Disponível imediatamente</SelectItem>
-                    <SelectItem value="30dias">🟡 Disponível em 30 dias</SelectItem>
-                    <SelectItem value="60dias">🟠 Disponível em 60 dias</SelectItem>
-                    <SelectItem value="negociavel">⚪ Negociável</SelectItem>
-                  </SelectContent>
-                </Select>
-                {(searchRegion || searchSegment || searchTier || searchKycApproved || searchCoreActive || searchAvailability) && (
-                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { setSearchRegion(undefined); setSearchSegment(undefined); setSearchTier(undefined); setSearchKycApproved(false); setSearchCoreActive(false); setSearchAvailability(undefined); setSearchPage(1); }}>
-                    Limpar filtros
-                  </Button>
-                )}
-              </div>
-              {/* Verification filters */}
-              <div className="flex flex-wrap gap-2 mb-5">
-                <button
-                  onClick={() => { setSearchKycApproved(!searchKycApproved); setSearchPage(1); }}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                    searchKycApproved
-                      ? "bg-emerald-600 text-white border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.35)]"
-                      : "bg-secondary text-muted-foreground border-border hover:border-emerald-500/50 hover:text-emerald-400"
-                  }`}
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  Identidade Verificada
-                  {searchKycApproved && <span className="ml-0.5">✓</span>}
-                </button>
-                <button
-                  onClick={() => { setSearchCoreActive(!searchCoreActive); setSearchPage(1); }}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                    searchCoreActive
-                      ? "bg-amber-600 text-white border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.35)]"
-                      : "bg-secondary text-muted-foreground border-border hover:border-amber-500/50 hover:text-amber-400"
-                  }`}
-                >
-                  <Award className="w-3.5 h-3.5" />
-                  CORE Ativo
-                  {searchCoreActive && <span className="ml-0.5">✓</span>}
-                </button>
-              </div>
-              {/* Sort + Count row */}
-              <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-medium">Ordenar por:</span>
-                  <Select value={searchSortBy} onValueChange={v => { setSearchSortBy(v as "availability" | "rating" | "tier" | "recent"); setSearchPage(1); }}>
-                    <SelectTrigger className="w-52 h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="availability">🟢 Mais disponíveis primeiro</SelectItem>
-                      <SelectItem value="tier">🏆 Plano (Ouro › Prata › Bronze)</SelectItem>
-                      <SelectItem value="rating">⭐ Melhor avaliação</SelectItem>
-                      <SelectItem value="recent">🕒 Mais recentes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {!searchLoading && searchData && (
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-bold text-foreground">{searchData.total}</span> representantes encontrados
-                    {searchData.unlockedIds.length > 0 && (
-                      <span className="ml-2 text-primary font-medium">· {searchData.unlockedIds.length} contato{searchData.unlockedIds.length > 1 ? "s" : ""} desbloqueado{searchData.unlockedIds.length > 1 ? "s" : ""}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-              {/* Rep cards */}
-              {searchLoading ? (
-                <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">
-                  <Loader2 className="w-5 h-5 animate-spin" /> Carregando representantes...
-                </div>
-              ) : (
-                <>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(searchData?.reps ?? []).map((rep) => {
-                      const isUnlocked = searchData?.unlockedIds.includes(rep.id);
-                      const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-500/15 text-amber-400" : rep.subscriptionTier === "prata" ? "bg-primary/15 text-primary" : rep.subscriptionTier === "bronze" ? "bg-orange-500/15 text-orange-400" : "bg-secondary text-muted-foreground";
-                      const tierLabel = rep.subscriptionTier === "ouro" ? "Ouro" : rep.subscriptionTier === "prata" ? "Prata" : rep.subscriptionTier === "bronze" ? "Bronze" : "Pendente";
+                  <h2 className="font-semibold mb-4 text-slate-500 text-xs uppercase tracking-wider">Candidatos ({jobApplications?.length ?? 0})</h2>
+                  <div className="space-y-3">
+                    {jobApplications?.length === 0 ? (
+                      <div className="text-center py-8 text-slate-400 text-sm bg-white rounded-xl border border-slate-200 p-6">Nenhuma candidatura ainda.</div>
+                    ) : jobApplications?.map(({ application, rep }) => {
+                      const status = STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
+                      const StatusIcon = status.icon;
                       return (
-                        <div key={rep.id} className={`rounded-xl border bg-card p-5 relative overflow-hidden ${isUnlocked ? "border-primary/40" : "border-border"}`}>
-                          {isUnlocked && (
-                            <div className="absolute top-3 right-3">
-                              <Badge className="bg-primary/20 text-primary text-xs"><CheckCircle className="w-3 h-3 mr-1" />Desbloqueado</Badge>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm flex-shrink-0">
-                              {rep.fullName?.charAt(0) ?? "R"}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="font-bold text-sm truncate">{isUnlocked ? rep.fullName : `${rep.fullName?.split(" ")[0]} ${ rep.fullName?.split(" ").slice(1).map(() => "●").join("") ?? "●●"}`}</div>
-                              <Badge className={`text-xs mt-0.5 ${tierBadge}`}>{tierLabel}</Badge>
-                            </div>
-                          </div>
-                          {/* KYC / CORE verification badges */}
-                          {((rep as any).kycStatus === "approved" || (rep as any).coreStatus === "active") && (
-                            <div className="flex flex-wrap gap-1.5 mb-3">
-                              {(rep as any).kycStatus === "approved" && (
-                                <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-                                  <Shield className="w-3 h-3" /> Identidade Verificada
-                                </span>
-                              )}
-                              {(rep as any).coreStatus === "active" && (
-                                <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
-                                  <Award className="w-3 h-3" /> CORE Ativo
-                                  {(rep as any).coreValidUntil && (
-                                    <span className="opacity-70 ml-0.5">· vál. {new Date((rep as any).coreValidUntil).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          <div className="space-y-1.5 text-xs text-muted-foreground mb-4">
-                            <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{rep.region ?? "Brasil"}</div>
-                            <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3" />{rep.segment ?? "Geral"}</div>
-                            <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears ?? 0} anos de experiência</div>
-                            <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{Number(rep.averageRating ?? 0).toFixed(1)} avaliação</div>
-                            {(rep as any).availability && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3 h-3 text-green-400" />
-                                <span className="text-green-400">{(rep as any).availability === "imediata" ? "Disponível agora" : (rep as any).availability === "30dias" ? "Em 30 dias" : (rep as any).availability === "60dias" ? "Em 60 dias" : "Negociável"}</span>
+                        <div key={application.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="font-semibold text-slate-800">{rep.fullName}</div>
+                              <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                                {rep.region && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{rep.region}</span>}
+                                {rep.segment && <span>{rep.segment}</span>}
+                                {rep.experienceYears && <span>{rep.experienceYears}a exp.</span>}
                               </div>
-                            )}
-                            {(rep as any).cities && (
-                              <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3 text-primary/60" /><span className="truncate">{(rep as any).cities}</span></div>
-                            )}
-                            {(rep as any).additionalSegments && (
-                              <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3 text-primary/60" /><span className="truncate text-foreground/70">{(rep as any).additionalSegments}</span></div>
-                            )}
-                          </div>
-                          {isUnlocked ? (
-                            <div className="space-y-1.5 text-xs border-t border-border pt-3">
-                              {rep.phone && <div className="flex items-center gap-1.5 text-foreground font-medium"><DollarSign className="w-3 h-3 text-primary" />{rep.phone}</div>}
-                              {rep.email && <div className="flex items-center gap-1.5 text-foreground font-medium"><ChevronRight className="w-3 h-3 text-primary" />{rep.email}</div>}
-                              {rep.bio && <p className="text-muted-foreground mt-2 leading-relaxed line-clamp-2">{rep.bio}</p>}
-                              {(rep as any).linkedinUrl && (
-                                <a href={(rep as any).linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 mt-1">
-                                  <Linkedin className="w-3 h-3" />Ver LinkedIn
-                                </a>
+                              {application.llmAnalysis && (
+                                <p className="text-xs text-slate-400 mt-1.5 italic">"{application.llmAnalysis}"</p>
                               )}
                             </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs"
-                              onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />Desbloquear Contato — R$29
-                            </Button>
+                            <div className="text-right ml-3">
+                              <div className="text-emerald-600 font-black text-xl">{application.totalScore}</div>
+                              <div className="text-xs text-slate-400">score</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                            <Badge className={`text-xs border ${status.color}`}>
+                              <StatusIcon className="w-3 h-3 mr-1" />{status.label}
+                            </Badge>
+                            <div className="flex gap-2 flex-wrap">
+                              <Button size="sm" variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs"
+                                onClick={() => updateStatusMutation.mutate({ id: application.id, status: "accepted" })}>Aceitar</Button>
+                              <Button size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
+                                onClick={() => updateStatusMutation.mutate({ id: application.id, status: "rejected" })}>Recusar</Button>
+                              <Button size="sm" variant="outline" className="border-slate-200 text-slate-600 hover:bg-slate-50 text-xs"
+                                onClick={() => { setOpenChatId(openChatId === application.id ? null : application.id); setChatInput(""); }}>
+                                {openChatId === application.id ? "Fechar Chat" : "Chat"}
+                              </Button>
+                            </div>
+                          </div>
+                          {openChatId === application.id && (
+                            <div className="mt-3 pt-3 border-t border-slate-100">
+                              <div className="h-40 overflow-y-auto space-y-2 mb-2 pr-1">
+                                {!chatMessages?.length && (
+                                  <div className="text-xs text-slate-400 text-center py-4">Nenhuma mensagem ainda. Inicie a conversa!</div>
+                                )}
+                                {chatMessages?.map((msg) => (
+                                  <div key={msg.id} className={`flex ${msg.senderUserId === user?.id ? "justify-end" : "justify-start"}`}>
+                                    <div className={`max-w-[80%] rounded-lg px-3 py-1.5 text-xs ${msg.senderUserId === user?.id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}`}>
+                                      {msg.content}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  className="flex-1 text-xs rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                  placeholder="Digite uma mensagem..."
+                                  value={chatInput}
+                                  onChange={(e) => setChatInput(e.target.value)}
+                                  onKeyDown={(e) => { if (e.key === "Enter" && chatInput.trim()) sendMessageMutation.mutate({ applicationId: application.id, content: chatInput.trim() }); }}
+                                />
+                                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3"
+                                  disabled={!chatInput.trim() || sendMessageMutation.isPending}
+                                  onClick={() => sendMessageMutation.mutate({ applicationId: application.id, content: chatInput.trim() })}>
+                                  Enviar
+                                </Button>
+                              </div>
+                            </div>
                           )}
                         </div>
                       );
                     })}
-                    {(!searchData?.reps?.length && !searchLoading) && (
-                      <div className="col-span-3 text-center py-16 text-muted-foreground">
-                        <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                        <p className="font-medium">Nenhum representante encontrado.</p>
-                        <p className="text-sm mt-1">Tente remover os filtros para ampliar a busca.</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="font-semibold mb-4 text-slate-500 text-xs uppercase tracking-wider">Top Matches por IA</h2>
+                  <div className="space-y-3">
+                    {topMatches?.map(({ rep, score }, i) => (
+                      <div key={rep.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+                          {i + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-sm text-slate-800">{rep.fullName}</div>
+                          <div className="text-xs text-slate-400">{rep.region} · {rep.segment}</div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5">
+                          <div className="text-emerald-600 font-black">{score}/100</div>
+                          <Button size="sm" variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs h-7 px-2"
+                            onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}>
+                            Desbloquear R$29
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {!topMatches?.length && (
+                      <div className="text-center py-8 text-slate-400 text-sm bg-white rounded-xl border border-slate-200 p-6">
+                        Selecione uma vaga com candidaturas para ver os top matches.
                       </div>
                     )}
                   </div>
-                  {/* Pagination */}
-                  {searchData && searchData.total > 20 && (
-                    <div className="flex items-center justify-between mt-8 pt-4 border-t border-border">
-                      <div className="text-sm text-muted-foreground">
-                        Página {searchPage} de {Math.ceil(searchData.total / 20)}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" disabled={searchPage === 1} onClick={() => setSearchPage(p => p - 1)}>Anterior</Button>
-                        <Button variant="outline" size="sm" disabled={searchPage >= Math.ceil(searchData.total / 20)} onClick={() => setSearchPage(p => p + 1)}>Próxima</Button>
-                      </div>
-                    </div>
-                  )}
-                </>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── Search Tab ─────────────────────────────────────────────── */}
+        {activeTab === "search" && (
+          <div className="p-8">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-slate-800 mb-1">Buscar Representantes</h1>
+              <p className="text-slate-500 text-sm">
+                Base com <span className="font-bold text-slate-700">173.987+ representantes</span> ativos. Contatos desbloqueados aparecem com dados completos.
+              </p>
+            </div>
+            {/* CNPJ Base Banner */}
+            <div className="mb-5 p-4 rounded-xl border border-emerald-200 bg-emerald-50 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">🏛️ Base Nacional da Receita Federal</p>
+                <p className="text-xs text-slate-500 mt-0.5">Acesse <strong className="text-emerald-700">173.987 representantes comerciais</strong> cadastrados no CNPJ — MEI, ME, EPP e mais.</p>
+              </div>
+              <a href="/base-cnpj" target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
+                Ver Base CNPJ
+              </a>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap gap-3 mb-4">
+              <Select value={searchRegion ?? "all"} onValueChange={v => { setSearchRegion(v === "all" ? undefined : v); setSearchPage(1); }}>
+                <SelectTrigger className="w-52 border-slate-200 bg-white"><SelectValue placeholder="Todas as regiões" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as regiões</SelectItem>
+                  {REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={searchSegment ?? "all"} onValueChange={v => { setSearchSegment(v === "all" ? undefined : v); setSearchPage(1); }}>
+                <SelectTrigger className="w-52 border-slate-200 bg-white"><SelectValue placeholder="Todos os segmentos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os segmentos</SelectItem>
+                  {SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={searchTier ?? "all"} onValueChange={v => { setSearchTier(v === "all" ? undefined : v as "bronze" | "prata" | "ouro"); setSearchPage(1); }}>
+                <SelectTrigger className="w-44 border-slate-200 bg-white"><SelectValue placeholder="Todos os planos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os planos</SelectItem>
+                  <SelectItem value="bronze">Bronze</SelectItem>
+                  <SelectItem value="prata">Prata</SelectItem>
+                  <SelectItem value="ouro">Ouro</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={searchAvailability ?? "all"} onValueChange={v => { setSearchAvailability(v === "all" ? undefined : v); setSearchPage(1); }}>
+                <SelectTrigger className="w-52 border-slate-200 bg-white"><SelectValue placeholder="Qualquer disponibilidade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Qualquer disponibilidade</SelectItem>
+                  <SelectItem value="imediata">🟢 Disponível imediatamente</SelectItem>
+                  <SelectItem value="30dias">🟡 Disponível em 30 dias</SelectItem>
+                  <SelectItem value="60dias">🟠 Disponível em 60 dias</SelectItem>
+                  <SelectItem value="negociavel">⚪ Negociável</SelectItem>
+                </SelectContent>
+              </Select>
+              {(searchRegion || searchSegment || searchTier || searchKycApproved || searchCoreActive || searchAvailability) && (
+                <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-600" onClick={() => { setSearchRegion(undefined); setSearchSegment(undefined); setSearchTier(undefined); setSearchKycApproved(false); setSearchCoreActive(false); setSearchAvailability(undefined); setSearchPage(1); }}>
+                  Limpar filtros
+                </Button>
               )}
             </div>
-          )}
-          {/* ─── Profile Tab ──────────────────────────────────────────────── */}
-          {activeTab === "profile" && (
-            <div className="p-8 max-w-2xl">
-              <h1 className="text-2xl font-black mb-6">Perfil da Empresa</h1>
-
-              <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-                <div className="flex items-center gap-4 pb-4 border-b border-border">
-                  <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-2xl">
-                    {profile.companyName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold">{profile.companyName}</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className={tierConfig.color}>{tierConfig.label}</Badge>
-                      <div className={`flex items-center gap-1 text-sm font-bold ${rankConfig.color}`}>
-                        <Award className="w-4 h-4" />
-                        {rankConfig.label}
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm" variant="outline"
-                    className="shrink-0"
-                    onClick={() => {
-                      setProfileEditForm({
-                        companyName: profile.companyName ?? "",
-                        cnpj: profile.cnpj ?? "",
-                        segment: profile.segment ?? "",
-                        region: profile.region ?? "",
-                        phone: profile.phone ?? "",
-                        description: profile.description ?? "",
-                      });
-                      setCnpjVerified(false);
-                      setCnpjLookup("");
-                      setEditProfileOpen(true);
-                    }}
-                  >
-                    <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  {[
-                    { label: "CNPJ", value: profile.cnpj },
-                    { label: "Segmento", value: profile.segment },
-                    { label: "Região", value: profile.region },
-                    { label: "Telefone", value: profile.phone },
-                  ].map((item) => (
-                    <div key={item.label}>
-                      <div className="text-muted-foreground mb-0.5">{item.label}</div>
-                      <div className="font-medium">{item.value ?? "—"}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {profile.description && (
-                  <div className="pt-2">
-                    <div className="text-muted-foreground text-sm mb-1">Descrição</div>
-                    <p className="text-sm leading-relaxed">{profile.description}</p>
-                  </div>
-                )}
-
-                <div className="pt-4 border-t border-border">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    {[
-                      { label: "Vagas Ativas", value: myJobs?.filter(j => j.status === "open").length ?? 0 },
-                      { label: "Total de Vagas", value: myJobs?.length ?? 0 },
-                    ].map((stat) => (
-                      <div key={stat.label} className="rounded-lg bg-secondary p-3">
-                        <div className="text-2xl font-black text-primary">{stat.value}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-xl border border-yellow-600/30 bg-yellow-900/10 p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <Star className="w-5 h-5 text-yellow-400" />
-                    <h3 className="font-bold">Destaque suas vagas</h3>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">Vagas em destaque aparecem no topo da lista para representantes e recebem 3x mais candidaturas.</p>
-                {(() => {
-                  const openJobs = myJobs?.filter(j => j.status === "open") ?? [];
-                  if (!myJobs || myJobs.length === 0) {
-                    return <p className="text-sm text-muted-foreground italic">Crie uma vaga primeiro para poder destacá-la.</p>;
-                  }
-                  if (openJobs.length === 0) {
-                    return <p className="text-sm text-muted-foreground italic">Nenhuma vaga aberta no momento. Reabra uma vaga para poder destacá-la.</p>;
-                  }
-                  return (
-                    <div className="flex items-center gap-3">
-                      <Select
-                        value={selectedJobId?.toString() ?? ""}
-                        onValueChange={(v) => setSelectedJobId(Number(v))}
-                      >
-                        <SelectTrigger className="flex-1 bg-secondary border-border text-sm">
-                          <SelectValue placeholder="Selecione a vaga para destacar..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {openJobs.map((j) => (
-                            <SelectItem key={j.id} value={j.id.toString()}>{j.title}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        size="sm"
-                        className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-xs whitespace-nowrap"
-                        disabled={!selectedJobId}
-                        onClick={() => {
-                          if (!selectedJobId) return;
-                          user && startCheckout("FEATURED_JOB", user.id, user.email ?? "", user.name ?? "", { jobId: selectedJobId });
-                        }}
-                      >
-                        <Star className="w-3 h-3 mr-1" />Destacar R$49
-                      </Button>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  <h3 className="font-bold">Melhore seu ranking</h3>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Empresas com rank mais alto atraem representantes premium. Contrate mais reps e publique vagas de qualidade para subir no ranking.
-                </p>
-                <div className="flex items-center gap-4">
-                  {Object.entries(RANK_CONFIG).map(([key, cfg]) => (
-                    <div key={key} className={`flex items-center gap-1 text-xs font-bold ${cfg.color}`}>
-                      <Award className="w-3 h-3" />
-                      {cfg.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="flex flex-wrap gap-2 mb-5">
+              <button onClick={() => { setSearchKycApproved(!searchKycApproved); setSearchPage(1); }}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${searchKycApproved ? "bg-emerald-600 text-white border-emerald-500" : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"}`}>
+                <Shield className="w-3.5 h-3.5" />Identidade Verificada{searchKycApproved && " ✓"}
+              </button>
+              <button onClick={() => { setSearchCoreActive(!searchCoreActive); setSearchPage(1); }}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${searchCoreActive ? "bg-amber-600 text-white border-amber-500" : "bg-white text-slate-500 border-slate-200 hover:border-amber-300 hover:text-amber-600"}`}>
+                <Award className="w-3.5 h-3.5" />CORE Ativo{searchCoreActive && " ✓"}
+              </button>
             </div>
-          )}
-
-          {/* ─── Edit Profile Dialog ───────────────────────────────────────────── */}
-          <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
-            <DialogContent className="bg-card border-border max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="text-foreground">Editar Perfil da Empresa</DialogTitle>
-              </DialogHeader>
-              <form
-                className="space-y-4 mt-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  updateProfileMutation.mutate(profileEditForm);
-                }}
-              >
-                <div>
-                  <Label>Nome da empresa</Label>
-                  <Input value={profileEditForm.companyName} onChange={(e) => setProfileEditForm({ ...profileEditForm, companyName: e.target.value })} className="mt-1 bg-secondary border-border" />
-                </div>
-                <div>
-                  <Label className="flex items-center gap-2">
-                    CNPJ
-                    {cnpjVerified && <span className="flex items-center gap-1 text-xs text-green-500"><BadgeCheck className="w-3.5 h-3.5" /> Verificado</span>}
-                  </Label>
-                  <div className="flex gap-2 mt-1">
-                    <Input
-                      value={profileEditForm.cnpj}
-                      onChange={(e) => { setProfileEditForm({ ...profileEditForm, cnpj: e.target.value }); setCnpjVerified(false); }}
-                      placeholder="00.000.000/0001-00"
-                      className="bg-secondary border-border"
-                    />
-                    <Button
-                      type="button" variant="outline" size="icon" className="shrink-0"
-                      disabled={profileEditForm.cnpj.replace(/\D/g, "").length !== 14 || cnpjQuery.isFetching}
-                      onClick={() => setCnpjLookup(profileEditForm.cnpj)}
-                      title="Consultar CNPJ na Receita Federal"
-                    >
-                      {cnpjQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                  {cnpjQuery.data && (
-                    <p className="text-xs text-muted-foreground mt-1">{cnpjQuery.data.razaoSocial} · {cnpjQuery.data.situacao} · {cnpjQuery.data.municipio}/{cnpjQuery.data.uf}</p>
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-medium">Ordenar por:</span>
+                <Select value={searchSortBy} onValueChange={v => { setSearchSortBy(v as "availability" | "rating" | "tier" | "recent"); setSearchPage(1); }}>
+                  <SelectTrigger className="w-52 h-8 text-xs border-slate-200 bg-white"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="availability">🟢 Mais disponíveis primeiro</SelectItem>
+                    <SelectItem value="tier">🏆 Plano (Ouro › Prata › Bronze)</SelectItem>
+                    <SelectItem value="rating">⭐ Melhor avaliação</SelectItem>
+                    <SelectItem value="recent">🕒 Mais recentes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {!searchLoading && searchData && (
+                <div className="text-sm text-slate-500">
+                  <span className="font-bold text-slate-800">{searchData.total}</span> representantes encontrados
+                  {searchData.unlockedIds.length > 0 && (
+                    <span className="ml-2 text-emerald-600 font-medium">· {searchData.unlockedIds.length} contato{searchData.unlockedIds.length > 1 ? "s" : ""} desbloqueado{searchData.unlockedIds.length > 1 ? "s" : ""}</span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Segmento</Label>
-                    <Select value={profileEditForm.segment} onValueChange={(v) => setProfileEditForm({ ...profileEditForm, segment: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{SEGMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                    </Select>
+              )}
+            </div>
+            {searchLoading ? (
+              <div className="flex items-center gap-2 text-slate-400 py-12 justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" /> Carregando representantes...
+              </div>
+            ) : (
+              <>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(searchData?.reps ?? []).map((rep) => {
+                    const isUnlocked = searchData?.unlockedIds.includes(rep.id);
+                    const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : rep.subscriptionTier === "bronze" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200";
+                    const tierLabel = rep.subscriptionTier === "ouro" ? "Ouro" : rep.subscriptionTier === "prata" ? "Prata" : rep.subscriptionTier === "bronze" ? "Bronze" : "Pendente";
+                    return (
+                      <div key={rep.id} className={`rounded-xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow ${isUnlocked ? "border-emerald-200" : "border-slate-200"}`}>
+                        {isUnlocked && (
+                          <div className="flex justify-end mb-1">
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs"><CheckCircle className="w-3 h-3 mr-1" />Desbloqueado</Badge>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm flex-shrink-0">
+                            {rep.fullName?.charAt(0) ?? "R"}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-bold text-sm truncate text-slate-800">{isUnlocked ? rep.fullName : `${rep.fullName?.split(" ")[0]} ${rep.fullName?.split(" ").slice(1).map(() => "●").join("") ?? "●●"}`}</div>
+                            <Badge className={`text-xs mt-0.5 border ${tierBadge}`}>{tierLabel}</Badge>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5 text-xs text-slate-500 mb-4">
+                          <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{rep.region ?? "Brasil"}</div>
+                          <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3" />{rep.segment ?? "Geral"}</div>
+                          <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears ?? 0} anos de experiência</div>
+                          <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{Number(rep.averageRating ?? 0).toFixed(1)} avaliação</div>
+                        </div>
+                        {isUnlocked ? (
+                          <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
+                            {rep.phone && <div className="flex items-center gap-1.5 text-slate-700 font-medium"><DollarSign className="w-3 h-3 text-emerald-600" />{rep.phone}</div>}
+                            {rep.email && <div className="flex items-center gap-1.5 text-slate-700 font-medium"><ChevronRight className="w-3 h-3 text-emerald-600" />{rep.email}</div>}
+                          </div>
+                        ) : (
+                          <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+                            onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}>
+                            Desbloquear Contato — R$29
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {searchData && searchData.total > 20 && (
+                  <div className="flex justify-center gap-3 mt-6">
+                    <Button variant="outline" size="sm" className="border-slate-200" disabled={searchPage === 1} onClick={() => setSearchPage(p => Math.max(1, p - 1))}>Anterior</Button>
+                    <span className="text-sm text-slate-500 flex items-center">Página {searchPage} de {Math.ceil(searchData.total / 20)}</span>
+                    <Button variant="outline" size="sm" className="border-slate-200" disabled={searchPage >= Math.ceil(searchData.total / 20)} onClick={() => setSearchPage(p => p + 1)}>Próxima</Button>
                   </div>
-                  <div>
-                    <Label>Região</Label>
-                    <Select value={profileEditForm.region} onValueChange={(v) => setProfileEditForm({ ...profileEditForm, region: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{REGIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ─── Profile Tab ─────────────────────────────────────────────── */}
+        {activeTab === "profile" && (
+          <div className="p-8">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-slate-800">Perfil da Empresa</h1>
+              <p className="text-slate-500 text-sm mt-1">Informações públicas da sua empresa no RepMatch</p>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-5">
+                <Card className="border-slate-200 shadow-sm bg-white">
+                  <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                    <CardTitle className="text-base font-semibold text-slate-700">Informações da Empresa</CardTitle>
+                    <Button size="sm" variant="outline" className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                      onClick={() => {
+                        setProfileEditForm({ companyName: profile.companyName ?? "", cnpj: profile.cnpj ?? "", segment: profile.segment ?? "", region: profile.region ?? "", phone: profile.phone ?? "", description: profile.description ?? "" });
+                        setCnpjVerified(false); setCnpjLookup(""); setEditProfileOpen(true);
+                      }}>
+                      <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-5 text-sm">
+                      {[
+                        { label: "Nome da Empresa", value: profile.companyName },
+                        { label: "CNPJ", value: profile.cnpj },
+                        { label: "Segmento", value: profile.segment },
+                        { label: "Região", value: profile.region },
+                        { label: "Telefone", value: profile.phone },
+                      ].map((item) => (
+                        <div key={item.label}>
+                          <div className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-1">{item.label}</div>
+                          <div className="font-medium text-slate-800">{item.value ?? "—"}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {profile.description && (
+                      <div className="mt-5 pt-4 border-t border-slate-100">
+                        <div className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-2">Descrição</div>
+                        <p className="text-sm leading-relaxed text-slate-700">{profile.description}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-amber-200 bg-amber-50 shadow-sm">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Star className="w-5 h-5 text-amber-600" />
+                      <h3 className="font-semibold text-slate-800">Destaque suas vagas</h3>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-4">Vagas em destaque aparecem no topo da lista para representantes e recebem 3x mais candidaturas.</p>
+                    {(() => {
+                      const openJobs = myJobs?.filter(j => j.status === "open") ?? [];
+                      if (!myJobs || myJobs.length === 0) return <p className="text-sm text-slate-500 italic">Crie uma vaga primeiro para poder destacá-la.</p>;
+                      if (openJobs.length === 0) return <p className="text-sm text-slate-500 italic">Nenhuma vaga aberta no momento.</p>;
+                      return (
+                        <div className="flex items-center gap-3">
+                          <Select value={selectedJobId?.toString() ?? ""} onValueChange={(v) => setSelectedJobId(Number(v))}>
+                            <SelectTrigger className="flex-1 border-amber-200 bg-white text-sm"><SelectValue placeholder="Selecione a vaga para destacar..." /></SelectTrigger>
+                            <SelectContent>{openJobs.map((j) => <SelectItem key={j.id} value={j.id.toString()}>{j.title}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <Button size="sm" className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs whitespace-nowrap" disabled={!selectedJobId}
+                            onClick={() => { if (!selectedJobId) return; user && startCheckout("FEATURED_JOB", user.id, user.email ?? "", user.name ?? "", { jobId: selectedJobId }); }}>
+                            <Star className="w-3 h-3 mr-1" />Destacar R$49
+                          </Button>
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-5">
+                <Card className="border-slate-200 shadow-sm bg-white">
+                  <CardContent className="p-5">
+                    <div className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-4">Estatísticas</div>
+                    <div className="space-y-4">
+                      {[
+                        { label: "Vagas Ativas", value: myJobs?.filter(j => j.status === "open").length ?? 0, color: "bg-emerald-500" },
+                        { label: "Total de Vagas", value: myJobs?.length ?? 0, color: "bg-blue-500" },
+                        { label: "Em Destaque", value: myJobs?.filter(j => j.isFeatured).length ?? 0, color: "bg-amber-500" },
+                      ].map((stat) => (
+                        <div key={stat.label}>
+                          <div className="flex justify-between text-sm mb-1.5">
+                            <span className="text-slate-600">{stat.label}</span>
+                            <span className="font-bold text-slate-800">{stat.value}</span>
+                          </div>
+                          <Progress value={stat.value > 0 ? Math.min(100, (stat.value / Math.max(myJobs?.length ?? 1, 1)) * 100) : 0} className="h-1.5" />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-emerald-200 bg-emerald-50 shadow-sm">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <TrendingUp className="w-5 h-5 text-emerald-600" />
+                      <h3 className="font-semibold text-slate-800">Ranking</h3>
+                    </div>
+                    <div className={`text-2xl font-black mb-1 ${rankConfig.color}`}>{rankConfig.label}</div>
+                    <p className="text-xs text-slate-500">Contrate mais representantes e publique vagas de qualidade para subir no ranking.</p>
+                    <div className="flex items-center gap-3 mt-3">
+                      {Object.entries(RANK_CONFIG).map(([key, cfg]) => (
+                        <div key={key} className={`flex items-center gap-1 text-xs font-bold ${cfg.color}`}>
+                          <Award className="w-3 h-3" />{cfg.label}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Edit Profile Dialog ─────────────────────────────────────── */}
+        <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
+          <DialogContent className="bg-white border-slate-200 max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-slate-800">Editar Perfil da Empresa</DialogTitle>
+            </DialogHeader>
+            <form className="space-y-4 mt-2" onSubmit={(e) => { e.preventDefault(); updateProfileMutation.mutate(profileEditForm); }}>
+              <div>
+                <Label className="text-slate-700">Nome da empresa</Label>
+                <Input value={profileEditForm.companyName} onChange={(e) => setProfileEditForm({ ...profileEditForm, companyName: e.target.value })} className="mt-1 border-slate-200 bg-white" />
+              </div>
+              <div>
+                <Label className="text-slate-700 flex items-center gap-2">
+                  CNPJ {cnpjVerified && <span className="flex items-center gap-1 text-xs text-emerald-600"><BadgeCheck className="w-3.5 h-3.5" /> Verificado</span>}
+                </Label>
+                <div className="flex gap-2 mt-1">
+                  <Input value={profileEditForm.cnpj} onChange={(e) => { setProfileEditForm({ ...profileEditForm, cnpj: e.target.value }); setCnpjVerified(false); }} placeholder="00.000.000/0001-00" className="border-slate-200 bg-white" />
+                  <Button type="button" variant="outline" size="icon" className="shrink-0 border-slate-200"
+                    disabled={profileEditForm.cnpj.replace(/\D/g, "").length !== 14 || cnpjQuery.isFetching}
+                    onClick={() => setCnpjLookup(profileEditForm.cnpj)}>
+                    {cnpjQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  </Button>
+                </div>
+                {cnpjQuery.data && <p className="text-xs text-slate-400 mt-1">{cnpjQuery.data.razaoSocial} · {cnpjQuery.data.situacao} · {cnpjQuery.data.municipio}/{cnpjQuery.data.uf}</p>}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-slate-700">Segmento</Label>
+                  <Select value={profileEditForm.segment} onValueChange={(v) => setProfileEditForm({ ...profileEditForm, segment: v })}>
+                    <SelectTrigger className="mt-1 border-slate-200 bg-white"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>{SEGMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <Label>Telefone</Label>
-                  <Input value={profileEditForm.phone} onChange={(e) => setProfileEditForm({ ...profileEditForm, phone: e.target.value })} placeholder="(11) 3000-0000" className="mt-1 bg-secondary border-border" />
+                  <Label className="text-slate-700">Região</Label>
+                  <Select value={profileEditForm.region} onValueChange={(v) => setProfileEditForm({ ...profileEditForm, region: v })}>
+                    <SelectTrigger className="mt-1 border-slate-200 bg-white"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>{REGIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
-                <div>
-                  <Label>Descrição</Label>
-                  <Textarea value={profileEditForm.description} onChange={(e) => setProfileEditForm({ ...profileEditForm, description: e.target.value })} rows={3} className="mt-1 bg-secondary border-border" />
-                </div>
-                <Button type="submit" className="w-full" disabled={updateProfileMutation.isPending}>
-                  {updateProfileMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</> : "Salvar alterações"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </main>
-      </div>
+              </div>
+              <div>
+                <Label className="text-slate-700">Telefone</Label>
+                <Input value={profileEditForm.phone} onChange={(e) => setProfileEditForm({ ...profileEditForm, phone: e.target.value })} placeholder="(11) 3000-0000" className="mt-1 border-slate-200 bg-white" />
+              </div>
+              <div>
+                <Label className="text-slate-700">Descrição</Label>
+                <Textarea value={profileEditForm.description} onChange={(e) => setProfileEditForm({ ...profileEditForm, description: e.target.value })} rows={3} className="mt-1 border-slate-200 bg-white" />
+              </div>
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold" disabled={updateProfileMutation.isPending}>
+                {updateProfileMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</> : "Salvar alterações"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </main>
     </div>
   );
 }

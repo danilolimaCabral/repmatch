@@ -347,3 +347,16 @@
 - [x] Frontend: página /base-cnpj com busca, filtros e cards de 173.987 representantes
 - [x] Frontend CompanyDashboard (Buscar Representantes): banner com link para Base CNPJ
 - [x] Checkpoint e deploy
+
+## Redesign Dashboards Internos — Tema Claro + Gráficos
+
+- [x] Mudar DashboardLayout para tema claro (light mode) com fundo branco/cinza claro
+- [x] Atualizar sidebar para visual claro: fundo branco, bordas sutis, ícones coloridos
+- [x] CompanyDashboard: adicionar cards de KPIs (total vagas, candidaturas, reps buscados)
+- [x] CompanyDashboard: gráfico de barras — candidaturas por vaga (Recharts)
+- [x] CompanyDashboard: gráfico de pizza — status das vagas (Aberta/Pausada/Fechada)
+- [x] CompanyDashboard: gráfico de linha — evolução de candidaturas ao longo do tempo
+- [x] RepDashboard: adicionar cards de KPIs (oportunidades disponíveis, candidaturas enviadas, taxa de resposta)
+- [x] RepDashboard: gráfico de barras — vagas por segmento
+- [x] RepDashboard: gráfico de pizza — candidaturas por status
+- [x] Melhorar tipografia, espaçamento e hierarquia visual em ambos os dashboards

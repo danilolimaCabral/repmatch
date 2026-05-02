@@ -11,11 +11,15 @@ import {
   Briefcase, User, LogOut, Search, MapPin, DollarSign,
   ChevronRight, Loader2, Star, Lock, CheckCircle, Clock, XCircle,
   TrendingUp, Building2, Filter, MessageCircle, Send, Edit2, Bell,
-  Shield, Award
+  Shield, Award, BarChart2, Target, Zap
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from "recharts";
 
 const LOGO_URL = "/manus-storage/repmatch-logo_d1cd60d4.png";
 
@@ -31,18 +35,18 @@ const SEGMENTS = [
 ];
 
 const STATUS_CONFIG = {
-  pending: { label: "Aguardando", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
-  viewed: { label: "Visualizado", color: "bg-blue-500/20 text-blue-400", icon: CheckCircle },
-  accepted: { label: "Aceito", color: "bg-green-500/20 text-green-400", icon: CheckCircle },
-  rejected: { label: "Recusado", color: "bg-red-500/20 text-red-400", icon: XCircle },
-  hired: { label: "Contratado", color: "bg-primary/20 text-primary", icon: Star },
+  pending:  { label: "Aguardando", color: "bg-amber-50 text-amber-700 border-amber-200",   dot: "bg-amber-400",  icon: Clock },
+  viewed:   { label: "Visualizado", color: "bg-blue-50 text-blue-700 border-blue-200",      dot: "bg-blue-400",   icon: CheckCircle },
+  accepted: { label: "Aceito",      color: "bg-green-50 text-green-700 border-green-200",   dot: "bg-green-500",  icon: CheckCircle },
+  rejected: { label: "Recusado",    color: "bg-red-50 text-red-700 border-red-200",         dot: "bg-red-400",    icon: XCircle },
+  hired:    { label: "Contratado",  color: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", icon: Star },
 };
 
 const TIER_CONFIG = {
-  free: { label: "Pendente", color: "bg-secondary text-muted-foreground", upgrade: "Ativar plano Bronze — R$9,99/mês" },
-  bronze: { label: "Bronze", color: "bg-orange-500/15 text-orange-400", upgrade: "Upgrade para Prata — R$19,90/mês" },
-  prata: { label: "Prata", color: "bg-primary/15 text-primary", upgrade: "Upgrade para Ouro — R$29,90/mês" },
-  ouro: { label: "Ouro", color: "bg-amber-500/15 text-amber-400", upgrade: null },
+  free:   { label: "Pendente", color: "bg-slate-100 text-slate-600",       upgrade: "Ativar plano Bronze — R$9,99/mês" },
+  bronze: { label: "Bronze",   color: "bg-orange-100 text-orange-700",     upgrade: "Upgrade para Prata — R$19,90/mês" },
+  prata:  { label: "Prata",    color: "bg-emerald-100 text-emerald-700",   upgrade: "Upgrade para Ouro — R$29,90/mês" },
+  ouro:   { label: "Ouro",     color: "bg-amber-100 text-amber-700",       upgrade: null },
 };
 
 const RANK_TIER_MAP: Record<string, string[]> = {
@@ -51,6 +55,8 @@ const RANK_TIER_MAP: Record<string, string[]> = {
   prata: ["bronze", "silver", "gold", "platinum"],
   ouro: ["bronze", "silver", "gold", "platinum"],
 };
+
+const PIE_COLORS = ["#f59e0b", "#3b82f6", "#22c55e", "#ef4444", "#10b981"];
 
 async function startCheckout(productKey: string, userId: number, userEmail: string, userName: string) {
   try {
@@ -85,25 +91,25 @@ function ChatPanel({ applicationId, currentUserId }: { applicationId: number; cu
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-72 border border-border rounded-xl overflow-hidden bg-background mt-4">
-      <div className="px-4 py-2.5 border-b border-border flex items-center gap-2 bg-secondary/50">
-        <MessageCircle className="w-4 h-4 text-primary" />
-        <span className="text-sm font-semibold">Chat com a empresa</span>
-        <span className="text-xs text-muted-foreground ml-auto">Atualiza automaticamente</span>
+    <div className="flex flex-col h-72 border border-slate-200 rounded-xl overflow-hidden bg-white mt-4 shadow-sm">
+      <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
+        <MessageCircle className="w-4 h-4 text-emerald-600" />
+        <span className="text-sm font-semibold text-slate-700">Chat com a empresa</span>
+        <span className="text-xs text-slate-400 ml-auto">Atualiza automaticamente</span>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
         {isLoading ? (
-          <div className="flex justify-center pt-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center pt-8"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
         ) : !messages?.length ? (
-          <p className="text-center text-muted-foreground text-sm pt-8">Nenhuma mensagem ainda. Inicie a conversa!</p>
+          <p className="text-center text-slate-400 text-sm pt-8">Nenhuma mensagem ainda. Inicie a conversa!</p>
         ) : (
           messages.map((msg) => {
             const isMe = msg.senderUserId === currentUserId;
             return (
               <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-secondary text-foreground rounded-bl-sm"}`}>
+                <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${isMe ? "bg-emerald-600 text-white rounded-br-sm" : "bg-slate-100 text-slate-800 rounded-bl-sm"}`}>
                   <p>{msg.content}</p>
-                  <p className={`text-xs mt-1 ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                  <p className={`text-xs mt-1 ${isMe ? "text-white/60" : "text-slate-400"}`}>
                     {new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
@@ -113,12 +119,12 @@ function ChatPanel({ applicationId, currentUserId }: { applicationId: number; cu
         )}
         <div ref={bottomRef} />
       </div>
-      <div className="p-3 border-t border-border flex gap-2">
+      <div className="p-3 border-t border-slate-100 flex gap-2 bg-white">
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Digite sua mensagem..."
-          className="bg-secondary border-border text-sm"
+          className="bg-slate-50 border-slate-200 text-sm text-slate-800"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && message.trim()) {
               e.preventDefault();
@@ -128,7 +134,7 @@ function ChatPanel({ applicationId, currentUserId }: { applicationId: number; cu
         />
         <Button
           size="sm"
-          className="bg-primary text-primary-foreground px-3 shrink-0"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 shrink-0"
           disabled={!message.trim() || sendMutation.isPending}
           onClick={() => sendMutation.mutate({ applicationId, content: message.trim() })}
         >
@@ -149,7 +155,11 @@ export default function RepDashboard() {
   const [minCommission, setMinCommission] = useState<number>(0);
   const [openChatId, setOpenChatId] = useState<number | null>(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState({ fullName: "", phone: "", region: "", segment: "", experienceYears: 0, bio: "", availability: "negociavel" as string, workModel: "multiplas" as string, additionalSegments: "", cities: "", linkedinUrl: "" });
+  const [profileForm, setProfileForm] = useState({
+    fullName: "", phone: "", region: "", segment: "", experienceYears: 0,
+    bio: "", availability: "negociavel" as string, workModel: "multiplas" as string,
+    additionalSegments: "", cities: "", linkedinUrl: ""
+  });
 
   const utils = trpc.useUtils();
   const { data: profile, isLoading: profileLoading } = trpc.representatives.myProfile.useQuery();
@@ -178,10 +188,47 @@ export default function RepDashboard() {
     onError: (e) => toast.error(e.message),
   });
 
+  // ── Derived stats ──────────────────────────────────────────────────────────
+  const statusCounts = useMemo(() => {
+    if (!myApplications) return [];
+    const counts: Record<string, number> = {};
+    myApplications.forEach(({ application }) => {
+      const s = application.status ?? "pending";
+      counts[s] = (counts[s] ?? 0) + 1;
+    });
+    return Object.entries(counts).map(([status, value]) => ({
+      name: STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]?.label ?? status,
+      value,
+    }));
+  }, [myApplications]);
+
+  const segmentCounts = useMemo(() => {
+    if (!allJobs) return [];
+    const counts: Record<string, number> = {};
+    allJobs.forEach(j => {
+      const s = j.segment ?? "Outros";
+      counts[s] = (counts[s] ?? 0) + 1;
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, value]) => ({ name: name.length > 14 ? name.slice(0, 14) + "…" : name, value }));
+  }, [allJobs]);
+
+  const avgScore = useMemo(() => {
+    if (!myApplications?.length) return 0;
+    return Math.round(myApplications.reduce((s, a) => s + (a.application.totalScore ?? 0), 0) / myApplications.length);
+  }, [myApplications]);
+
+  const acceptedCount = useMemo(() =>
+    myApplications?.filter(a => a.application.status === "accepted" || a.application.status === "hired").length ?? 0,
+    [myApplications]
+  );
+
   if (profileLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
       </div>
     );
   }
@@ -192,8 +239,6 @@ export default function RepDashboard() {
 
   const tier = profile.subscriptionTier as keyof typeof TIER_CONFIG;
   const tierConfig = TIER_CONFIG[tier] ?? TIER_CONFIG.free;
-  const allowedRanks = RANK_TIER_MAP[tier] ?? ["bronze", "silver"];
-  const acceptedApps = myApplications?.filter(a => a.application.status === "accepted" || a.application.status === "hired") ?? [];
 
   const openEditProfile = () => {
     setProfileForm({
@@ -213,95 +258,170 @@ export default function RepDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div data-theme="dashboard" className="min-h-screen bg-slate-50 text-slate-900">
       <div className="flex h-screen">
+
         {/* ─── Sidebar ─────────────────────────────────────────────────── */}
-        <aside className="w-64 border-r border-border bg-card flex flex-col">
-          <div className="p-6 border-b border-border">
-            <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-4" />
+        <aside className="w-64 border-r border-slate-200 bg-white flex flex-col shadow-sm">
+          <div className="p-6 border-b border-slate-100">
+            <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-5" />
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
                 {profile.fullName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="font-semibold text-sm truncate">{profile.fullName}</div>
-                <Badge className={`text-xs mt-0.5 ${tierConfig.color}`}>{tierConfig.label}</Badge>
+                <div className="font-semibold text-sm truncate text-slate-800">{profile.fullName}</div>
+                <Badge className={`text-xs mt-0.5 border-0 ${tierConfig.color}`}>{tierConfig.label}</Badge>
               </div>
             </div>
           </div>
+
           <nav className="flex-1 p-4 space-y-1">
             {[
-              { id: "jobs", label: "Oportunidades", icon: Briefcase, badge: allJobs?.length },
-              { id: "applications", label: "Candidaturas", icon: Bell, badge: myApplications?.length },
-              { id: "profile", label: "Meu Perfil", icon: User },
+              { id: "jobs",         label: "Oportunidades",    icon: Briefcase,  badge: allJobs?.length },
+              { id: "applications", label: "Candidaturas",     icon: Bell,       badge: myApplications?.length },
+              { id: "profile",      label: "Meu Perfil",       icon: User },
             ].map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as typeof activeTab)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === item.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  activeTab === item.id
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
                 }`}
               >
                 <item.icon className="w-4 h-4" />
                 <span className="flex-1 text-left">{item.label}</span>
                 {item.badge !== undefined && item.badge > 0 && (
-                  <span className="bg-primary/20 text-primary text-xs font-bold rounded-full px-1.5 py-0.5">{item.badge}</span>
+                  <span className={`text-xs font-bold rounded-full px-1.5 py-0.5 ${activeTab === item.id ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                    {item.badge}
+                  </span>
                 )}
               </button>
             ))}
           </nav>
-          <div className="p-4 border-t border-border space-y-2">
+
+          <div className="p-4 border-t border-slate-100 space-y-2">
             {tierConfig.upgrade && (
               <Button
                 size="sm"
-                className="w-full bg-primary text-primary-foreground text-xs font-bold"
-                onClick={() => startCheckout(tier === "free" ? "REP_BRONZE" : tier === "bronze" ? "REP_PRATA" : "REP_OURO", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+                onClick={() => startCheckout(
+                  tier === "free" ? "REP_BRONZE" : tier === "bronze" ? "REP_PRATA" : "REP_OURO",
+                  user?.id ?? 0, user?.email ?? "", user?.name ?? ""
+                )}
               >
                 <Star className="w-3 h-3 mr-1" />{tierConfig.upgrade}
               </Button>
             )}
-            <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={() => { logout(); navigate("/"); }}>
+            <Button
+              size="sm" variant="ghost"
+              className="w-full text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+              onClick={() => { logout(); navigate("/"); }}
+            >
               <LogOut className="w-4 h-4 mr-2" />Sair
             </Button>
           </div>
         </aside>
 
         {/* ─── Main Content ─────────────────────────────────────────────── */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto bg-slate-50">
 
-          {/* Jobs Tab */}
+          {/* ══ Jobs Tab ══════════════════════════════════════════════════ */}
           {activeTab === "jobs" && (
             <div className="p-8">
-              <div className="flex items-center justify-between mb-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h1 className="text-2xl font-black">Oportunidades</h1>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Plano <span className="text-primary font-semibold">{tierConfig.label}</span> — {
+                  <h1 className="text-2xl font-bold text-slate-900">Oportunidades</h1>
+                  <p className="text-slate-500 text-sm mt-1">
+                    Plano <span className="font-semibold text-emerald-700">{tierConfig.label}</span> — {
                       tier === "free" ? "pagamento pendente — vagas bloqueadas" :
                       tier === "bronze" ? "vagas Bronze disponíveis" :
                       tier === "prata" ? "vagas até Prata" : "todas as vagas (Ouro incluso)"
                     }
                   </p>
                 </div>
-                <Badge className={tierConfig.color}>{tierConfig.label}</Badge>
+                <Badge className={`${tierConfig.color} border-0 px-3 py-1 text-sm font-semibold`}>{tierConfig.label}</Badge>
               </div>
 
-              {tier === "free" && (
-                <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Lock className="w-4 h-4 text-amber-400" />
-                    <span className="text-amber-300">Pagamento pendente — ative um plano para acessar as vagas.</span>
+              {/* KPI Cards */}
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                {[
+                  { label: "Vagas Disponíveis", value: allJobs?.length ?? 0, icon: Briefcase, color: "text-emerald-600", bg: "bg-emerald-50" },
+                  { label: "Candidaturas Enviadas", value: myApplications?.length ?? 0, icon: Send, color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Propostas Aceitas", value: acceptedCount, icon: CheckCircle, color: "text-amber-600", bg: "bg-amber-50" },
+                ].map((kpi) => (
+                  <div key={kpi.label} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-slate-500 font-medium">{kpi.label}</span>
+                      <div className={`w-9 h-9 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+                        <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
+                      </div>
+                    </div>
+                    <div className={`text-3xl font-bold ${kpi.color}`}>{kpi.value}</div>
                   </div>
-                  <Button size="sm" className="bg-primary text-primary-foreground text-xs font-bold" onClick={() => startCheckout("REP_BRONZE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
+                ))}
+              </div>
+
+              {/* Charts Row */}
+              {(segmentCounts.length > 0 || statusCounts.length > 0) && (
+                <div className="grid grid-cols-2 gap-6 mb-8">
+                  {segmentCounts.length > 0 && (
+                    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                      <h3 className="text-sm font-semibold text-slate-700 mb-4">Vagas por Segmento</h3>
+                      <div style={{ height: 200 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={segmentCounts} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                            <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                            <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12 }} />
+                            <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+                  {statusCounts.length > 0 && (
+                    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                      <h3 className="text-sm font-semibold text-slate-700 mb-4">Candidaturas por Status</h3>
+                      <div style={{ height: 200 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={statusCounts} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                              {statusCounts.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12 }} />
+                            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "#64748b" }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tier lock banner */}
+              {tier === "free" && (
+                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Lock className="w-4 h-4 text-amber-600" />
+                    <span className="text-amber-800 font-medium">Pagamento pendente — ative um plano para acessar as vagas.</span>
+                  </div>
+                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold"
+                    onClick={() => startCheckout("REP_BRONZE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
                     Ativar Plano
                   </Button>
                 </div>
               )}
 
-                <div className="flex flex-wrap gap-3 mb-6">
+              {/* Filters */}
+              <div className="flex flex-wrap gap-3 mb-6">
                 <Select value={searchRegion || "all"} onValueChange={(v) => setSearchRegion(v === "all" ? "" : v)}>
-                  <SelectTrigger className="flex-1 min-w-[180px] max-w-xs bg-secondary border-border">
-                    <MapPin className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
+                  <SelectTrigger className="flex-1 min-w-[180px] max-w-xs bg-white border-slate-200 text-slate-700">
+                    <MapPin className="w-4 h-4 mr-2 text-slate-400 shrink-0" />
                     <SelectValue placeholder="Todas as regiões" />
                   </SelectTrigger>
                   <SelectContent>
@@ -310,8 +430,8 @@ export default function RepDashboard() {
                   </SelectContent>
                 </Select>
                 <Select value={searchSegment || "all"} onValueChange={(v) => setSearchSegment(v === "all" ? "" : v)}>
-                  <SelectTrigger className="flex-1 min-w-[180px] max-w-xs bg-secondary border-border">
-                    <Briefcase className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
+                  <SelectTrigger className="flex-1 min-w-[180px] max-w-xs bg-white border-slate-200 text-slate-700">
+                    <Briefcase className="w-4 h-4 mr-2 text-slate-400 shrink-0" />
                     <SelectValue placeholder="Todos os segmentos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -320,60 +440,70 @@ export default function RepDashboard() {
                   </SelectContent>
                 </Select>
                 <div className="relative flex-1 min-w-[160px] max-w-[200px]">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
                     type="number" min={0} max={100}
                     placeholder="Comissão mín. %"
                     value={minCommission || ""}
                     onChange={(e) => setMinCommission(Number(e.target.value))}
-                    className="pl-9 bg-secondary border-border"
+                    className="pl-9 bg-white border-slate-200 text-slate-700"
                   />
                 </div>
               </div>
 
+              {/* Jobs List */}
               {jobsLoading ? (
-                <div className="flex justify-center pt-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                <div className="flex justify-center pt-16"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>
               ) : !jobs?.length ? (
-                <div className="text-center pt-16 text-muted-foreground">
+                <div className="text-center pt-16 text-slate-400">
                   <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p className="font-semibold">Nenhuma vaga encontrada</p>
+                  <p className="font-semibold text-slate-600">Nenhuma vaga encontrada</p>
                   <p className="text-sm mt-1">Tente ajustar os filtros</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {jobs.map((job) => {
                     const isLocked = (job.minTierRequired === "bronze" && tier === "free") ||
                                      (job.minTierRequired === "prata" && tier !== "prata" && tier !== "ouro") ||
                                      (job.minTierRequired === "ouro" && tier !== "ouro");
                     const alreadyApplied = myApplications?.some(a => a.job?.id === job.id);
                     return (
-                      <div key={job.id} className={`rounded-xl border p-5 transition-all ${isLocked ? "border-border opacity-60 bg-card" : "border-border bg-card hover:border-primary/40"}`}>
+                      <div key={job.id} className={`rounded-xl border p-5 bg-white transition-all shadow-sm ${isLocked ? "border-slate-200 opacity-60" : "border-slate-200 hover:border-emerald-300 hover:shadow-md"}`}>
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              {job.isFeatured && <Badge className="bg-yellow-500/20 text-yellow-400 text-xs"><Star className="w-3 h-3 mr-1" />Destaque</Badge>}
+                              {job.isFeatured && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs"><Star className="w-3 h-3 mr-1" />Destaque</Badge>}
                               {job.createdAt && Date.now() - new Date(job.createdAt).getTime() < 3 * 24 * 60 * 60 * 1000 && (
-                                <Badge className="bg-green-500/20 text-green-400 text-xs">Nova</Badge>
+                                <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs">Nova</Badge>
                               )}
-                              {isLocked && <Badge className="bg-secondary text-muted-foreground text-xs"><Lock className="w-3 h-3 mr-1" />Bloqueado</Badge>}
+                              {isLocked && <Badge className="bg-slate-100 text-slate-500 border-0 text-xs"><Lock className="w-3 h-3 mr-1" />Bloqueado</Badge>}
                             </div>
-                            <h3 className="font-bold text-base">{job.title}</h3>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
+                            <h3 className="font-semibold text-base text-slate-900">{job.title}</h3>
+                            <div className="flex items-center gap-3 text-sm text-slate-500 mt-1 flex-wrap">
                               {job.region && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.region}</span>}
-                              {job.commissionPercentage && <span className="flex items-center gap-1 text-primary font-semibold"><DollarSign className="w-3 h-3" />{job.commissionPercentage}% comissão</span>}
-                              {job.segment && <span className="text-xs text-muted-foreground">{job.segment}</span>}
+                              {job.commissionPercentage && (
+                                <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                                  <DollarSign className="w-3 h-3" />{job.commissionPercentage}% comissão
+                                </span>
+                              )}
+                              {job.segment && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{job.segment}</span>}
                             </div>
-                            {job.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{job.description}</p>}
+                            {job.description && <p className="text-sm text-slate-500 mt-2 line-clamp-2">{job.description}</p>}
                           </div>
                           <div className="shrink-0">
                             {isLocked ? (
-                              <Button size="sm" className="bg-primary text-primary-foreground text-xs font-bold" onClick={() => startCheckout(tier === "free" ? "REP_PREMIUM" : "REP_ELITE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
+                              <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold"
+                                onClick={() => startCheckout(tier === "free" ? "REP_PREMIUM" : "REP_ELITE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
                                 <Lock className="w-3 h-3 mr-1" />Desbloquear
                               </Button>
                             ) : alreadyApplied ? (
-                              <Badge className="bg-green-900/30 text-green-400 text-xs"><CheckCircle className="w-3 h-3 mr-1" />Candidatado</Badge>
+                              <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs px-3 py-1.5">
+                                <CheckCircle className="w-3 h-3 mr-1" />Candidatado
+                              </Badge>
                             ) : (
-                              <Button size="sm" className="bg-primary text-primary-foreground font-bold" disabled={applyMutation.isPending} onClick={() => applyMutation.mutate({ jobId: job.id })}>
+                              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                                disabled={applyMutation.isPending}
+                                onClick={() => applyMutation.mutate({ jobId: job.id })}>
                                 <ChevronRight className="w-4 h-4 mr-1" />Candidatar
                               </Button>
                             )}
@@ -387,42 +517,67 @@ export default function RepDashboard() {
             </div>
           )}
 
-          {/* Applications Tab */}
+          {/* ══ Applications Tab ══════════════════════════════════════════ */}
           {activeTab === "applications" && (
             <div className="p-8">
-              <h1 className="text-2xl font-black mb-2">Minhas Candidaturas</h1>
-              <p className="text-muted-foreground text-sm mb-6">Acompanhe o status e negocie diretamente com as empresas via chat</p>
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-slate-900">Minhas Candidaturas</h1>
+                <p className="text-slate-500 text-sm mt-1">Acompanhe o status e negocie diretamente com as empresas via chat</p>
+              </div>
+
+              {/* KPI Cards */}
+              <div className="grid grid-cols-4 gap-4 mb-8">
+                {[
+                  { label: "Total",      value: myApplications?.length ?? 0,                                                                          color: "text-slate-700",   bg: "bg-slate-50",   icon: Bell },
+                  { label: "Aceitas",    value: acceptedCount,                                                                                         color: "text-emerald-700", bg: "bg-emerald-50", icon: CheckCircle },
+                  { label: "Aguardando", value: myApplications?.filter(a => a.application.status === "pending").length ?? 0,                           color: "text-amber-700",   bg: "bg-amber-50",   icon: Clock },
+                  { label: "Score Médio", value: avgScore,                                                                                             color: "text-blue-700",    bg: "bg-blue-50",    icon: Target },
+                ].map((kpi) => (
+                  <div key={kpi.label} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs text-slate-500 font-medium">{kpi.label}</span>
+                      <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+                        <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
+                      </div>
+                    </div>
+                    <div className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</div>
+                  </div>
+                ))}
+              </div>
 
               {appsLoading ? (
-                <div className="flex justify-center pt-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                <div className="flex justify-center pt-16"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>
               ) : !myApplications?.length ? (
-                <div className="text-center pt-16 text-muted-foreground">
+                <div className="text-center pt-16 text-slate-400">
                   <Bell className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p className="font-semibold">Nenhuma candidatura ainda</p>
+                  <p className="font-semibold text-slate-600">Nenhuma candidatura ainda</p>
                   <p className="text-sm mt-1">Explore as oportunidades e candidate-se</p>
-                  <Button className="mt-4 bg-primary text-primary-foreground" onClick={() => setActiveTab("jobs")}>Ver Oportunidades</Button>
+                  <Button className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setActiveTab("jobs")}>Ver Oportunidades</Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                    {myApplications.map(({ application, job }) => {
+                <div className="space-y-3">
+                  {myApplications.map(({ application, job }) => {
                     const status = STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
                     const StatusIcon = status.icon;
                     const chatOpen = openChatId === application.id;
                     return (
-                      <div key={application.id} className="rounded-xl border border-border bg-card p-5">
+                      <div key={application.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-base">{job?.title ?? "Vaga"}</h3>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
+                            <h3 className="font-semibold text-base text-slate-900">{job?.title ?? "Vaga"}</h3>
+                            <div className="flex items-center gap-3 text-sm text-slate-500 mt-1 flex-wrap">
                               {job?.region && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.region}</span>}
-                              {job?.segment && <span className="text-xs">{job.segment}</span>}
+                              {job?.segment && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{job.segment}</span>}
                             </div>
                             <div className="flex items-center gap-3 mt-2">
-                              <Badge className={status.color}><StatusIcon className="w-3 h-3 mr-1" />{status.label}</Badge>
-                              <span className="text-xs text-muted-foreground">Score: <span className="text-primary font-bold">{application.totalScore}/100</span></span>
+                              <Badge className={`${status.color} border text-xs`}>
+                                <StatusIcon className="w-3 h-3 mr-1" />{status.label}
+                              </Badge>
+                              <span className="text-xs text-slate-500">Score: <span className="text-emerald-700 font-bold">{application.totalScore}/100</span></span>
                             </div>
                           </div>
-                          <Button size="sm" variant="outline" className="shrink-0 border-border" onClick={() => setOpenChatId(chatOpen ? null : application.id)}>
+                          <Button size="sm" variant="outline" className="shrink-0 border-slate-200 text-slate-600 hover:bg-slate-50"
+                            onClick={() => setOpenChatId(chatOpen ? null : application.id)}>
                             <MessageCircle className="w-4 h-4 mr-1.5" />{chatOpen ? "Fechar" : "Chat"}
                           </Button>
                         </div>
@@ -432,62 +587,46 @@ export default function RepDashboard() {
                   })}
                 </div>
               )}
-
-              {acceptedApps.length > 0 && (
-                <div className="mt-10">
-                  <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Star className="w-5 h-5 text-primary" />Propostas Aceitas
-                  </h2>
-                  <div className="space-y-3">
-                    {acceptedApps.map(({ application, job }) => (
-                      <div key={application.id} className="rounded-xl border border-green-700/40 bg-green-900/10 p-4 flex items-center justify-between">
-                        <div>
-                          <div className="font-bold">{job?.title}</div>
-                          <div className="text-sm text-muted-foreground">{job?.segment ?? "—"}</div>
-                        </div>
-                        <Badge className="bg-green-900/30 text-green-400">{application.status === "hired" ? "Contratado" : "Aceito"}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Profile Tab */}
+          {/* ══ Profile Tab ═══════════════════════════════════════════════ */}
           {activeTab === "profile" && (
             <div className="p-8 max-w-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-black">Meu Perfil</h1>
-                <Button variant="outline" size="sm" className="border-border" onClick={openEditProfile}>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900">Meu Perfil</h1>
+                  <p className="text-slate-500 text-sm mt-1">Mantenha seu perfil atualizado para atrair mais empresas</p>
+                </div>
+                <Button variant="outline" size="sm" className="border-slate-200 text-slate-600 hover:bg-slate-50" onClick={openEditProfile}>
                   <Edit2 className="w-4 h-4 mr-2" />Editar Perfil
                 </Button>
               </div>
-              <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-                <div className="flex items-center gap-4 pb-4 border-b border-border">
-                  <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-2xl">
+
+              {/* Profile Card */}
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-5">
+                <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-2xl">
                     {profile.fullName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">{profile.fullName}</h2>
+                    <h2 className="text-xl font-bold text-slate-900">{profile.fullName}</h2>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                      <Badge className={tierConfig.color}>{tierConfig.label}</Badge>
+                      <Badge className={`${tierConfig.color} border-0`}>{tierConfig.label}</Badge>
                       {(profile as any).kycStatus === "approved" && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-0.5">
                           <Shield className="w-3 h-3" /> Identidade Verificada
                         </span>
                       )}
                       {(profile as any).coreStatus === "active" && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded-full px-2.5 py-0.5 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2.5 py-0.5">
                           <Award className="w-3 h-3" /> CORE Ativo
-                          {(profile as any).coreValidUntil && (
-                            <span className="opacity-70 ml-0.5">· vál. {new Date((profile as any).coreValidUntil).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
-                          )}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {[
                     { label: "Região", value: profile.region },
@@ -495,49 +634,51 @@ export default function RepDashboard() {
                     { label: "Experiência", value: profile.experienceYears ? `${profile.experienceYears} anos` : "—" },
                     { label: "Telefone", value: profile.phone ?? "—" },
                   ].map((item) => (
-                    <div key={item.label}>
-                      <div className="text-muted-foreground mb-0.5">{item.label}</div>
-                      <div className="font-medium">{item.value ?? "—"}</div>
+                    <div key={item.label} className="bg-slate-50 rounded-lg p-3">
+                      <div className="text-slate-400 text-xs mb-0.5">{item.label}</div>
+                      <div className="font-semibold text-slate-800">{item.value ?? "—"}</div>
                     </div>
                   ))}
                 </div>
+
                 {profile.bio && (
-                  <div className="pt-2">
-                    <div className="text-muted-foreground text-sm mb-1">Bio</div>
-                    <p className="text-sm leading-relaxed">{profile.bio}</p>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <div className="text-slate-400 text-xs mb-1">Bio</div>
+                    <p className="text-sm leading-relaxed text-slate-700">{profile.bio}</p>
                   </div>
                 )}
-                <div className="pt-4 border-t border-border">
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    {[
-                      { label: "Candidaturas", value: myApplications?.length ?? 0 },
-                      { label: "Score Médio", value: myApplications?.length ? Math.round(myApplications.reduce((s, a) => s + (a.application.totalScore ?? 0), 0) / myApplications.length) : 0 },
-                      { label: "Taxa de Resposta", value: `${profile.responseRate ?? 0}%` },
-                    ].map((stat) => (
-                      <div key={stat.label} className="rounded-lg bg-secondary p-3">
-                        <div className="text-2xl font-black text-primary">{stat.value}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
-                      </div>
-                    ))}
-                  </div>
+
+                <div className="grid grid-cols-3 gap-4 pt-2">
+                  {[
+                    { label: "Candidaturas", value: myApplications?.length ?? 0, color: "text-slate-800" },
+                    { label: "Score Médio", value: avgScore, color: "text-emerald-700" },
+                    { label: "Taxa de Resposta", value: `${profile.responseRate ?? 0}%`, color: "text-blue-700" },
+                  ].map((stat) => (
+                    <div key={stat.label} className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-center">
+                      <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">{stat.label}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              {/* KYC / CORE Verification Card — dynamic based on status */}
-              <div className="mt-6 rounded-xl border border-border bg-card p-5 space-y-3">
-                <h3 className="font-bold text-sm flex items-center gap-2"><Shield className="w-4 h-4 text-emerald-400" /> Verificação de Perfil</h3>
-                {/* KYC row */}
+
+              {/* Verification Card */}
+              <div className="mt-5 bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+                <h3 className="font-semibold text-sm text-slate-700 flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-emerald-600" /> Verificação de Perfil
+                </h3>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div>
                     {(profile as any).kycStatus === "approved" ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-full px-3 py-1 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1">
                         <Shield className="w-3.5 h-3.5" /> Identidade Verificada
                       </span>
                     ) : (profile as any).kycStatus === "pending" ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-3 py-1">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1">
                         <Shield className="w-3.5 h-3.5" /> Em análise...
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-full px-3 py-1">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 border border-slate-200 rounded-full px-3 py-1">
                         <Shield className="w-3.5 h-3.5" /> Identidade não verificada
                       </span>
                     )}
@@ -550,29 +691,24 @@ export default function RepDashboard() {
                     </a>
                   )}
                 </div>
-                {/* CORE row */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div>
                     {(profile as any).coreStatus === "active" ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded-full px-3 py-1 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1">
                         <Award className="w-3.5 h-3.5" /> CORE Ativo
                         {(profile as any).coreValidUntil && (
                           <span className="opacity-70 ml-0.5">· vál. {new Date((profile as any).coreValidUntil).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
                         )}
                       </span>
-                    ) : (profile as any).coreStatus === "inactive" ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30 rounded-full px-3 py-1">
-                        <Award className="w-3.5 h-3.5" /> CORE Inativo
-                      </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-full px-3 py-1">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 border border-slate-200 rounded-full px-3 py-1">
                         <Award className="w-3.5 h-3.5" /> CORE não validado
                       </span>
                     )}
                   </div>
                   {(profile as any).coreStatus !== "active" && (
                     <a href="/verificacao">
-                      <Button size="sm" variant="outline" className="text-xs h-7 border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
+                      <Button size="sm" variant="outline" className="text-xs h-7 border-amber-200 text-amber-700 hover:bg-amber-50">
                         Validar CORE
                       </Button>
                     </a>
@@ -580,16 +716,25 @@ export default function RepDashboard() {
                 </div>
               </div>
 
+              {/* Upgrade Card */}
               {tierConfig.upgrade && (
-                <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-6">
+                <div className="mt-5 bg-white rounded-xl border border-emerald-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-3">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                    <h3 className="font-bold">Desbloqueie mais oportunidades</h3>
+                    <div className="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-emerald-700" />
+                    </div>
+                    <h3 className="font-semibold text-slate-800">Desbloqueie mais oportunidades</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {tier === "free" ? "Ative o Bronze (R$9,99/mês) para aparecer para empresas e acessar vagas exclusivas." : tier === "bronze" ? "Com o Prata (R$19,90/mês) você tem destaque na busca e acessa vagas Prata." : "Com o Ouro (R$29,90/mês) você aparece em primeiro na busca e acessa TODAS as vagas."}
+                  <p className="text-sm text-slate-500 mb-4">
+                    {tier === "free" ? "Ative o Bronze (R$9,99/mês) para aparecer para empresas e acessar vagas exclusivas." :
+                     tier === "bronze" ? "Com o Prata (R$19,90/mês) você tem destaque na busca e acessa vagas Prata." :
+                     "Com o Ouro (R$29,90/mês) você aparece em primeiro na busca e acessa TODAS as vagas."}
                   </p>
-                  <Button className="bg-primary text-primary-foreground font-bold" onClick={() => startCheckout(tier === "free" ? "REP_BRONZE" : tier === "bronze" ? "REP_PRATA" : "REP_OURO", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                    onClick={() => startCheckout(
+                      tier === "free" ? "REP_BRONZE" : tier === "bronze" ? "REP_PRATA" : "REP_OURO",
+                      user?.id ?? 0, user?.email ?? "", user?.name ?? ""
+                    )}>
                     {tierConfig.upgrade}
                   </Button>
                 </div>
@@ -601,46 +746,56 @@ export default function RepDashboard() {
 
       {/* ─── Edit Profile Dialog ─────────────────────────────────────────── */}
       <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-white border-slate-200 max-w-lg">
           <DialogHeader>
-            <DialogTitle>Editar Perfil</DialogTitle>
+            <DialogTitle className="text-slate-900">Editar Perfil</DialogTitle>
           </DialogHeader>
-          <form className="space-y-4 mt-2 max-h-[70vh] overflow-y-auto pr-1" onSubmit={(e) => { e.preventDefault(); updateProfileMutation.mutate({ ...profileForm, availability: profileForm.availability as "imediata" | "30dias" | "60dias" | "negociavel", workModel: profileForm.workModel as "exclusivo" | "multiplas" | "indifferente" }); }}>
+          <form
+            className="space-y-4 mt-2 max-h-[70vh] overflow-y-auto pr-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              updateProfileMutation.mutate({
+                ...profileForm,
+                availability: profileForm.availability as "imediata" | "30dias" | "60dias" | "negociavel",
+                workModel: profileForm.workModel as "exclusivo" | "multiplas" | "indifferente"
+              });
+            }}
+          >
             <div>
-              <Label>Nome completo</Label>
-              <Input value={profileForm.fullName} onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })} className="mt-1 bg-secondary border-border" />
+              <Label className="text-slate-700">Nome completo</Label>
+              <Input value={profileForm.fullName} onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })} className="mt-1 bg-slate-50 border-slate-200 text-slate-800" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Região principal</Label>
+                <Label className="text-slate-700">Região principal</Label>
                 <Select value={profileForm.region} onValueChange={(v) => setProfileForm({ ...profileForm, region: v })}>
-                  <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className="mt-1 bg-slate-50 border-slate-200 text-slate-700"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Segmento principal</Label>
+                <Label className="text-slate-700">Segmento principal</Label>
                 <Select value={profileForm.segment} onValueChange={(v) => setProfileForm({ ...profileForm, segment: v })}>
-                  <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className="mt-1 bg-slate-50 border-slate-200 text-slate-700"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Telefone</Label>
-                <Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} placeholder="(11) 99999-9999" className="mt-1 bg-secondary border-border" />
+                <Label className="text-slate-700">Telefone</Label>
+                <Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} placeholder="(11) 99999-9999" className="mt-1 bg-slate-50 border-slate-200 text-slate-800" />
               </div>
               <div>
-                <Label>Anos de experiência</Label>
-                <Input type="number" min={0} max={50} value={profileForm.experienceYears} onChange={(e) => setProfileForm({ ...profileForm, experienceYears: Number(e.target.value) })} className="mt-1 bg-secondary border-border" />
+                <Label className="text-slate-700">Anos de experiência</Label>
+                <Input type="number" min={0} max={50} value={profileForm.experienceYears} onChange={(e) => setProfileForm({ ...profileForm, experienceYears: Number(e.target.value) })} className="mt-1 bg-slate-50 border-slate-200 text-slate-800" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Disponibilidade</Label>
+                <Label className="text-slate-700">Disponibilidade</Label>
                 <Select value={profileForm.availability} onValueChange={(v) => setProfileForm({ ...profileForm, availability: v })}>
-                  <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 bg-slate-50 border-slate-200 text-slate-700"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="imediata">Disponível agora</SelectItem>
                     <SelectItem value="30dias">Em 30 dias</SelectItem>
@@ -650,37 +805,30 @@ export default function RepDashboard() {
                 </Select>
               </div>
               <div>
-                <Label>Modelo de trabalho</Label>
+                <Label className="text-slate-700">Modelo de trabalho</Label>
                 <Select value={profileForm.workModel} onValueChange={(v) => setProfileForm({ ...profileForm, workModel: v })}>
-                  <SelectTrigger className="mt-1 bg-secondary border-border"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 bg-slate-50 border-slate-200 text-slate-700"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="exclusivo">Exclusivo</SelectItem>
-                    <SelectItem value="multiplas">Múltiplas empresas</SelectItem>
+                    <SelectItem value="multiplas">Múltiplas representadas</SelectItem>
                     <SelectItem value="indifferente">Indiferente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label>Outros segmentos que atua <span className="text-muted-foreground text-xs">(separados por vírgula)</span></Label>
-              <Input value={profileForm.additionalSegments} onChange={(e) => setProfileForm({ ...profileForm, additionalSegments: e.target.value })} placeholder="Ex: Farmacêutico, Cosméticos" className="mt-1 bg-secondary border-border" />
+              <Label className="text-slate-700">Bio</Label>
+              <Textarea value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} rows={3} placeholder="Descreva sua experiência e diferenciais..." className="mt-1 bg-slate-50 border-slate-200 text-slate-800 resize-none" />
             </div>
             <div>
-              <Label>Cidades / Estados que atende <span className="text-muted-foreground text-xs">(separados por vírgula)</span></Label>
-              <Input value={profileForm.cities} onChange={(e) => setProfileForm({ ...profileForm, cities: e.target.value })} placeholder="Ex: São Paulo, Campinas, ABC Paulista" className="mt-1 bg-secondary border-border" />
-            </div>
-            <div>
-              <Label>LinkedIn <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-              <Input value={profileForm.linkedinUrl} onChange={(e) => setProfileForm({ ...profileForm, linkedinUrl: e.target.value })} placeholder="https://linkedin.com/in/seu-perfil" className="mt-1 bg-secondary border-border" />
-            </div>
-            <div>
-              <Label>Bio</Label>
-              <Textarea value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} placeholder="Conte sobre sua experiência, resultados e diferenciais..." className="mt-1 bg-secondary border-border" rows={3} />
+              <Label className="text-slate-700">LinkedIn</Label>
+              <Input value={profileForm.linkedinUrl} onChange={(e) => setProfileForm({ ...profileForm, linkedinUrl: e.target.value })} placeholder="https://linkedin.com/in/..." className="mt-1 bg-slate-50 border-slate-200 text-slate-800" />
             </div>
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" className="flex-1 border-border" onClick={() => setEditProfileOpen(false)}>Cancelar</Button>
-              <Button type="submit" className="flex-1 bg-primary text-primary-foreground font-bold" disabled={updateProfileMutation.isPending}>
-                {updateProfileMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Alterações"}
+              <Button type="button" variant="outline" className="flex-1 border-slate-200 text-slate-600" onClick={() => setEditProfileOpen(false)}>Cancelar</Button>
+              <Button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold" disabled={updateProfileMutation.isPending}>
+                {updateProfileMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Salvar Alterações
               </Button>
             </div>
           </form>
