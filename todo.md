@@ -305,7 +305,7 @@
 - [x] Badge de disponibilidade nos cards do CompanyDashboard e BuscarRepresentantes
 - [x] Contador "X disponíveis agora" no topo da aba de busca
 - [x] Backend: countAvailableNow procedure + /api/scheduled/availability-reminder endpoint
-- [ ] Job agendado mensal para lembrar reps de atualizar disponibilidade
+- [x] Job agendado mensal para lembrar reps de atualizar disponibilidade (endpoint /api/scheduled/availability-reminder implementado)
 
 ## Substituição Auth Manus → Auth Própria (email/senha)
 - [x] Schema: adicionar campo passwordHash na tabela users
@@ -363,15 +363,15 @@
 
 ## Logo e Chat Interno
 - [x] Corrigir logo: remover fundo preto, gerar versão com fundo transparente
-- [ ] Chat interno: empresa pode abrir chat com rep após desbloquear contato (sem precisar de candidatura)
-- [ ] Chat interno: rep pode responder empresa no dashboard
-- [ ] Chat interno: notificação visual de mensagens não lidas
+- [x] Chat interno: empresa pode abrir chat com rep após desbloquear contato (sem precisar de candidatura)
+- [x] Chat interno: rep pode responder empresa no dashboard
+- [x] Chat interno: notificação visual de mensagens não lidas
 
 ## Toggle Dark/Light + Tema Roxo
-- [ ] Criar ThemeContext com persistência em localStorage (dark/light)
-- [ ] Adicionar variáveis CSS do tema claro branco+roxo no index.css
-- [ ] Botão toggle dark/light no header da landing page
-- [ ] Botão toggle dark/light no DashboardLayout (sidebar ou topbar)
+- [x] Criar ThemeContext com persistência em localStorage (dark/light)
+- [x] Adicionar variáveis CSS do tema claro branco+roxo no index.css
+- [x] Botão toggle dark/light no header da landing page
+- [x] Botão toggle dark/light no DashboardLayout (sidebar ou topbar)
 - [x] Remover referências à Base CNPJ/Receita Federal de todas as páginas
 - [x] Corrigir logo para fundo transparente
 
@@ -415,7 +415,7 @@
 
 ## Preparação para Publicação (Sprint Final)
 
-- [ ] Chat direto empresa ↔ rep após desbloqueio de contato (backend + UI)
-- [ ] Toggle Dark/Light no header da landing page e nos dashboards
-- [ ] Marcar job agendado de disponibilidade como concluído
-- [ ] Checkpoint final e publicação
+- [x] Chat direto empresa ↔ rep após desbloqueio de contato (backend + UI)
+- [x] Toggle Dark/Light no header da landing page e nos dashboards
+- [x] Marcar job agendado de disponibilidade como concluído
+- [x] Checkpoint final e publicação

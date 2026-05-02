@@ -18,6 +18,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Moon, Sun } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -218,6 +220,22 @@ function DirectChatTab({
         )}
       </div>
     </div>
+  );
+}
+
+function ThemeToggleCompact() {
+  const { theme, toggleTheme, switchable } = useTheme();
+  if (!switchable || !toggleTheme) return null;
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="w-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 justify-start"
+      onClick={toggleTheme}
+    >
+      {theme === 'dark' ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+      {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+    </Button>
   );
 }
 
@@ -463,7 +481,8 @@ export default function CompanyDashboard() {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-slate-100">
+        <div className="p-3 border-t border-slate-100 space-y-1">
+          <ThemeToggleCompact />
           <Button
             size="sm"
             variant="ghost"

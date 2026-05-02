@@ -1,4 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -285,6 +287,23 @@ function RepDirectChatTab({
   );
 }
 
+// ─── Theme Toggle ──────────────────────────────────────────────────
+function RepThemeToggle() {
+  const { theme, toggleTheme, switchable } = useTheme();
+  if (!switchable || !toggleTheme) return null;
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="w-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 justify-start"
+      onClick={toggleTheme}
+    >
+      {theme === 'dark' ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+      {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+    </Button>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────────────────
 export default function RepDashboard() {
   const { user, logout } = useAuth();
@@ -458,6 +477,7 @@ export default function RepDashboard() {
                 <Star className="w-3 h-3 mr-1" />{tierConfig.upgrade}
               </Button>
             )}
+            <RepThemeToggle />
             <Button
               size="sm" variant="ghost"
               className="w-full text-slate-500 hover:text-slate-800 hover:bg-slate-50"

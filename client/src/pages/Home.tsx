@@ -11,6 +11,8 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Moon, Sun } from "lucide-react";
 
 function maskCompanyName(name: string): string {
   const words = name.trim().split(" ");
@@ -441,6 +443,20 @@ function AnimatedCounter({ end, suffix = "", duration = 2000 }: { end: number; s
   return <span ref={ref}>{count.toLocaleString("pt-BR")}{suffix}</span>;
 }
 
+function ThemeToggleButton() {
+  const { theme, toggleTheme, switchable } = useTheme();
+  if (!switchable || !toggleTheme) return null;
+  return (
+    <button
+      onClick={toggleTheme}
+      className="w-9 h-9 rounded-full flex items-center justify-center border border-border bg-background/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+      title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+    >
+      {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+    </button>
+  );
+}
+
 export default function Home() {
   const { isAuthenticated, user } = useAuth();
   const [, navigate] = useLocation();
@@ -481,6 +497,7 @@ export default function Home() {
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>
           <div className="flex items-center gap-3">
+            <ThemeToggleButton />
             {isAuthenticated ? (
               <button
                 onClick={() => {
