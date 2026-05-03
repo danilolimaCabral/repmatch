@@ -103,7 +103,7 @@ function LiveCounterSection() {
   ];
 
   return (
-    <section className="py-14 border-y border-border" style={{ background: "linear-gradient(180deg, oklch(0.14 0.01 152 / 0.5) 0%, transparent 100%)" }}>
+    <section className="py-14 border-y border-border" style={{ background: "linear-gradient(180deg, oklch(0.62 0.18 152 / 0.04) 0%, transparent 100%)" }}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-widest">
@@ -325,7 +325,7 @@ function AntesDepois() {
   ];
 
   return (
-    <section className="py-24 px-6 border-y border-border" style={{ background: "linear-gradient(135deg, oklch(0.12 0.01 0) 0%, oklch(0.11 0.02 152 / 0.3) 100%)" }}>
+    <section className="py-24 px-6 border-y border-border bg-muted/30">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Antes x Depois</Badge>
@@ -526,12 +526,13 @@ export default function Home() {
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 overflow-hidden">
         {/* Subtle radial glow */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full blur-[140px]" style={{ background: "oklch(0.62 0.18 152 / 0.07)" }} />
-          <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] rounded-full blur-[100px]" style={{ background: "oklch(0.62 0.18 152 / 0.04)" }} />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full blur-[140px]" style={{ background: "oklch(0.62 0.18 152 / 0.10)" }} />
+          <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] rounded-full blur-[100px]" style={{ background: "oklch(0.62 0.18 152 / 0.06)" }} />
+          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] rounded-full blur-[120px]" style={{ background: "oklch(0.58 0.16 210 / 0.04)" }} />
         </div>
         {/* Subtle grid */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.018]"
-          style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)", backgroundSize: "72px 72px" }} />
+        <div className="absolute inset-0 pointer-events-none opacity-[0.035]"
+          style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px)", backgroundSize: "72px 72px" }} />
 
         <div className="relative z-10 max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/25 text-primary text-xs font-semibold px-4 py-2 rounded-full mb-10 tracking-wide uppercase">
@@ -568,7 +569,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => handleCTA("manager")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-semibold text-base px-8 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-semibold text-base px-8 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5 dark:bg-blue-500/20 dark:hover:bg-blue-500/30 dark:border-blue-500/40 dark:text-blue-300"
             >
               <UserCog className="w-5 h-5" />
               Sou Gerente
@@ -1047,17 +1048,17 @@ export default function Home() {
                   </div>
                   <p className="text-muted-foreground text-sm">Não quer assinar? Compre créditos para impulsionar seu perfil, aparecer em destaque por períodos específicos ou desbloquear vagas premium.</p>
                 </div>
-                <div className="flex gap-3 flex-shrink-0">
-                  <div className="text-center px-5 py-3 rounded-xl border border-border bg-card">
-                    <div className="text-2xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$9,90</div>
+                <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:flex md:gap-3 flex-shrink-0">
+                  <div className="text-center px-3 md:px-5 py-3 rounded-xl border border-border bg-card">
+                    <div className="text-xl md:text-2xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$9,90</div>
                     <div className="text-xs text-muted-foreground mt-0.5">1 semana destaque</div>
                   </div>
-                  <div className="text-center px-5 py-3 rounded-xl border border-primary/30 bg-primary/10">
-                    <div className="text-2xl font-black text-primary" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$24,90</div>
+                  <div className="text-center px-3 md:px-5 py-3 rounded-xl border border-primary/30 bg-primary/10">
+                    <div className="text-xl md:text-2xl font-black text-primary" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$24,90</div>
                     <div className="text-xs text-muted-foreground mt-0.5">1 mês destaque</div>
                   </div>
-                  <div className="text-center px-5 py-3 rounded-xl border border-yellow-500/30 bg-yellow-900/10">
-                    <div className="text-2xl font-black text-yellow-400" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$59,90</div>
+                  <div className="text-center px-3 md:px-5 py-3 rounded-xl border border-yellow-500/30 bg-yellow-900/10">
+                    <div className="text-xl md:text-2xl font-black text-yellow-400" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$59,90</div>
                     <div className="text-xs text-muted-foreground mt-0.5">3 meses destaque</div>
                   </div>
                 </div>
@@ -1183,17 +1184,17 @@ export default function Home() {
                   </div>
                   <p className="text-muted-foreground text-sm">Precisa de mais desbloqueos este mês? Compre créditos extras sem mudar de plano — cada crédito libera o contato completo de 1 representante.</p>
                 </div>
-                <div className="flex gap-3 flex-shrink-0">
-                  <div className="text-center px-5 py-3 rounded-xl border border-border bg-card">
-                    <div className="text-2xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$19,90</div>
+                <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:flex md:gap-3 flex-shrink-0">
+                  <div className="text-center px-3 md:px-5 py-3 rounded-xl border border-border bg-card">
+                    <div className="text-xl md:text-2xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$19,90</div>
                     <div className="text-xs text-muted-foreground mt-0.5">5 créditos</div>
                   </div>
-                  <div className="text-center px-5 py-3 rounded-xl border border-primary/30 bg-primary/10">
-                    <div className="text-2xl font-black text-primary" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$39,90</div>
+                  <div className="text-center px-3 md:px-5 py-3 rounded-xl border border-primary/30 bg-primary/10">
+                    <div className="text-xl md:text-2xl font-black text-primary" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$39,90</div>
                     <div className="text-xs text-muted-foreground mt-0.5">15 créditos</div>
                   </div>
-                  <div className="text-center px-5 py-3 rounded-xl border border-yellow-500/30 bg-yellow-900/10">
-                    <div className="text-2xl font-black text-yellow-400" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$69,90</div>
+                  <div className="text-center px-3 md:px-5 py-3 rounded-xl border border-yellow-500/30 bg-yellow-900/10">
+                    <div className="text-xl md:text-2xl font-black text-yellow-400" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$69,90</div>
                     <div className="text-xs text-muted-foreground mt-0.5">30 créditos</div>
                   </div>
                 </div>
@@ -1204,7 +1205,7 @@ export default function Home() {
       </section>
 
       {/* ─── CTA Banner ─────────────────────────────────────────────────────── */}
-      <section className="py-28 px-6 relative overflow-hidden">
+      <section className="py-16 md:py-28 px-6 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full blur-[140px]" style={{ background: "oklch(0.62 0.18 152 / 0.06)" }} />
         </div>
@@ -1231,7 +1232,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => handleCTA("manager")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-semibold text-base px-9 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-semibold text-base px-9 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5 dark:bg-blue-500/20 dark:hover:bg-blue-500/30 dark:border-blue-500/40 dark:text-blue-300"
             >
               <UserCog className="w-5 h-5" />
               Sou Gerente

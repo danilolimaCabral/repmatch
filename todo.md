@@ -440,3 +440,46 @@
 - [x] Frontend Landing: seção de selos de segurança (SSL, LGPD, KYC, criptografia)
 - [x] Frontend Landing: badges de confiança (Verificado, Seguro, LGPD Compliant)
 - [x] Frontend Landing: seção "Como protegemos seus dados"
+
+## Sistema de Avaliações
+- [ ] Schema: tabela rep_reviews (companyId, repId, rating 1-5, comment, createdAt)
+- [ ] Backend: procedure reviews.create (empresa avalia rep após desbloqueio de contato)
+- [ ] Backend: procedure reviews.listForRep (listar avaliações de um rep)
+- [ ] Backend: procedure reviews.myReviews (empresa vê suas avaliações enviadas)
+- [ ] Backend: atualizar campo avgRating na tabela representatives após nova avaliação
+- [ ] Frontend CompanyDashboard: botão "Avaliar" nos contatos desbloqueados
+- [ ] Frontend CompanyDashboard: modal de avaliação (estrelas + comentário)
+- [ ] Frontend RepDashboard: aba/seção com avaliações recebidas
+- [ ] Frontend BuscarRepresentantes: exibir estrelas e nota média nos cards
+- [ ] Frontend /oportunidades-reps: exibir estrelas nos cards
+
+## Notificações por E-mail (Resend)
+- [ ] Instalar SDK Resend e configurar RESEND_API_KEY
+- [ ] Helper server/email.ts com funções sendEmail genérica
+- [ ] E-mail: rep notificado quando empresa visualiza seu perfil
+- [ ] E-mail: rep notificado quando empresa desbloqueia seu contato
+- [ ] E-mail: empresa notificada quando rep se candidata à vaga
+- [ ] E-mail: rep notificado quando candidatura é aprovada/rejeitada
+
+## Dashboard Analytics Admin
+- [ ] Backend: procedure admin.analyticsGrowth (cadastros por semana, últimas 12 semanas)
+- [ ] Backend: procedure admin.analyticsFunnel (visitantes → cadastros → planos pagos)
+- [ ] Backend: procedure admin.analyticsRevenue (receita por semana via Stripe)
+- [ ] Frontend AdminDashboard: aba "Analytics" com gráfico de linha (crescimento)
+- [ ] Frontend AdminDashboard: gráfico de funil de conversão
+- [ ] Frontend AdminDashboard: gráfico de receita semanal
+
+## Redesign — Tema Branco Predominante
+- [x] CSS global: tema branco puro com verde esmeralda como cor de destaque, tipografia escura
+- [x] Landing page: fundo branco, hero com gradiente sutil, seções alternadas branco/cinza claro
+- [x] Dashboards: sidebar branca, cards com sombra suave, sem fundo escuro
+
+## Finalização v1.5 — Analytics + Avaliações + Correções
+
+- [x] Corrigir erro de sintaxe no RepDashboard.tsx (aba Reviews inserida dentro do bloco myopportunities)
+- [x] Adicionar aba "Avaliações" no RepDashboard com resumo de estrelas e lista de avaliações recebidas
+- [x] Adicionar query trpc.reviews.getByRep no RepDashboard
+- [x] Adicionar aba "Analytics" no AdminDashboard com gráfico de crescimento semanal e funil de conversão
+- [x] Mover procedures weeklyGrowth e conversionFunnel para o router admin (estavam no kyc)
+- [x] Instalar pacote resend (aguardando chave de API do usuário para ativar)
+- [x] TypeScript: 0 erros após todas as correções

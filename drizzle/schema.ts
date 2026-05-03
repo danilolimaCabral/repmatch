@@ -328,3 +328,16 @@ export const managerUnlocks = mysqlTable("manager_unlocks", {
 });
 export type ManagerUnlock = typeof managerUnlocks.$inferSelect;
 export type InsertManagerUnlock = typeof managerUnlocks.$inferInsert;
+
+// ─── Rep Reviews (Empresa avalia representante após contratação) ──────────────
+export const repReviews = mysqlTable("rep_reviews", {
+  id: int("id").autoincrement().primaryKey(),
+  companyId: int("companyId").notNull(),
+  representativeId: int("representativeId").notNull(),
+  rating: int("rating").notNull(), // 1-5
+  comment: text("comment"),
+  companyName: varchar("companyName", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RepReview = typeof repReviews.$inferSelect;
+export type InsertRepReview = typeof repReviews.$inferInsert;

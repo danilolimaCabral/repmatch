@@ -308,7 +308,7 @@ function RepThemeToggle() {
 export default function RepDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile" | "messages" | "myopportunities">("jobs");
+  const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile" | "messages" | "myopportunities" | "reviews">("jobs");
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
   const [directChatInput, setDirectChatInput] = useState("");
   const [searchRegion, setSearchRegion] = useState("");
@@ -332,6 +332,10 @@ export default function RepDashboard() {
   const jobs = allJobs?.filter(j => !minCommission || Number(j.commissionPercentage ?? 0) >= minCommission);
   const { data: myApplications, isLoading: appsLoading } = trpc.candidaturas.myApplications.useQuery();
   const { data: myOpportunities, isLoading: oppsLoading } = trpc.opportunities.myList.useQuery();
+  const { data: myReviews } = trpc.reviews.getByRep.useQuery(
+    { representativeId: profile?.id ?? 0 },
+    { enabled: !!profile?.id }
+  );
   const [newOppOpen, setNewOppOpen] = useState(false);
   const [oppForm, setOppForm] = useState({ title: "", description: "", region: "", segment: "", availability: "imediata" as "imediata" | "30dias" | "60dias" | "negociavel", workModel: "multiplas" as "exclusivo" | "multiplas" | "indifferente", expectedCommission: "" });
   const createOppMutation = trpc.opportunities.create.useMutation({
@@ -458,6 +462,7 @@ export default function RepDashboard() {
               { id: "applications",    label: "Candidaturas",        icon: Bell,            badge: myApplications?.length },
               { id: "myopportunities", label: "Minhas Vagas",         icon: Target,          badge: myOpportunities?.length },
               { id: "messages",        label: "Mensagens",            icon: MessageCircle },
+              { id: "reviews",         label: "Avaliações",           icon: Star },
               { id: "profile",         label: "Meu Perfil",          icon: User },
             ].map((item) => (
               <button
@@ -913,9 +918,75 @@ export default function RepDashboard() {
             </div>
           )}
 
-          {/* ══ Profile Tab ═══════════════════════════════════════════════ */}
-          {activeTab === "profile" && (
-            <div className="p-8 max-w-2xl">
+                  {/* ══ Reviews Tab ══════════════════════════════════════════════════════ */}
+          {activeTab === "reviews" && (
+            <div className="p-8 max-w-3xl">
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-slate-900">Minhas Avaliações</h1>
+                <p className="text-slate-500 text-sm mt-1">Avaliações recebidas de empresas que você atendeu</p>
+              </div>
+              {!myReviews || myReviews.reviews.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
+                  <Star className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500 font-medium">Nenhuma avaliação ainda</p>
+                  <p className="text-slate-400 text-sm mt-1">Quando uma empresa avaliar seu trabalho, aparecerá aqui</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Resumo */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-6 flex items-center gap-6 shadow-sm">
+                    <div className="text-center">
+                      <div className="text-4xl font-black text-slate-900">{myReviews.avgRating.toFixed(1)}</div>
+                      <div className="flex items-center justify-center gap-0.5 mt-1">
+                        {[1,2,3,4,5].map(s => (
+                          <Star key={s} className={`w-4 h-4 ${s <= Math.round(myReviews.avgRating) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                        ))}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">{myReviews.total} avaliações</div>
+                    </div>
+                    <div className="flex-1">
+                      {[5,4,3,2,1].map(star => {
+                        const count = myReviews.reviews.filter(r => r.rating === star).length;
+                        const pct = myReviews.total > 0 ? (count / myReviews.total) * 100 : 0;
+                        return (
+                          <div key={star} className="flex items-center gap-2 mb-1">
+                            <span className="text-xs text-slate-500 w-3">{star}</span>
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-xs text-slate-400 w-5 text-right">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* Lista de avaliações */}
+                  {myReviews.reviews.map((review: any) => (
+                    <div key={review.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-semibold text-slate-800">{review.companyName}</div>
+                          <div className="flex items-center gap-0.5 mt-1">
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} className={`w-3.5 h-3.5 ${s <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-xs text-slate-400">{new Date(review.createdAt).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-slate-600 mt-3 leading-relaxed">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ══ Profile Tab ═════════════════════════════════════════════════════════ */}
+          {activeTab === "profile" && (         <div className="p-8 max-w-2xl">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900">Meu Perfil</h1>

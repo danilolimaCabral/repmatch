@@ -4,6 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw } from "lucide-react";
 import { useState, useRef } from "react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  FunnelChart, Funnel, LabelList, Cell, Legend, LineChart, Line
+} from "recharts";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -21,7 +25,7 @@ function normalizePhone(raw: string): string | null {
 export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"stats" | "import" | "users" | "jobs" | "pagamentos" | "documentos">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "analytics" | "import" | "users" | "jobs" | "pagamentos" | "documentos">("stats");
   const [docStatusFilter, setDocStatusFilter] = useState("all");
   const [docSearch, setDocSearch] = useState("");
   const [reviewModal, setReviewModal] = useState<{ rep: Record<string, unknown>; mode: "kyc" | "core" } | null>(null);
@@ -34,6 +38,8 @@ export default function AdminDashboard() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: stats, isLoading: statsLoading } = trpc.admin.stats.useQuery();
+  const { data: weeklyGrowth, isLoading: growthLoading } = trpc.admin.weeklyGrowth.useQuery();
+  const { data: conversionFunnel, isLoading: funnelLoading } = trpc.admin.conversionFunnel.useQuery();
   const { data: importLogs } = trpc.admin.importLogs.useQuery();
   const { data: allUsers, refetch: refetchUsers } = trpc.admin.listUsers.useQuery();
   const { data: pendingPayments, refetch: refetchPending, isLoading: pendingLoading } = trpc.admin.listPendingPayments.useQuery();
@@ -180,6 +186,7 @@ export default function AdminDashboard() {
           <nav className="flex-1 p-4 space-y-1">
             {[
               { id: "stats", label: "Dashboard", icon: TrendingUp },
+              { id: "analytics", label: "Analytics", icon: BarChart2 },
               { id: "pagamentos", label: "Pagamentos PIX", icon: CreditCard },
               { id: "documentos", label: "Documentos", icon: FileText },
               { id: "jobs", label: "Vagas", icon: Briefcase },
@@ -322,6 +329,102 @@ export default function AdminDashboard() {
                   )}
                 </>
               )}
+            </div>
+          )}
+
+          {activeTab === "analytics" && (
+            <div>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-2xl font-black">Analytics da Plataforma</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Crescimento semanal de cadastros e funil de conversão</p>
+                </div>
+                <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 px-3 py-1">Admin</Badge>
+              </div>
+
+              {/* Crescimento Semanal */}
+              <div className="rounded-xl border border-border bg-card p-6 mb-6">
+                <h2 className="font-bold mb-1 text-sm uppercase tracking-wide text-muted-foreground">Crescimento Semanal de Cadastros</h2>
+                <p className="text-xs text-muted-foreground/60 mb-5">Novos usuários por semana nas últimas 8 semanas</p>
+                {growthLoading ? (
+                  <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                ) : !weeklyGrowth || weeklyGrowth.length === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <BarChart2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Dados insuficientes para exibir o gráfico</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={weeklyGrowth} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="week" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                        tickFormatter={(v: string) => {
+                          const d = new Date(v);
+                          return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+                        }}
+                      />
+                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                        labelFormatter={(v: string) => `Semana de ${new Date(v).toLocaleDateString('pt-BR')}`}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="reps" name="Representantes" fill="#3b82f6" radius={[4,4,0,0]} />
+                      <Bar dataKey="companies" name="Empresas" fill="#10b981" radius={[4,4,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Funil de Conversão */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <h2 className="font-bold mb-1 text-sm uppercase tracking-wide text-muted-foreground">Funil de Conversão</h2>
+                  <p className="text-xs text-muted-foreground/60 mb-5">Cadastros → Perfis ativos → Plano pago</p>
+                  {funnelLoading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                  ) : (
+                    <div className="space-y-4">
+                      {(conversionFunnel ?? []).map((stage: { stage: string; value: number; pct: number }, i: number) => {
+                        const colors = ["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-purple-500"];
+                        return (
+                          <div key={stage.stage}>
+                            <div className="flex items-center justify-between text-sm mb-1.5">
+                              <span className="font-medium">{stage.stage}</span>
+                              <span className="text-muted-foreground">{stage.value.toLocaleString()} <span className="text-xs">({stage.pct}%)</span></span>
+                            </div>
+                            <div className="h-3 rounded-full bg-secondary overflow-hidden">
+                              <div className={`h-full rounded-full ${colors[i % colors.length]} transition-all duration-700`} style={{ width: `${stage.pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* KPIs rápidos */}
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <h2 className="font-bold mb-1 text-sm uppercase tracking-wide text-muted-foreground">Indicadores Gerais</h2>
+                  <p className="text-xs text-muted-foreground/60 mb-5">Totais acumulados da plataforma</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: "Total de Usuários", value: (conversionFunnel?.[0]?.value ?? 0).toLocaleString(), icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
+                      { label: "Representantes", value: (conversionFunnel?.[1]?.value ?? 0).toLocaleString(), icon: UserCheck, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+                      { label: "Empresas", value: (conversionFunnel?.[2]?.value ?? 0).toLocaleString(), icon: Building2, color: "text-amber-400", bg: "bg-amber-400/10" },
+                      { label: "Planos Pagos", value: (conversionFunnel?.[3]?.value ?? 0).toLocaleString(), icon: CreditCard, color: "text-purple-400", bg: "bg-purple-400/10" },
+                    ].map((kpi) => (
+                      <div key={kpi.label} className="rounded-lg border border-border p-4">
+                        <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center mb-2`}>
+                          <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
+                        </div>
+                        <div className="text-2xl font-black text-foreground">{kpi.value}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{kpi.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

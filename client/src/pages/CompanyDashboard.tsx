@@ -261,6 +261,16 @@ export default function CompanyDashboard() {
   const [previewRegion, setPreviewRegion] = useState<string | undefined>(undefined);
   const [previewSegment, setPreviewSegment] = useState<string | undefined>(undefined);
 
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewRepId, setReviewRepId] = useState<number | null>(null);
+  const [reviewRepName, setReviewRepName] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const submitReview = trpc.reviews.submit.useMutation({
+    onSuccess: () => { toast.success("Avaliação enviada com sucesso!"); setReviewModalOpen(false); setReviewComment(""); setReviewRating(5); },
+    onError: (e) => toast.error(e.message),
+  });
+
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileEditForm, setProfileEditForm] = useState({ companyName: "", cnpj: "", segment: "", region: "", phone: "", description: "" });
   const [cnpjLookup, setCnpjLookup] = useState("");
@@ -1099,6 +1109,9 @@ export default function CompanyDashboard() {
                           <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
                             {rep.phone && <div className="flex items-center gap-1.5 text-slate-700 font-medium"><DollarSign className="w-3 h-3 text-emerald-600" />{rep.phone}</div>}
                             {rep.email && <div className="flex items-center gap-1.5 text-slate-700 font-medium"><ChevronRight className="w-3 h-3 text-emerald-600" />{rep.email}</div>}
+                            <Button size="sm" variant="outline" className="w-full mt-2 text-xs border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => { setReviewRepId(rep.id); setReviewRepName(rep.fullName ?? ""); setReviewModalOpen(true); }}>
+                              <Star className="w-3 h-3 mr-1 fill-amber-400 text-amber-400" /> Avaliar Representante
+                            </Button>
                           </div>
                         ) : (
                           <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
@@ -1309,6 +1322,49 @@ export default function CompanyDashboard() {
           </DialogContent>
         </Dialog>
       </main>
+
+      {/* ─── Modal de Avaliação ─────────────────────────────────────────── */}
+      <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-slate-800">Avaliar {reviewRepName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-slate-700 text-sm font-medium">Nota (1 a 5 estrelas)</Label>
+              <div className="flex gap-2 mt-2">
+                {[1,2,3,4,5].map(n => (
+                  <button key={n} onClick={() => setReviewRating(n)} className="focus:outline-none">
+                    <Star className={`w-8 h-8 transition-colors ${n <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-slate-700 text-sm font-medium">Comentário (opcional)</Label>
+              <Textarea
+                value={reviewComment}
+                onChange={e => setReviewComment(e.target.value)}
+                placeholder="Descreva sua experiência com este representante..."
+                rows={3}
+                maxLength={500}
+                className="mt-1 border-slate-200 bg-white"
+              />
+              <p className="text-xs text-slate-400 mt-1">{reviewComment.length}/500 caracteres</p>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 border-slate-200" onClick={() => setReviewModalOpen(false)}>Cancelar</Button>
+              <Button
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold"
+                disabled={submitReview.isPending || !reviewRepId}
+                onClick={() => reviewRepId && submitReview.mutate({ representativeId: reviewRepId, rating: reviewRating, comment: reviewComment || undefined })}
+              >
+                {submitReview.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Enviando...</> : "Enviar Avaliação"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

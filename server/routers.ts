@@ -834,6 +834,59 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         });
         return { success: true };
       }),
+
+    // Admin: crescimento semanal de cadastros (últimas 8 semanas)
+    weeklyGrowth: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const { sql } = await import("drizzle-orm");
+      const { users } = await import("../drizzle/schema");
+      const rows = await db.select({
+        week: sql<string>`DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')`,
+        total: sql<number>`count(*)`,
+        reps: sql<number>`SUM(CASE WHEN user_type = 'representative' THEN 1 ELSE 0 END)`,
+        companies: sql<number>`SUM(CASE WHEN user_type = 'company' THEN 1 ELSE 0 END)`,
+      })
+        .from(users)
+        .where(sql`created_at >= DATE_SUB(NOW(), INTERVAL 8 WEEK)`)
+        .groupBy(sql`DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')`)
+        .orderBy(sql`1 ASC`);
+      return rows.map(r => ({
+        week: r.week,
+        total: Number(r.total),
+        reps: Number(r.reps),
+        companies: Number(r.companies),
+      }));
+    }),
+
+    // Admin: funil de conversão (visitante → cadastro → plano pago)
+    conversionFunnel: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const { sql } = await import("drizzle-orm");
+      const { users } = await import("../drizzle/schema");
+      const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
+      const [totalReps] = await db.select({ count: sql<number>`count(*)` }).from(representatives);
+      const [paidReps] = await db.select({ count: sql<number>`count(*)` })
+        .from(representatives)
+        .where(sql`subscription_tier != 'free'`);
+      const [totalCompanies] = await db.select({ count: sql<number>`count(*)` }).from(companies);
+      const [paidCompanies] = await db.select({ count: sql<number>`count(*)` })
+        .from(companies)
+        .where(sql`subscription_tier != 'starter'`);
+      const total = Number(totalUsers?.count ?? 0);
+      const reps = Number(totalReps?.count ?? 0);
+      const paid = Number(paidReps?.count ?? 0) + Number(paidCompanies?.count ?? 0);
+      const comps = Number(totalCompanies?.count ?? 0);
+      return [
+        { stage: "Cadastros", value: total, pct: 100 },
+        { stage: "Reps Ativos", value: reps, pct: total > 0 ? Math.round(reps / total * 100) : 0 },
+        { stage: "Empresas", value: comps, pct: total > 0 ? Math.round(comps / total * 100) : 0 },
+        { stage: "Plano Pago", value: paid, pct: total > 0 ? Math.round(paid / total * 100) : 0 },
+      ];
+    }),
   }),
 
   // ─── KYC / Verificação de Identidade + CORE ────────────────────────────────
@@ -1205,6 +1258,59 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           not_found: coreMap['not_found'] ?? 0,
         },
       };
+    }),
+
+    // Admin: crescimento semanal de cadastros (últimas 8 semanas)
+    weeklyGrowth: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const { sql } = await import("drizzle-orm");
+      const { users } = await import("../drizzle/schema");
+      const rows = await db.select({
+        week: sql<string>`DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')`,
+        total: sql<number>`count(*)`,
+        reps: sql<number>`SUM(CASE WHEN user_type = 'representative' THEN 1 ELSE 0 END)`,
+        companies: sql<number>`SUM(CASE WHEN user_type = 'company' THEN 1 ELSE 0 END)`,
+      })
+        .from(users)
+        .where(sql`created_at >= DATE_SUB(NOW(), INTERVAL 8 WEEK)`)
+        .groupBy(sql`DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')`)
+        .orderBy(sql`1 ASC`);
+      return rows.map(r => ({
+        week: r.week,
+        total: Number(r.total),
+        reps: Number(r.reps),
+        companies: Number(r.companies),
+      }));
+    }),
+
+    // Admin: funil de conversão (visitante → cadastro → plano pago)
+    conversionFunnel: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const { sql } = await import("drizzle-orm");
+      const { users } = await import("../drizzle/schema");
+      const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
+      const [totalReps] = await db.select({ count: sql<number>`count(*)` }).from(representatives);
+      const [paidReps] = await db.select({ count: sql<number>`count(*)` })
+        .from(representatives)
+        .where(sql`subscription_tier != 'free'`);
+      const [totalCompanies] = await db.select({ count: sql<number>`count(*)` }).from(companies);
+      const [paidCompanies] = await db.select({ count: sql<number>`count(*)` })
+        .from(companies)
+        .where(sql`subscription_tier != 'starter'`);
+      const total = Number(totalUsers?.count ?? 0);
+      const reps = Number(totalReps?.count ?? 0);
+      const paid = Number(paidReps?.count ?? 0) + Number(paidCompanies?.count ?? 0);
+      const comps = Number(totalCompanies?.count ?? 0);
+      return [
+        { stage: "Cadastros", value: total, pct: 100 },
+        { stage: "Reps Ativos", value: reps, pct: total > 0 ? Math.round(reps / total * 100) : 0 },
+        { stage: "Empresas", value: comps, pct: total > 0 ? Math.round(comps / total * 100) : 0 },
+        { stage: "Plano Pago", value: paid, pct: total > 0 ? Math.round(paid / total * 100) : 0 },
+      ];
     }),
 
     // Admin: validar CORE manualmente
@@ -1610,6 +1716,84 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           db.select({ total: count() }).from(repOpportunities).where(and(...conditions)),
         ]);
         return { items, total };
+      }),
+  }),
+
+  // ─── Reviews (Empresa avalia representante) ───────────────────────────────
+  reviews: router({
+    // Empresa submete avaliação
+    submit: protectedProcedure
+      .input(z.object({
+        representativeId: z.number(),
+        rating: z.number().min(1).max(5),
+        comment: z.string().max(500).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        const { repReviews, companies } = await import('../drizzle/schema');
+        const [company] = await db.select({ companyName: companies.companyName })
+          .from(companies)
+          .where(eq(companies.userId, ctx.user.id))
+          .limit(1);
+        const [existing] = await db.select({ id: repReviews.id })
+          .from(repReviews)
+          .where(and(
+            eq(repReviews.representativeId, input.representativeId),
+            eq(repReviews.companyId, ctx.user.id),
+          ))
+          .limit(1);
+        if (existing) throw new TRPCError({ code: 'CONFLICT', message: 'Você já avaliou este representante.' });
+        await db.insert(repReviews).values({
+          companyId: ctx.user.id,
+          representativeId: input.representativeId,
+          rating: input.rating,
+          comment: input.comment ?? null,
+          companyName: company?.companyName ?? 'Empresa',
+        });
+        return { success: true };
+      }),
+
+    // Buscar avaliações de um representante (pública)
+    getByRep: publicProcedure
+      .input(z.object({ representativeId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return { reviews: [], avgRating: 0, total: 0 };
+        const { repReviews } = await import('../drizzle/schema');
+        const { avg, count, desc } = await import('drizzle-orm');
+        const [reviews, [stats]] = await Promise.all([
+          db.select()
+            .from(repReviews)
+            .where(eq(repReviews.representativeId, input.representativeId))
+            .orderBy(desc(repReviews.createdAt))
+            .limit(20),
+          db.select({ avg: avg(repReviews.rating), total: count() })
+            .from(repReviews)
+            .where(eq(repReviews.representativeId, input.representativeId)),
+        ]);
+        return {
+          reviews,
+          avgRating: stats?.avg ? parseFloat(stats.avg) : 0,
+          total: stats?.total ?? 0,
+        };
+      }),
+
+    // Verificar se empresa já avaliou um rep
+    hasReviewed: protectedProcedure
+      .input(z.object({ representativeId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return { hasReviewed: false };
+        const { repReviews } = await import('../drizzle/schema');
+        const [existing] = await db.select({ id: repReviews.id })
+          .from(repReviews)
+          .where(and(
+            eq(repReviews.representativeId, input.representativeId),
+            eq(repReviews.companyId, ctx.user.id),
+          ))
+          .limit(1);
+        return { hasReviewed: !!existing };
       }),
   }),
 });

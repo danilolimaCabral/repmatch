@@ -24,7 +24,6 @@ import Perfil from "./pages/Perfil";
 import EsqueciSenha from "./pages/EsqueciSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import VerificarEmail from "./pages/VerificarEmail";
-import RotateScreen from "./components/RotateScreen";
 import OportunidadesReps from "./pages/OportunidadesReps";
 
 function Router() {
@@ -79,11 +78,10 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark" switchable>
+      <ThemeProvider defaultTheme="light" switchable>
         <TooltipProvider>
           <Toaster />
           <Router />
-          <RotateScreen />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
