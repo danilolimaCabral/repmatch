@@ -1502,5 +1502,115 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       return [];
     }),
   }),
+
+  // ─── Oportunidades de Representantes ───────────────────────────────────────────────────────────────────────
+  opportunities: router({
+    // Listar oportunidades do rep logado
+    myList: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const { repOpportunities } = await import("../drizzle/schema");
+      const rep = await db.select().from(representatives).where(eq(representatives.userId, ctx.user.id)).limit(1);
+      if (!rep.length) return [];
+      return db.select().from(repOpportunities).where(eq(repOpportunities.representativeId, rep[0].id)).orderBy(repOpportunities.createdAt);
+    }),
+
+    // Criar oportunidade
+    create: protectedProcedure
+      .input(z.object({
+        title: z.string().min(3).max(150),
+        description: z.string().optional(),
+        region: z.string().optional(),
+        segment: z.string().optional(),
+        availability: z.enum(["imediata", "30dias", "60dias", "negociavel"]).optional(),
+        workModel: z.enum(["exclusivo", "multiplas", "indifferente"]).optional(),
+        expectedCommission: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { repOpportunities } = await import("../drizzle/schema");
+        const rep = await db.select().from(representatives).where(eq(representatives.userId, ctx.user.id)).limit(1);
+        if (!rep.length) throw new TRPCError({ code: "NOT_FOUND", message: "Perfil de representante não encontrado" });
+        await db.insert(repOpportunities).values({ ...input, representativeId: rep[0].id });
+        return { success: true };
+      }),
+
+    // Atualizar status (pausar/fechar/reabrir)
+    updateStatus: protectedProcedure
+      .input(z.object({ id: z.number(), status: z.enum(["active", "paused", "closed"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { repOpportunities } = await import("../drizzle/schema");
+        const rep = await db.select().from(representatives).where(eq(representatives.userId, ctx.user.id)).limit(1);
+        if (!rep.length) throw new TRPCError({ code: "NOT_FOUND" });
+        await db.update(repOpportunities)
+          .set({ status: input.status })
+          .where(and(eq(repOpportunities.id, input.id), eq(repOpportunities.representativeId, rep[0].id)));
+        return { success: true };
+      }),
+
+    // Deletar oportunidade
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { repOpportunities } = await import("../drizzle/schema");
+        const rep = await db.select().from(representatives).where(eq(representatives.userId, ctx.user.id)).limit(1);
+        if (!rep.length) throw new TRPCError({ code: "NOT_FOUND" });
+        await db.delete(repOpportunities)
+          .where(and(eq(repOpportunities.id, input.id), eq(repOpportunities.representativeId, rep[0].id)));
+        return { success: true };
+      }),
+
+    // Listar oportunidades públicas (para empresas e gerentes)
+    listPublic: publicProcedure
+      .input(z.object({
+        region: z.string().optional(),
+        segment: z.string().optional(),
+        availability: z.enum(["imediata", "30dias", "60dias", "negociavel"]).optional(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(50).default(20),
+      }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return { items: [], total: 0 };
+        const { repOpportunities } = await import("../drizzle/schema");
+        const { sql, like, count } = await import("drizzle-orm");
+        const offset = (input.page - 1) * input.limit;
+        // Build where conditions
+        const conditions = [eq(repOpportunities.status, "active")];
+        if (input.region) conditions.push(like(repOpportunities.region, `%${input.region}%`));
+        if (input.segment) conditions.push(like(repOpportunities.segment, `%${input.segment}%`));
+        if (input.availability) conditions.push(eq(repOpportunities.availability, input.availability));
+        const [items, [{ total }]] = await Promise.all([
+          db.select({
+            id: repOpportunities.id,
+            title: repOpportunities.title,
+            description: repOpportunities.description,
+            region: repOpportunities.region,
+            segment: repOpportunities.segment,
+            availability: repOpportunities.availability,
+            workModel: repOpportunities.workModel,
+            expectedCommission: repOpportunities.expectedCommission,
+            createdAt: repOpportunities.createdAt,
+            repName: representatives.fullName,
+            repExperienceYears: representatives.experienceYears,
+            repTier: representatives.subscriptionTier,
+            repKycStatus: representatives.kycStatus,
+          })
+            .from(repOpportunities)
+            .leftJoin(representatives, eq(repOpportunities.representativeId, representatives.id))
+            .where(and(...conditions))
+            .orderBy(repOpportunities.createdAt)
+            .limit(input.limit)
+            .offset(offset),
+          db.select({ total: count() }).from(repOpportunities).where(and(...conditions)),
+        ]);
+        return { items, total };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

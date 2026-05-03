@@ -389,8 +389,8 @@
 - [x] Onboarding: CNPJ obrigatório para Empresa com validação de formato
 - [x] Onboarding: CNPJ + CORE + upload de documentos obrigatórios para Representante
 - [x] Dashboard Gerente: busca de reps, montar equipe, ver candidaturas
-- [ ] Rep: seção "Minhas Oportunidades" — rep publica vaga/disponibilidade própria
-- [ ] Página pública /oportunidades-reps — empresas e gerentes encontram reps disponíveis
+- [x] Rep: seção "Minhas Oportunidades" — rep publica vaga/disponibilidade própria
+- [x] Página pública /oportunidades-reps — empresas e gerentes encontram reps disponíveis
 - [x] Landing page: mostrar os 3 perfis (Empresa, Gerente, Representante)
 - [x] Admin: painel de validação de documentos (CORE, CNPJ, identidade)
 

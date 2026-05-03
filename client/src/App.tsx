@@ -25,6 +25,7 @@ import EsqueciSenha from "./pages/EsqueciSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import VerificarEmail from "./pages/VerificarEmail";
 import RotateScreen from "./components/RotateScreen";
+import OportunidadesReps from "./pages/OportunidadesReps";
 
 function Router() {
   return (
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/buscar" component={BuscarRepresentantes} />
       <Route path="/vagas" component={Vagas} />
+      <Route path="/oportunidades-reps" component={OportunidadesReps} />
       <Route path="/planos" component={Planos} />
       <Route path="/privacidade" component={Privacidade} />
       <Route path="/termos" component={Termos} />

@@ -493,6 +493,7 @@ export default function Home() {
             <a href="#como-funciona" className="hover:text-foreground transition-colors">Como funciona</a>
             <a href="/vagas" className="hover:text-foreground transition-colors font-medium text-foreground/80">Vagas</a>
             <a href="/buscar" className="hover:text-foreground transition-colors font-medium text-foreground/80">Buscar Reps</a>
+            <a href="/oportunidades-reps" className="hover:text-foreground transition-colors font-medium text-foreground/80">Reps Disponíveis</a>
             <a href="#planos" className="hover:text-foreground transition-colors">Planos</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>

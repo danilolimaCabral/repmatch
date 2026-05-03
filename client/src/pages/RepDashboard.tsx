@@ -13,7 +13,7 @@ import {
   Briefcase, User, LogOut, Search, MapPin, DollarSign,
   ChevronRight, Loader2, Star, Lock, CheckCircle, Clock, XCircle,
   TrendingUp, Building2, Filter, MessageCircle, Send, Edit2, Bell,
-  Shield, Award, BarChart2, Target, Zap
+  Shield, Award, BarChart2, Target, Zap, Plus, Trash2, PauseCircle, PlayCircle
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
@@ -308,7 +308,7 @@ function RepThemeToggle() {
 export default function RepDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile" | "messages">("jobs");
+  const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile" | "messages" | "myopportunities">("jobs");
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
   const [directChatInput, setDirectChatInput] = useState("");
   const [searchRegion, setSearchRegion] = useState("");
@@ -331,6 +331,21 @@ export default function RepDashboard() {
   });
   const jobs = allJobs?.filter(j => !minCommission || Number(j.commissionPercentage ?? 0) >= minCommission);
   const { data: myApplications, isLoading: appsLoading } = trpc.candidaturas.myApplications.useQuery();
+  const { data: myOpportunities, isLoading: oppsLoading } = trpc.opportunities.myList.useQuery();
+  const [newOppOpen, setNewOppOpen] = useState(false);
+  const [oppForm, setOppForm] = useState({ title: "", description: "", region: "", segment: "", availability: "imediata" as "imediata" | "30dias" | "60dias" | "negociavel", workModel: "multiplas" as "exclusivo" | "multiplas" | "indifferente", expectedCommission: "" });
+  const createOppMutation = trpc.opportunities.create.useMutation({
+    onSuccess: () => { toast.success("Oportunidade publicada!"); setNewOppOpen(false); utils.opportunities.myList.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateOppStatusMutation = trpc.opportunities.updateStatus.useMutation({
+    onSuccess: () => { toast.success("Status atualizado!"); utils.opportunities.myList.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteOppMutation = trpc.opportunities.delete.useMutation({
+    onSuccess: () => { toast.success("Oportunidade removida!"); utils.opportunities.myList.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
 
   const applyMutation = trpc.candidaturas.submit.useMutation({
     onSuccess: () => {
@@ -439,10 +454,11 @@ export default function RepDashboard() {
 
           <nav className="flex-1 p-4 space-y-1">
             {[
-              { id: "jobs",         label: "Oportunidades",    icon: Briefcase,  badge: allJobs?.length },
-              { id: "applications", label: "Candidaturas",     icon: Bell,       badge: myApplications?.length },
-              { id: "messages",     label: "Mensagens",         icon: MessageCircle },
-              { id: "profile",      label: "Meu Perfil",       icon: User },
+              { id: "jobs",             label: "Oportunidades",       icon: Briefcase,       badge: allJobs?.length },
+              { id: "applications",    label: "Candidaturas",        icon: Bell,            badge: myApplications?.length },
+              { id: "myopportunities", label: "Minhas Vagas",         icon: Target,          badge: myOpportunities?.length },
+              { id: "messages",        label: "Mensagens",            icon: MessageCircle },
+              { id: "profile",         label: "Meu Perfil",          icon: User },
             ].map((item) => (
               <button
                 key={item.id}
@@ -763,6 +779,138 @@ export default function RepDashboard() {
               directChatInput={directChatInput}
               setDirectChatInput={setDirectChatInput}
             />
+          )}
+
+          {/* ══ Minhas Vagas Tab ═════════════════════════════════════════ */}
+          {activeTab === "myopportunities" && (
+            <div className="p-8 max-w-3xl">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900">Minhas Vagas</h1>
+                  <p className="text-slate-500 text-sm mt-1">Publique sua disponibilidade para empresas e gerentes encontrarem você</p>
+                </div>
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setNewOppOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" /> Nova Vaga
+                </Button>
+              </div>
+
+              {oppsLoading ? (
+                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>
+              ) : !myOpportunities?.length ? (
+                <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
+                  <Target className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <h3 className="font-semibold text-slate-700 mb-2">Nenhuma vaga publicada</h3>
+                  <p className="text-slate-500 text-sm mb-6">Publique sua disponibilidade para que empresas possam encontrar você</p>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setNewOppOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" /> Publicar Disponibilidade
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myOpportunities.map((opp) => (
+                    <div key={opp.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-slate-900 truncate">{opp.title}</h3>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                              opp.status === "active" ? "bg-emerald-50 text-emerald-700" :
+                              opp.status === "paused" ? "bg-amber-50 text-amber-700" :
+                              "bg-slate-100 text-slate-500"
+                            }`}>
+                              {opp.status === "active" ? "Ativa" : opp.status === "paused" ? "Pausada" : "Encerrada"}
+                            </span>
+                          </div>
+                          {opp.description && <p className="text-sm text-slate-500 mb-3 line-clamp-2">{opp.description}</p>}
+                          <div className="flex flex-wrap gap-2">
+                            {opp.region && <span className="inline-flex items-center gap-1 text-xs bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-2.5 py-1"><MapPin className="w-3 h-3" />{opp.region}</span>}
+                            {opp.segment && <span className="inline-flex items-center gap-1 text-xs bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-2.5 py-1"><Briefcase className="w-3 h-3" />{opp.segment}</span>}
+                            {opp.expectedCommission && <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-1"><DollarSign className="w-3 h-3" />{opp.expectedCommission}</span>}
+                            {opp.availability && <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-1"><Clock className="w-3 h-3" />{{ imediata: "Imediata", "30dias": "30 dias", "60dias": "60 dias", negociavel: "Negociável" }[opp.availability]}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {opp.status === "active" ? (
+                            <Button size="sm" variant="outline" className="border-amber-200 text-amber-600 hover:bg-amber-50" onClick={() => updateOppStatusMutation.mutate({ id: opp.id, status: "paused" })}>
+                              <PauseCircle className="w-4 h-4" />
+                            </Button>
+                          ) : opp.status === "paused" ? (
+                            <Button size="sm" variant="outline" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={() => updateOppStatusMutation.mutate({ id: opp.id, status: "active" })}>
+                              <PlayCircle className="w-4 h-4" />
+                            </Button>
+                          ) : null}
+                          <Button size="sm" variant="outline" className="border-red-200 text-red-500 hover:bg-red-50" onClick={() => { if (confirm("Remover esta vaga?")) deleteOppMutation.mutate({ id: opp.id }); }}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Modal: Nova Vaga */}
+              <Dialog open={newOppOpen} onOpenChange={setNewOppOpen}>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader><DialogTitle>Publicar Disponibilidade</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Título *</Label>
+                      <Input placeholder="Ex: Representante disponível para Alimentos - SP" value={oppForm.title} onChange={e => setOppForm(f => ({ ...f, title: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label>Descrição</Label>
+                      <Textarea placeholder="Descreva sua experiência, portfólio de clientes e o que busca..." rows={3} value={oppForm.description} onChange={e => setOppForm(f => ({ ...f, description: e.target.value }))} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Região</Label>
+                        <Input placeholder="Ex: São Paulo - Capital" value={oppForm.region} onChange={e => setOppForm(f => ({ ...f, region: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label>Segmento</Label>
+                        <Input placeholder="Ex: Alimentos e Bebidas" value={oppForm.segment} onChange={e => setOppForm(f => ({ ...f, segment: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Disponibilidade</Label>
+                        <Select value={oppForm.availability} onValueChange={v => setOppForm(f => ({ ...f, availability: v as typeof f.availability }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="imediata">Imediata</SelectItem>
+                            <SelectItem value="30dias">Em 30 dias</SelectItem>
+                            <SelectItem value="60dias">Em 60 dias</SelectItem>
+                            <SelectItem value="negociavel">Negociável</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Modelo de Trabalho</Label>
+                        <Select value={oppForm.workModel} onValueChange={v => setOppForm(f => ({ ...f, workModel: v as typeof f.workModel }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="exclusivo">Exclusivo</SelectItem>
+                            <SelectItem value="multiplas">Múltiplas Empresas</SelectItem>
+                            <SelectItem value="indifferente">Indiferente</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Comissão Esperada</Label>
+                      <Input placeholder="Ex: 5% a 8%" value={oppForm.expectedCommission} onChange={e => setOppForm(f => ({ ...f, expectedCommission: e.target.value }))} />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="outline" onClick={() => setNewOppOpen(false)}>Cancelar</Button>
+                      <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled={!oppForm.title || createOppMutation.isPending} onClick={() => createOppMutation.mutate(oppForm)}>
+                        {createOppMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Publicar"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           )}
 
           {/* ══ Profile Tab ═══════════════════════════════════════════════ */}
