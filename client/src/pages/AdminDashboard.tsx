@@ -40,6 +40,7 @@ export default function AdminDashboard() {
   const { data: stats, isLoading: statsLoading } = trpc.admin.stats.useQuery();
   const { data: weeklyGrowth, isLoading: growthLoading } = trpc.admin.weeklyGrowth.useQuery();
   const { data: conversionFunnel, isLoading: funnelLoading } = trpc.admin.conversionFunnel.useQuery();
+  const { data: weeklyRevenue, isLoading: revenueLoading } = trpc.admin.weeklyRevenue.useQuery();
   const { data: importLogs } = trpc.admin.importLogs.useQuery();
   const { data: allUsers, refetch: refetchUsers } = trpc.admin.listUsers.useQuery();
   const { data: pendingPayments, refetch: refetchPending, isLoading: pendingLoading } = trpc.admin.listPendingPayments.useQuery();
@@ -424,6 +425,42 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Receita Semanal */}
+              <div className="rounded-xl border border-border bg-card p-6 mt-6">
+                <h2 className="font-bold mb-1 text-sm uppercase tracking-wide text-muted-foreground">Receita Semanal (Stripe)</h2>
+                <p className="text-xs text-muted-foreground/60 mb-5">Pagamentos confirmados por semana nas últimas 8 semanas — em R$</p>
+                {revenueLoading ? (
+                  <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                ) : !weeklyRevenue || weeklyRevenue.every(w => w.revenue === 0) ? (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Nenhuma receita registrada no período</p>
+                    <p className="text-xs mt-1 opacity-60">Os dados aparecerão após os primeiros pagamentos via Stripe</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={weeklyRevenue} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="week" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                        tickFormatter={(v: string) => {
+                          const d = new Date(v);
+                          return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+                        }}
+                      />
+                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false}
+                        tickFormatter={(v: number) => `R$${v.toLocaleString('pt-BR')}`}
+                      />
+                      <Tooltip
+                        contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                        labelFormatter={(v: string) => `Semana de ${new Date(v).toLocaleDateString('pt-BR')}`}
+                        formatter={(v: number) => [`R$ ${v.toLocaleString('pt-BR')}`, 'Receita']}
+                      />
+                      <Line type="monotone" dataKey="revenue" name="Receita" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
           )}

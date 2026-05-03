@@ -634,16 +634,17 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           llmAnalysis,
         });
 
-        // Notify company if high score
-        if (totalScore >= 70) {
+        // Notificar owner sobre nova candidatura
+        try {
           const company = await getCompanyById(job.companyId);
           if (company) {
+            const scoreTag = totalScore >= 70 ? " ⭐ Alto Score!" : "";
             await notifyOwner({
-              title: "Candidato de Alto Score!",
-              content: `${rep.fullName} se candidatou à vaga "${job.title}" com score ${totalScore}/100`,
+              title: `Nova Candidatura${scoreTag}`,
+              content: `${rep.fullName} se candidatou à vaga "${job.title}" (${company.companyName}) com score ${totalScore}/100`,
             });
           }
-        }
+        } catch (e) { /* notificação não crítica */ }
 
         return application;
       }),
@@ -666,6 +667,28 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       .input(z.object({ id: z.number(), status: z.enum(["pending", "viewed", "accepted", "rejected", "hired"]) }))
       .mutation(async ({ ctx, input }) => {
         await updateApplication(input.id, { status: input.status });
+
+        // Notificar owner quando candidatura é aceita ou rejeitada
+        if (input.status === "accepted" || input.status === "rejected" || input.status === "hired") {
+          try {
+            const db = await getDb();
+            if (db) {
+              const { applications } = await import('../drizzle/schema');
+              const [app] = await db.select().from(applications).where(eq(applications.id, input.id)).limit(1);
+              if (app) {
+                const db2 = await getDb();
+                const rep = db2 ? (await db2.select().from(representatives).where(eq(representatives.id, app.representativeId)).limit(1))[0] : null;
+                const job = await getJobById(app.jobId);
+                const statusLabel = input.status === "accepted" ? "aceita" : input.status === "hired" ? "contratado" : "rejeitada";
+                await notifyOwner({
+                  title: `Candidatura ${statusLabel}`,
+                  content: `Candidatura de ${rep?.fullName ?? "Rep"} à vaga "${job?.title ?? "vaga"}" foi ${statusLabel} pela empresa.`,
+                });
+              }
+            }
+          } catch (e) { /* notificação não crítica */ }
+        }
+
         return { success: true };
       }),
   }),
@@ -702,6 +725,17 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         if (alreadyUnlocked) return { success: true, alreadyUnlocked: true };
         // In production, Stripe payment would be triggered here
         await unlockContact({ companyId: company.id, representativeId: input.representativeId, pricePaid: "29.00" });
+
+        // Notificar owner sobre desbloqueio de contato
+        try {
+          const db = await getDb();
+          const rep = db ? (await db.select({ fullName: representatives.fullName }).from(representatives).where(eq(representatives.id, input.representativeId)).limit(1))[0] : null;
+          await notifyOwner({
+            title: "Contato Desbloqueado",
+            content: `${company.companyName} desbloqueou o contato de ${rep?.fullName ?? "representante #" + input.representativeId} (R$ 29,00)`,
+          });
+        } catch (e) { /* notificação não crítica */ }
+
         return { success: true, alreadyUnlocked: false };
       }),
   }),
@@ -886,6 +920,62 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         { stage: "Empresas", value: comps, pct: total > 0 ? Math.round(comps / total * 100) : 0 },
         { stage: "Plano Pago", value: paid, pct: total > 0 ? Math.round(paid / total * 100) : 0 },
       ];
+    }),
+
+    // Admin: receita semanal via Stripe (últimas 8 semanas)
+    weeklyRevenue: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      try {
+        const Stripe = (await import("stripe")).default;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-04-22.dahlia" as any });
+
+        // Buscar charges dos últimos 56 dias (8 semanas)
+        const since = Math.floor(Date.now() / 1000) - 56 * 24 * 3600;
+        const charges = await stripe.charges.list({
+          created: { gte: since },
+          limit: 100,
+        });
+
+        // Agrupar por semana (início da semana = segunda-feira)
+        const weekMap: Record<string, number> = {};
+        for (const charge of charges.data) {
+          if (charge.status !== "succeeded") continue;
+          const d = new Date(charge.created * 1000);
+          // Início da semana (segunda-feira)
+          const day = d.getDay(); // 0=dom, 1=seg...
+          const diff = (day === 0 ? -6 : 1 - day);
+          const monday = new Date(d);
+          monday.setDate(d.getDate() + diff);
+          monday.setHours(0, 0, 0, 0);
+          const key = monday.toISOString().split("T")[0];
+          weekMap[key] = (weekMap[key] ?? 0) + charge.amount;
+        }
+
+        // Garantir 8 semanas mesmo sem dados
+        const weeks: { week: string; revenue: number }[] = [];
+        for (let i = 7; i >= 0; i--) {
+          const d = new Date();
+          const day = d.getDay();
+          const diff = (day === 0 ? -6 : 1 - day) - i * 7;
+          d.setDate(d.getDate() + diff);
+          d.setHours(0, 0, 0, 0);
+          const key = d.toISOString().split("T")[0];
+          weeks.push({ week: key, revenue: Math.round((weekMap[key] ?? 0) / 100) }); // centavos → reais
+        }
+        return weeks;
+      } catch (e) {
+        // Stripe não configurado ou sem dados — retorna zeros
+        const weeks: { week: string; revenue: number }[] = [];
+        for (let i = 7; i >= 0; i--) {
+          const d = new Date();
+          const day = d.getDay();
+          const diff = (day === 0 ? -6 : 1 - day) - i * 7;
+          d.setDate(d.getDate() + diff);
+          d.setHours(0, 0, 0, 0);
+          weeks.push({ week: d.toISOString().split("T")[0], revenue: 0 });
+        }
+        return weeks;
+      }
     }),
   }),
 
@@ -1706,6 +1796,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
             repExperienceYears: representatives.experienceYears,
             repTier: representatives.subscriptionTier,
             repKycStatus: representatives.kycStatus,
+            repAvgRating: representatives.averageRating,
           })
             .from(repOpportunities)
             .leftJoin(representatives, eq(repOpportunities.representativeId, representatives.id))

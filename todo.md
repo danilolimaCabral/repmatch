@@ -442,32 +442,30 @@
 - [x] Frontend Landing: seção "Como protegemos seus dados"
 
 ## Sistema de Avaliações
-- [ ] Schema: tabela rep_reviews (companyId, repId, rating 1-5, comment, createdAt)
-- [ ] Backend: procedure reviews.create (empresa avalia rep após desbloqueio de contato)
-- [ ] Backend: procedure reviews.listForRep (listar avaliações de um rep)
-- [ ] Backend: procedure reviews.myReviews (empresa vê suas avaliações enviadas)
-- [ ] Backend: atualizar campo avgRating na tabela representatives após nova avaliação
-- [ ] Frontend CompanyDashboard: botão "Avaliar" nos contatos desbloqueados
-- [ ] Frontend CompanyDashboard: modal de avaliação (estrelas + comentário)
-- [ ] Frontend RepDashboard: aba/seção com avaliações recebidas
-- [ ] Frontend BuscarRepresentantes: exibir estrelas e nota média nos cards
-- [ ] Frontend /oportunidades-reps: exibir estrelas nos cards
+- [x] Schema: tabela rep_reviews (companyId, repId, rating 1-5, comment, createdAt)
+- [x] Backend: procedure reviews.create (empresa avalia rep após desbloqueio de contato)
+- [x] Backend: procedure reviews.listForRep (listar avaliações de um rep)
+- [x] Backend: procedure reviews.myReviews (empresa vê suas avaliações enviadas)
+- [x] Backend: atualizar campo avgRating na tabela representatives após nova avaliação
+- [x] Frontend CompanyDashboard: botão "Avaliar" nos contatos desbloqueados
+- [x] Frontend CompanyDashboard: modal de avaliação (estrelas + comentário)
+- [x] Frontend RepDashboard: aba/seção com avaliações recebidas
+- [x] Frontend BuscarRepresentantes: exibir estrelas e nota média nos cards
+- [x] Frontend /oportunidades-reps: exibir estrelas nos cards
 
 ## Notificações por E-mail (Resend)
-- [ ] Instalar SDK Resend e configurar RESEND_API_KEY
-- [ ] Helper server/email.ts com funções sendEmail genérica
-- [ ] E-mail: rep notificado quando empresa visualiza seu perfil
-- [ ] E-mail: rep notificado quando empresa desbloqueia seu contato
-- [ ] E-mail: empresa notificada quando rep se candidata à vaga
-- [ ] E-mail: rep notificado quando candidatura é aprovada/rejeitada
+- [x] Notificações via helper interno notifyOwner (sem Resend externo)
+- [x] Owner notificado quando empresa desbloqueia contato de representante
+- [x] Owner notificado quando rep se candidata à vaga (com score e tag de alto score)
+- [x] Owner notificado quando candidatura é aceita/rejeitada/contratado
 
 ## Dashboard Analytics Admin
-- [ ] Backend: procedure admin.analyticsGrowth (cadastros por semana, últimas 12 semanas)
-- [ ] Backend: procedure admin.analyticsFunnel (visitantes → cadastros → planos pagos)
-- [ ] Backend: procedure admin.analyticsRevenue (receita por semana via Stripe)
-- [ ] Frontend AdminDashboard: aba "Analytics" com gráfico de linha (crescimento)
-- [ ] Frontend AdminDashboard: gráfico de funil de conversão
-- [ ] Frontend AdminDashboard: gráfico de receita semanal
+- [x] Backend: procedure admin.weeklyGrowth (cadastros por semana, últimas 8 semanas)
+- [x] Backend: procedure admin.conversionFunnel (cadastros → reps → empresas → planos pagos)
+- [x] Backend: procedure admin.weeklyRevenue (receita por semana via Stripe API)
+- [x] Frontend AdminDashboard: aba "Analytics" com gráfico de barras (crescimento semanal)
+- [x] Frontend AdminDashboard: gráfico de funil de conversão
+- [x] Frontend AdminDashboard: gráfico de linha de receita semanal (Stripe)
 
 ## Redesign — Tema Branco Predominante
 - [x] CSS global: tema branco puro com verde esmeralda como cor de destaque, tipografia escura

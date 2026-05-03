@@ -250,6 +250,22 @@ export default function BuscarRepresentantes() {
                       </div>
                     </div>
 
+                    {/* Rating stars */}
+                    {(rep as any).averageRating && Number((rep as any).averageRating) > 0 && (
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <div className="flex items-center gap-0.5">
+                          {[1,2,3,4,5].map(s => (
+                            <Star key={s} className={`w-3.5 h-3.5 ${
+                              s <= Math.round(Number((rep as any).averageRating))
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-muted-foreground/30'
+                            }`} />
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{Number((rep as any).averageRating).toFixed(1)}</span>
+                      </div>
+                    )}
+
                     {/* Availability + KYC/CORE badges — visible for ALL tiers */}
                     <div className="mb-3 flex flex-wrap gap-1.5">
                       {isPaid && (

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MapPin, Briefcase, DollarSign, Clock, Search, ChevronLeft, ChevronRight,
-  Loader2, Target, ArrowRight, Shield, Award
+  Loader2, Target, ArrowRight, Shield, Award, Star
 } from "lucide-react";
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
@@ -236,6 +236,22 @@ export default function OportunidadesReps() {
                     </span>
                   )}
                 </div>
+
+                {/* Rating stars */}
+                {(opp as any).repAvgRating && Number((opp as any).repAvgRating) > 0 && (
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <div className="flex items-center gap-0.5">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} className={`w-3 h-3 ${
+                          s <= Math.round(Number((opp as any).repAvgRating))
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'text-slate-200'
+                        }`} />
+                      ))}
+                    </div>
+                    <span className="text-xs text-slate-400">{Number((opp as any).repAvgRating).toFixed(1)}</span>
+                  </div>
+                )}
 
                 {/* Description */}
                 {opp.description && (
