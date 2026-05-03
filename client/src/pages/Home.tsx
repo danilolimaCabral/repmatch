@@ -601,8 +601,90 @@ export default function Home() {
       {/* ─── Contador ao Vivo ─────────────────────────────────────────────────────── */}
       <LiveCounterSection />
 
-      {/* ─── Stats ─────────────────────────────────────────────────────────────────────── */}
-      <section className="py-20 border-b border-border">
+      {/* ─── Selos de Segurança e Certificações ─────────────────────────────────────────────────── */}
+      <section className="py-16 px-6 border-t border-border bg-muted/20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-2">Plataforma segura e confiável</p>
+            <h2 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+              Sua segurança é nossa prioridade
+            </h2>
+          </div>
+          {/* Grid de selos */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+            {/* SSL */}
+            <div className="flex flex-col items-center gap-3 p-5 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
+              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-green-500" />
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-foreground text-sm">SSL 256-bit</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Conexão criptografada</p>
+              </div>
+              <span className="text-xs font-semibold text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full">✔ Ativo</span>
+            </div>
+            {/* LGPD */}
+            <div className="flex flex-col items-center gap-3 p-5 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
+              <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <Shield className="w-6 h-6 text-blue-500" />
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-foreground text-sm">LGPD Compliant</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Lei 13.709/2018</p>
+              </div>
+              <span className="text-xs font-semibold text-blue-600 bg-blue-500/10 px-2 py-0.5 rounded-full">✔ Conformidade</span>
+            </div>
+            {/* KYC */}
+            <div className="flex flex-col items-center gap-3 p-5 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
+              <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                <Award className="w-6 h-6 text-purple-500" />
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-foreground text-sm">KYC Verificado</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Identidade confirmada</p>
+              </div>
+              <span className="text-xs font-semibold text-purple-600 bg-purple-500/10 px-2 py-0.5 rounded-full">✔ Face Match IA</span>
+            </div>
+            {/* Dados Seguros */}
+            <div className="flex flex-col items-center gap-3 p-5 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
+              <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
+                <FileText className="w-6 h-6 text-orange-500" />
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-foreground text-sm">Dados Protegidos</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Armazenamento seguro</p>
+              </div>
+              <span className="text-xs font-semibold text-orange-600 bg-orange-500/10 px-2 py-0.5 rounded-full">✔ Criptografado</span>
+            </div>
+          </div>
+          {/* Barra de destaques de segurança */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
+              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground text-sm">Verificação de Identidade com IA</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Comparamos a foto da CNH/RG com a selfie do representante usando reconhecimento facial DeepFace (ArcFace), com precisão de 99,4%.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
+              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground text-sm">Validação de CNPJ e CORE</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Verificamos o CNPJ na Receita Federal via BrasilAPI e o registro CORE (Conselho Regional dos Representantes Comerciais).</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
+              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground text-sm">Direito ao Esquecimento (LGPD)</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Você pode solicitar a exclusão completa dos seus dados a qualquer momento, conforme a Lei Geral de Proteção de Dados.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Footer ─────────────────────────────────────────────────────────────────────── */}      <section className="py-20 border-b border-border">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             {[

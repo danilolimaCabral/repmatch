@@ -59,6 +59,8 @@ export const representatives = mysqlTable("representatives", {
   kycExtractedName: varchar("kycExtractedName", { length: 200 }),
   kycExtractedCpf: varchar("kycExtractedCpf", { length: 20 }),
   kycNotes: text("kycNotes"),
+  kycFaceMatchScore: decimal("kycFaceMatchScore", { precision: 5, scale: 4 }),
+  kycFaceMatchResult: mysqlEnum("kycFaceMatchResult", ["match", "no_match", "uncertain", "error"]),
   kycReviewedAt: timestamp("kycReviewedAt"),
   // CORE — Conselho Regional dos Representantes Comerciais
   cnpj: varchar("cnpj", { length: 20 }),

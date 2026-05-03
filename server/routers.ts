@@ -863,7 +863,37 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         const { url: docUrl } = await storagePut(docKey, docBuffer, "image/jpeg");
         const { url: selfieUrl } = await storagePut(selfieKey, selfieBuffer, "image/jpeg");
 
-        // Use LLM Vision to extract data from document and compare with selfie
+        // ─── DeepFace Face Match (foto do documento vs selfie) ───────────────────────────
+        let faceMatchScore: string | null = null;
+        let faceMatchResult: "match" | "no_match" | "uncertain" | "error" = "error";
+        try {
+          const faceMatchRes = await fetch("http://localhost:5001/facematch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image1_b64: input.documentBase64,
+              image2_b64: input.selfieBase64,
+            }),
+            signal: AbortSignal.timeout(30000),
+          });
+          if (faceMatchRes.ok) {
+            const fm = await faceMatchRes.json() as { match: boolean; similarity: number; confidence: string; error?: string };
+            faceMatchScore = fm.similarity != null ? fm.similarity.toFixed(4) : null;
+            if (fm.error) {
+              faceMatchResult = "error";
+            } else if (fm.similarity >= 0.75) {
+              faceMatchResult = "match";
+            } else if (fm.similarity >= 0.50) {
+              faceMatchResult = "uncertain";
+            } else {
+              faceMatchResult = "no_match";
+            }
+          }
+        } catch (_fmErr) {
+          faceMatchResult = "error";
+        }
+
+        // ─── LLM Vision: extração de dados do documento ──────────────────────────────
         let extractedName: string | null = null;
         let extractedCpf: string | null = null;
         let kycNotes: string | null = null;
@@ -907,21 +937,26 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           const parsed = JSON.parse(llmResult.choices[0].message.content as string);
           extractedName = parsed.name || null;
           extractedCpf = parsed.cpf || null;
-          kycNotes = `IA: faceMatch=${parsed.faceMatch}, docValid=${parsed.documentValid}. ${parsed.notes}`;
+          kycNotes = `DeepFace: score=${faceMatchScore ?? 'N/A'}, resultado=${faceMatchResult}. IA: faceMatch=${parsed.faceMatch}, docValid=${parsed.documentValid}. ${parsed.notes}`;
         } catch (e) {
           kycNotes = "Erro na análise automática. Requer revisão manual.";
         }
 
+        // Determinar status automático baseado no face match
+        const autoStatus = faceMatchResult === "match" ? "pending_review" : "pending_review"; // sempre pending para revisão manual
+
         // Update representative record
         await db.update(representatives)
           .set({
-            kycStatus: "pending_review",
+            kycStatus: autoStatus,
             kycDocumentUrl: docUrl,
             kycSelfieUrl: selfieUrl,
             kycDocumentType: input.documentType,
             kycExtractedName: extractedName,
             kycExtractedCpf: extractedCpf,
             kycNotes: kycNotes,
+            kycFaceMatchScore: faceMatchScore,
+            kycFaceMatchResult: faceMatchResult,
             coreNumber: input.coreNumber || null,
             coreState: input.coreState || null,
           })

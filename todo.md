@@ -392,7 +392,7 @@
 - [ ] Rep: seção "Minhas Oportunidades" — rep publica vaga/disponibilidade própria
 - [ ] Página pública /oportunidades-reps — empresas e gerentes encontram reps disponíveis
 - [x] Landing page: mostrar os 3 perfis (Empresa, Gerente, Representante)
-- [ ] Admin: painel de validação de documentos (CORE, CNPJ, identidade)
+- [x] Admin: painel de validação de documentos (CORE, CNPJ, identidade)
 
 ## Planos e Créditos do Gerente Comercial
 - [x] Criar produtos Stripe: avulso R$29,90, Pacote Starter (5 créditos R$99,90), Pacote Pro (15 créditos R$249,90), Pacote Ilimitado (R$499,90/mês)
@@ -430,3 +430,13 @@
 - [x] Frontend: botões Aprovar / Rejeitar com campo de observação
 - [x] Frontend: filtros por tipo (KYC/CORE/CNPJ) e status
 - [x] Frontend: badge de contador de pendências na aba
+
+## Face Match Automático + Selos de Segurança
+
+- [x] Backend: microserviço Python DeepFace para face match CNH vs selfie
+- [x] Backend: integrar face match no fluxo kyc.submitDocuments (score automático)
+- [x] Backend: salvar faceMatchScore no banco de dados
+- [x] Frontend Admin: exibir score de similaridade no painel de documentos
+- [x] Frontend Landing: seção de selos de segurança (SSL, LGPD, KYC, criptografia)
+- [x] Frontend Landing: badges de confiança (Verificado, Seguro, LGPD Compliant)
+- [x] Frontend Landing: seção "Como protegemos seus dados"
