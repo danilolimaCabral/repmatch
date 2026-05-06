@@ -72,6 +72,11 @@ async function startServer() {
     }
   });
 
+  // Health check endpoint for Railway
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",
