@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import { migrate } from "drizzle-orm/mysql2/migrator";
+import path from "path";
+import { fileURLToPath } from "url";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -41,10 +43,19 @@ async function runMigrations() {
     const { getDb } = await import("../db");
     const db = await getDb();
     if (db) {
-      await migrate(db, { migrationsFolder: "./drizzle" });
+      // Use process.cwd() to find drizzle folder relative to project root
+      const migrationsFolder = path.join(process.cwd(), "drizzle");
+      console.log("[Migrations] Using migrations folder:", migrationsFolder);
+      await migrate(db, { migrationsFolder });
       console.log("[Migrations] Migrations completed successfully");
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as { message?: string; code?: string };
+    // If tables already exist, that's fine (idempotent)
+    if (err?.code === 'ER_TABLE_EXISTS_ERROR') {
+      console.log("[Migrations] Tables already exist, skipping");
+      return;
+    }
     console.error("[Migrations] Migration failed:", error);
     // Don't crash server if migrations fail - log and continue
   }
