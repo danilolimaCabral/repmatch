@@ -186,16 +186,22 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // React core
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+          // React core + dependentes diretos (react-helmet-async precisa estar junto com React
+          // para evitar erro "Cannot access 're' before initialization")
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/react-helmet-async') ||
+            id.includes('node_modules/scheduler/')
+          ) {
             return 'react-vendor';
           }
           // tRPC + React Query
-          if (id.includes('@trpc/') || id.includes('@tanstack/react-query')) {
+          if (id.includes('@trpc/') || id.includes('@tanstack/react-query') || id.includes('@tanstack/query-core')) {
             return 'trpc-vendor';
           }
           // Recharts (gráficos - pesado)
-          if (id.includes('recharts') || id.includes('d3-')) {
+          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) {
             return 'charts-vendor';
           }
           // Radix UI components
