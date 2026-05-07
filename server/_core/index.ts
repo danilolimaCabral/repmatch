@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { migrate } from "drizzle-orm/mysql2/migrator";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -30,7 +31,27 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+async function runMigrations() {
+  if (!process.env.DATABASE_URL) {
+    console.log("[Migrations] DATABASE_URL not set, skipping migrations");
+    return;
+  }
+  try {
+    console.log("[Migrations] Running database migrations...");
+    const { getDb } = await import("../db");
+    const db = await getDb();
+    if (db) {
+      await migrate(db, { migrationsFolder: "./drizzle" });
+      console.log("[Migrations] Migrations completed successfully");
+    }
+  } catch (error) {
+    console.error("[Migrations] Migration failed:", error);
+    // Don't crash server if migrations fail - log and continue
+  }
+}
+
 async function startServer() {
+  await runMigrations();
   const app = express();
   const server = createServer(app);
 
