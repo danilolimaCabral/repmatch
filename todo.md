@@ -494,7 +494,7 @@
 - [x] Adicionar headers de segurança HTTP: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
 - [x] Remover header X-Powered-By (expõe tecnologia)
 - [x] Adicionar HSTS (Strict-Transport-Security)
-- [ ] Adicionar rate limiting nas rotas de autenticação e API (pendente — requer express-rate-limit)
+- [x] Adicionar rate limiting nas rotas de autenticação e API (200 req/15min geral, 20 req/15min auth)
 
 ### Performance
 - [x] Lazy loading nas rotas (bundle: 1.77MB -> 105KB)
