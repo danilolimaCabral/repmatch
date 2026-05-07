@@ -11,6 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import { stripeRouter } from "../stripe/stripeRoutes";
 import { registerAuthRoutes } from "../authRoutes";
 import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -62,6 +63,26 @@ async function startServer() {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
     next();
   });
+
+  // ─── Rate Limiting ───────────────────────────────────────────────────────
+  // Limite geral para todas as rotas de API
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Muitas requisições. Tente novamente em alguns minutos." },
+  });
+  // Limite mais restrito para rotas de autenticação (evita brute force)
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Muitas tentativas de login. Tente novamente em 15 minutos." },
+  });
+  app.use("/api/trpc", apiLimiter);
+  app.use("/api/oauth", authLimiter);
 
   // Gzip/Brotli compression for all responses (improves load time significantly)
   app.use(compression());
