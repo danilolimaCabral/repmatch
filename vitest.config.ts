@@ -1,7 +1,11 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const templateRoot = path.resolve(import.meta.dirname);
+// Compatibility shim for import.meta.dirname (Node.js 21.2+ only)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const templateRoot = path.resolve(__dirname);
 
 export default defineConfig({
   root: templateRoot,
