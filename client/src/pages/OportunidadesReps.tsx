@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -92,7 +93,13 @@ export default function OportunidadesReps() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ── Header ─────────────────────────────────────────────────── */}
+      <SEO
+        title="Representantes Comerciais Disponíveis"
+        description="Encontre representantes comerciais disponíveis para representação no Brasil. Profissionais verificados publicando disponibilidade por região e segmento."
+        keywords="representantes disponíveis, contratar representante comercial, representante livre, disponibilidade representação, oportunidades representante"
+        canonical="/oportunidades-reps"
+      />
+      {/* ── Header ────────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <button onClick={() => navigate("/")} className="flex items-center gap-2">

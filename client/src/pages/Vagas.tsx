@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -80,7 +81,13 @@ export default function Vagas() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* ─── Header ─────────────────────────────────────────────────────────── */}
+      <SEO
+        title="Vagas para Representantes Comerciais"
+        description="Encontre as melhores vagas para representantes comerciais no Brasil. Oportunidades por região e segmento com comissões atrativas. Cadastre-se grátis e candidate-se agora."
+        keywords="vagas representante comercial, oportunidades representação, vagas vendas externas, trabalho representante comercial, vagas agente comercial, comissão vendas"
+        canonical="/vagas"
+      />
+      {/* ─── Header ──────────────────────────────────────────────────────────── */}
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/">

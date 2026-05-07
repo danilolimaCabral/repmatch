@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -44,9 +45,14 @@ export default function BuscarRepresentantes() {
   const regions = data?.regions ?? [];
   const segments = data?.segments ?? [];
 
-  return (
-    <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* ─── Header ─────────────────────────────────────────────────────────── */}
+  return (    <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <SEO
+        title="Buscar Representantes Comerciais"
+        description="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e disponibilidade. Perfis verificados com avaliações reais."
+        keywords="buscar representante comercial, encontrar representante, representante por região, representante por segmento, representante verificado, contratar representante"
+        canonical="/buscar"
+      />
+      {/* ─── Header ──────────────────────────────────────────────────────────── */}
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <button onClick={() => navigate("/")} className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import SEO from "@/components/SEO";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight, CheckCircle, Star, Users, Building2, Zap, TrendingUp,
@@ -484,6 +485,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <SEO
+        canonical="/"
+        keywords="representante comercial, marketplace representantes, vagas representante comercial, buscar representante, representação comercial, vendas externas, agente comercial, plataforma representantes"
+      />
 
       {/* ─── Navbar ─────────────────────────────────────────────────────────── */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-background/95 backdrop-blur-md border-b border-border shadow-lg" : "bg-transparent"}`}>
@@ -1306,6 +1311,12 @@ export default function Home() {
               <Shield className="w-3 h-3 text-green-500/60" />
               <span>Dados protegidos conforme a LGPD (Lei 13.709/2018)</span>
             </div>
+          </div>
+          <div className="pt-4 text-center text-xs text-muted-foreground/30">
+            Criado por{" "}
+            <a href="https://itskilltech.com.br" target="_blank" rel="noopener noreferrer" className="text-primary/50 hover:text-primary transition-colors font-semibold">
+              Itskilltech
+            </a>
           </div>
         </div>
       </footer>

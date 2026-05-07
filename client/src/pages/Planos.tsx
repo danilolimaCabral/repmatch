@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
-import { getLoginUrl } from "@/const";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle, ArrowRight, Users, Building2, Copy, MessageCircle,
-  QrCode, CreditCard, Smartphone, Shield, Clock, Zap
+  QrCode, Smartphone, Shield, Zap
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -75,7 +73,7 @@ const COMPANY_PLANS: Plan[] = [
 ];
 
 function PixModal({ plan, billing, onClose }: { plan: Plan; billing: BillingCycle; onClose: () => void }) {
-  const price = billing === "annual" ? Math.round(plan.monthly * 0.8 * 12) : plan.monthly;
+  const price = billing === "annual" ? (plan.monthly * 0.8 * 12).toFixed(2) : plan.monthly.toFixed(2);
   const period = billing === "annual" ? "ano" : "mês";
   const [copied, setCopied] = useState(false);
 
@@ -158,22 +156,14 @@ function PixModal({ plan, billing, onClose }: { plan: Plan; billing: BillingCycl
 }
 
 export default function Planos() {
-  const [, navigate] = useLocation();
   const [planType, setPlanType] = useState<PlanType>("company");
   const [billing, setBilling] = useState<BillingCycle>("monthly");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"pix" | "card" | null>(null);
 
   const plans = planType === "rep" ? REP_PLANS : COMPANY_PLANS;
 
-  const handleSelectPlan = (plan: Plan, method: "pix" | "card") => {
-    if (method === "pix") {
-      setSelectedPlan(plan);
-      setPaymentMethod("pix");
-    } else {
-      // Redirect to login, then onboarding will handle plan selection
-      window.location.href = '/login';
-    }
+  const handleSelectPlan = (plan: Plan) => {
+    setSelectedPlan(plan);
   };
 
   return (
@@ -202,31 +192,37 @@ export default function Planos() {
             <span className="text-gradient-green">que você merece.</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Sem contrato de fidelidade. Cancele quando quiser. Pague via PIX ou cartão.
+            Sem contrato de fidelidade. Cancele quando quiser. Pagamento 100% via PIX.
           </p>
         </div>
 
-        {/* Payment Methods Banner */}
+        {/* Payment Method Banner — PIX only */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-          <div className="flex items-center gap-2 bg-card border border-border rounded-xl px-5 py-3">
-            <Smartphone className="w-5 h-5 text-primary" />
+          <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-6 py-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Smartphone className="w-5 h-5 text-primary" />
+            </div>
             <div>
-              <div className="font-semibold text-sm text-foreground">PIX</div>
-              <div className="text-xs text-muted-foreground">Liberação em até 2h</div>
+              <div className="font-bold text-sm text-foreground">Pagamento via PIX</div>
+              <div className="text-xs text-muted-foreground">Rápido, seguro e sem taxas extras</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-card border border-border rounded-xl px-5 py-3">
-            <CreditCard className="w-5 h-5 text-primary" />
+          <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-6 py-4">
+            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-green-500" />
+            </div>
             <div>
-              <div className="font-semibold text-sm text-foreground">Cartão de Crédito</div>
-              <div className="text-xs text-muted-foreground">Liberação imediata via Stripe</div>
+              <div className="font-bold text-sm text-foreground">Ativação em até 2h</div>
+              <div className="text-xs text-muted-foreground">Após confirmação do pagamento</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-card border border-border rounded-xl px-5 py-3">
-            <Shield className="w-5 h-5 text-primary" />
+          <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-6 py-4">
+            <div className="w-10 h-10 rounded-xl bg-[#25D366]/10 flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-[#25D366]" />
+            </div>
             <div>
-              <div className="font-semibold text-sm text-foreground">Pagamento seguro</div>
-              <div className="text-xs text-muted-foreground">Dados protegidos</div>
+              <div className="font-bold text-sm text-foreground">Suporte via WhatsApp</div>
+              <div className="text-xs text-muted-foreground">Envie o comprovante e pronto</div>
             </div>
           </div>
         </div>
@@ -254,43 +250,56 @@ export default function Planos() {
           <span className={`text-sm font-semibold transition-colors ${billing === "monthly" ? "text-foreground" : "text-muted-foreground"}`}>Mensal</span>
           <button
             onClick={() => setBilling(b => b === "monthly" ? "annual" : "monthly")}
-            className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary/50 ${billing === "annual" ? "bg-primary" : "bg-secondary"}`}
+            className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none ${billing === "annual" ? "bg-primary" : "bg-secondary border border-border"}`}
           >
-            <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300 ${billing === "annual" ? "translate-x-7" : "translate-x-0"}`} />
+            <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform duration-300 ${billing === "annual" ? "translate-x-7" : ""}`} />
           </button>
           <span className={`text-sm font-semibold transition-colors ${billing === "annual" ? "text-foreground" : "text-muted-foreground"}`}>
-            Anual
-            <span className="ml-2 bg-primary/15 text-primary text-xs font-bold px-2 py-0.5 rounded-full">-20%</span>
+            Anual <span className="text-primary text-xs font-bold">-20%</span>
           </span>
         </div>
 
         {/* Plans Grid */}
-        <div className={`grid gap-5 mb-16 ${planType === "rep" ? "md:grid-cols-3" : "md:grid-cols-3"}`}>
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
           {plans.map((plan) => {
-            const annualMonthly = Math.round(plan.monthly * 0.8);
-            const displayPrice = billing === "annual" ? annualMonthly : plan.monthly;
-            const savings = billing === "annual" ? (plan.monthly - annualMonthly) * 12 : 0;
+            const price = billing === "annual" ? (plan.monthly * 0.8).toFixed(2) : plan.monthly.toFixed(2);
+            const annualTotal = (plan.monthly * 0.8 * 12).toFixed(2);
+            const savings = (plan.monthly * 12 * 0.2).toFixed(0);
+
             return (
-              <div key={plan.name} className={`relative rounded-2xl border p-7 ${plan.highlight ? "border-primary/40 bg-primary/5 shadow-lg" : "border-border bg-card"}`}>
+              <div
+                key={plan.productKey}
+                className={`relative rounded-2xl border p-7 flex flex-col transition-all ${
+                  plan.highlight
+                    ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+                    : "border-border bg-card"
+                }`}
+              >
                 {plan.highlight && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                     <span className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full">MAIS POPULAR</span>
                   </div>
                 )}
-                <div className="mb-2">
-                  <div className="text-muted-foreground text-sm font-semibold">{plan.name}</div>
+
+                <div className="mb-6">
+                  <h3 className="text-xl font-black text-foreground mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                    {plan.name}
+                  </h3>
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-4xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                      R${price}
+                    </span>
+                    <span className="text-muted-foreground text-sm mb-1.5">/mês</span>
+                  </div>
+                  {billing === "annual" && (
+                    <div className="text-xs text-primary font-semibold mb-1">
+                      R${annualTotal}/ano — Economize R${savings}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">{plan.description}</p>
                 </div>
-                <div className="flex items-baseline gap-1.5 mb-2">
-                  <span className="text-4xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-                    R${displayPrice}
-                  </span>
-                  <span className="text-muted-foreground text-sm">/mês{billing === "annual" ? " (anual)" : ""}</span>
-                </div>
-                {billing === "annual" && savings > 0 && (
-                  <div className="text-xs text-primary font-semibold mb-3">Economize R${savings}/ano</div>
-                )}
-                <p className="text-xs text-muted-foreground mb-5">{plan.description}</p>
-                <ul className="space-y-3 mb-8">
+
+                <ul className="space-y-3 mb-8 flex-1">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
                       <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
@@ -299,27 +308,18 @@ export default function Planos() {
                   ))}
                 </ul>
 
-                {/* Payment options */}
-                <div className="space-y-2">
-                  <button
-                    onClick={() => handleSelectPlan(plan, "pix")}
-                    className="w-full flex items-center justify-center gap-2 bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 text-[#25D366] font-semibold text-sm py-3 rounded-xl transition-colors"
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    Pagar com PIX
-                  </button>
-                  <button
-                    onClick={() => handleSelectPlan(plan, "card")}
-                    className={`w-full flex items-center justify-center gap-2 font-semibold text-sm py-3 rounded-xl transition-colors ${
-                      plan.highlight
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-secondary text-foreground hover:bg-secondary/80 border border-border"
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    Pagar com Cartão
-                  </button>
-                </div>
+                {/* PIX only button */}
+                <button
+                  onClick={() => handleSelectPlan(plan)}
+                  className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-3.5 rounded-xl transition-colors ${
+                    plan.highlight
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 text-[#25D366]"
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4" />
+                  Assinar via PIX
+                </button>
               </div>
             );
           })}
@@ -340,7 +340,14 @@ export default function Planos() {
                 <div>
                   <div className="font-semibold text-foreground mb-1">{name}</div>
                   <div className="text-2xl font-black text-primary mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R${price}</div>
-                  <div className="text-xs text-muted-foreground">{desc}</div>
+                  <div className="text-xs text-muted-foreground mb-3">{desc}</div>
+                  <button
+                    onClick={() => handleSelectPlan({ name, monthly: price, description: desc, features: [], productKey: name })}
+                    className="flex items-center gap-1.5 bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 text-[#25D366] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    Pagar via PIX
+                  </button>
                 </div>
               </div>
             ))}
@@ -363,13 +370,26 @@ export default function Planos() {
       </div>
 
       {/* PIX Modal */}
-      {selectedPlan && paymentMethod === "pix" && (
+      {selectedPlan && (
         <PixModal
           plan={selectedPlan}
           billing={billing}
-          onClose={() => { setSelectedPlan(null); setPaymentMethod(null); }}
+          onClose={() => setSelectedPlan(null)}
         />
       )}
+
+      {/* Footer */}
+      <footer className="border-t border-border py-8 px-6 mt-8">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground/50">
+          <span>© 2026 RepMatch. Todos os direitos reservados.</span>
+          <span>
+            Criado por{" "}
+            <a href="https://itskilltech.com.br" target="_blank" rel="noopener noreferrer" className="text-primary/70 hover:text-primary transition-colors font-semibold">
+              Itskilltech
+            </a>
+          </span>
+        </div>
+      </footer>
     </div>
   );
 }
