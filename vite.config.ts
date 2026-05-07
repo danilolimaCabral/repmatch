@@ -182,56 +182,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
-    rollupOptions: {
-      output: {
-        // Estratégia segura: React + TODAS as libs que usam createContext/useContext
-        // na inicialização do módulo ficam no mesmo chunk para evitar erros de
-        // inicialização circular (TypeError: Cannot read properties of undefined).
-        manualChunks(id) {
-          // Chunk 1: React core + libs que dependem de React na inicialização
-          if (
-            id.includes('/node_modules/react/') ||
-            id.includes('/node_modules/react-dom/') ||
-            id.includes('/node_modules/react-helmet-async/') ||
-            id.includes('/node_modules/scheduler/') ||
-            id.includes('/node_modules/next-themes/') ||
-            id.includes('/node_modules/wouter/') ||
-            id.includes('/node_modules/react-hot-toast/') ||
-            id.includes('/node_modules/sonner/')
-          ) {
-            return 'react-core';
-          }
-          // Chunk 2: tRPC + React Query (dependem de React mas não na init)
-          if (
-            id.includes('/node_modules/@trpc/') ||
-            id.includes('/node_modules/@tanstack/')
-          ) {
-            return 'trpc-vendor';
-          }
-          // Chunk 3: Recharts + D3 (pesados, carregados lazy)
-          if (id.includes('/node_modules/recharts/') || id.includes('/node_modules/d3')) {
-            return 'charts-vendor';
-          }
-          // Chunk 4: Radix UI
-          if (id.includes('/node_modules/@radix-ui/')) {
-            return 'radix-vendor';
-          }
-          // Chunk 5: Lucide icons
-          if (id.includes('/node_modules/lucide-react/')) {
-            return 'icons-vendor';
-          }
-          // Chunk 6: Stripe
-          if (id.includes('/node_modules/@stripe/') || id.includes('/node_modules/stripe/')) {
-            return 'stripe-vendor';
-          }
-          // Demais node_modules
-          if (id.includes('/node_modules/')) {
-            return 'vendor';
-          }
-        },
-      },
-    },
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 2000,
   },
   server: {
     host: true,
