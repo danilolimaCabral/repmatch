@@ -64,10 +64,62 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // Serve pre-compressed .br and .gz files when available
+  app.use((req, res, next) => {
+    const acceptEncoding = req.headers["accept-encoding"] || "";
+    // Only try pre-compressed for hashed assets (have content hash in filename)
+    const isHashedAsset = /\/assets\/[^/]+\.(js|css|woff2?)$/.test(req.path);
+    if (!isHashedAsset) return next();
+
+    const filePath = path.join(distPath, req.path);
+
+    if (acceptEncoding.includes("br") && fs.existsSync(filePath + ".br")) {
+      res.set("Content-Encoding", "br");
+      res.set("Vary", "Accept-Encoding");
+      res.set("Cache-Control", "public, max-age=31536000, immutable");
+      const ext = path.extname(req.path);
+      if (ext === ".js") res.set("Content-Type", "application/javascript; charset=UTF-8");
+      else if (ext === ".css") res.set("Content-Type", "text/css; charset=UTF-8");
+      res.sendFile(filePath + ".br");
+      return;
+    }
+    if (acceptEncoding.includes("gzip") && fs.existsSync(filePath + ".gz")) {
+      res.set("Content-Encoding", "gzip");
+      res.set("Vary", "Accept-Encoding");
+      res.set("Cache-Control", "public, max-age=31536000, immutable");
+      const ext = path.extname(req.path);
+      if (ext === ".js") res.set("Content-Type", "application/javascript; charset=UTF-8");
+      else if (ext === ".css") res.set("Content-Type", "text/css; charset=UTF-8");
+      res.sendFile(filePath + ".gz");
+      return;
+    }
+    next();
+  });
+
+  // Assets com hash no nome: cache de 1 ano (imutáveis)
+  app.use("/assets", express.static(path.join(distPath, "assets"), {
+    maxAge: "1y",
+    immutable: true,
+    setHeaders: (res) => {
+      res.set("Cache-Control", "public, max-age=31536000, immutable");
+      res.set("Vary", "Accept-Encoding");
+    },
+  }));
+
+  // Demais arquivos estáticos: cache curto
+  app.use(express.static(distPath, {
+    maxAge: "1h",
+    setHeaders: (res, filePath) => {
+      // HTML nunca deve ser cacheado por muito tempo (pode mudar)
+      if (filePath.endsWith(".html")) {
+        res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      }
+    },
+  }));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

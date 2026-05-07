@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import viteCompression from "vite-plugin-compression";
 
 // Compatibility shim for import.meta.dirname (Node.js 21.2+ only)
 const __filename = fileURLToPath(import.meta.url);
@@ -155,7 +156,16 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  vitePluginManusRuntime(),
+  vitePluginManusDebugCollector(),
+  // Gerar arquivos .gz e .br pré-comprimidos para servir com Express
+  viteCompression({ algorithm: "gzip", ext: ".gz", threshold: 1024 }),
+  viteCompression({ algorithm: "brotliCompress", ext: ".br", threshold: 1024 }),
+];
 
 export default defineConfig({
   plugins,
@@ -175,18 +185,40 @@ export default defineConfig({
     // Code splitting para reduzir o bundle inicial
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Separar vendor principal
-          'react-vendor': ['react', 'react-dom'],
-          // Separar UI components
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs', '@radix-ui/react-toast'],
-          // Separar tRPC/query
-          'trpc-vendor': ['@trpc/client', '@trpc/react-query', '@tanstack/react-query'],
+        manualChunks(id) {
+          // React core
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'react-vendor';
+          }
+          // tRPC + React Query
+          if (id.includes('@trpc/') || id.includes('@tanstack/react-query')) {
+            return 'trpc-vendor';
+          }
+          // Recharts (gráficos - pesado)
+          if (id.includes('recharts') || id.includes('d3-')) {
+            return 'charts-vendor';
+          }
+          // Radix UI components
+          if (id.includes('@radix-ui/')) {
+            return 'radix-vendor';
+          }
+          // Stripe
+          if (id.includes('@stripe/') || id.includes('stripe')) {
+            return 'stripe-vendor';
+          }
+          // Lucide icons
+          if (id.includes('lucide-react')) {
+            return 'icons-vendor';
+          }
+          // Demais node_modules
+          if (id.includes('node_modules/')) {
+            return 'vendor';
+          }
         },
       },
     },
     // Aumentar limite de warning de chunk
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 600,
   },
   server: {
     host: true,

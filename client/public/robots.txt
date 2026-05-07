@@ -1,5 +1,5 @@
 # RepMatch — Marketplace de Representantes Comerciais
-# https://repmatch-production.up.railway.app
+# https://repmatch.com.br
 
 User-agent: *
 Allow: /
@@ -21,4 +21,4 @@ Disallow: /verificacao
 Disallow: /api/
 
 # Sitemap
-Sitemap: https://repmatch-production.up.railway.app/sitemap.xml
+Sitemap: https://repmatch.com.br/sitemap.xml
