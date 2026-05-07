@@ -11,6 +11,7 @@ import {
   timestamp,
   tinyint,
   varchar,
+  index,
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
@@ -78,7 +79,11 @@ export const representatives = mysqlTable("representatives", {
   averageRating: decimal("averageRating", { precision: 3, scale: 2 }).default("0"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (t) => ({
+  userIdIdx: index("rep_userId_idx").on(t.userId),
+  kycStatusIdx: index("rep_kycStatus_idx").on(t.kycStatus),
+  regionSegmentIdx: index("rep_region_segment_idx").on(t.region, t.segment),
+}));
 
 export type Representative = typeof representatives.$inferSelect;
 export type InsertRepresentative = typeof representatives.$inferInsert;
@@ -104,7 +109,9 @@ export const companies = mysqlTable("companies", {
   cnpjStatus: varchar("cnpjStatus", { length: 50 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (t) => ({
+  userIdIdx: index("company_userId_idx").on(t.userId),
+}));
 
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = typeof companies.$inferInsert;
@@ -123,7 +130,11 @@ export const jobs = mysqlTable("jobs", {
   minTierRequired: mysqlEnum("minTierRequired", ["free", "bronze", "prata", "ouro"]).default("free").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (t) => ({
+  companyIdIdx: index("job_companyId_idx").on(t.companyId),
+  statusIdx: index("job_status_idx").on(t.status),
+  regionSegmentIdx: index("job_region_segment_idx").on(t.region, t.segment),
+}));
 
 export type Job = typeof jobs.$inferSelect;
 export type InsertJob = typeof jobs.$inferInsert;
@@ -140,7 +151,10 @@ export const applications = mysqlTable("applications", {
   status: mysqlEnum("status", ["pending", "viewed", "accepted", "rejected", "hired"]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (t) => ({
+  jobIdIdx: index("app_jobId_idx").on(t.jobId),
+  repIdIdx: index("app_repId_idx").on(t.representativeId),
+}));
 
 export type Application = typeof applications.$inferSelect;
 export type InsertApplication = typeof applications.$inferInsert;
@@ -153,7 +167,9 @@ export const messages = mysqlTable("messages", {
   content: text("content").notNull(),
   isRead: boolean("isRead").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (t) => ({
+  applicationIdIdx: index("msg_applicationId_idx").on(t.applicationId),
+}));
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
@@ -261,7 +277,10 @@ export const directChatMessages = mysqlTable("direct_chat_messages", {
   isReadByCompany: boolean("isReadByCompany").default(false).notNull(),
   isReadByRep: boolean("isReadByRep").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (t) => ({
+  companyRepIdx: index("dchat_company_rep_idx").on(t.companyId, t.representativeId),
+  senderIdx: index("dchat_sender_idx").on(t.senderUserId),
+}));
 export type DirectChatMessage = typeof directChatMessages.$inferSelect;
 export type InsertDirectChatMessage = typeof directChatMessages.$inferInsert;
 

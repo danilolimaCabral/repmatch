@@ -35,6 +35,34 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  // ─── Segurança: remover header que expõe tecnologia ─────────────────────────
+  app.disable("x-powered-by");
+
+  // ─── Redirect www -> non-www (evita conteúdo duplicado no Google) ────────────
+  app.use((req, res, next) => {
+    const host = req.headers.host || "";
+    if (host.startsWith("www.")) {
+      const newHost = host.slice(4);
+      return res.redirect(301, `https://${newHost}${req.url}`);
+    }
+    next();
+  });
+
+  // ─── Headers de segurança HTTP ───────────────────────────────────────────────
+  app.use((_req, res, next) => {
+    // Previne clickjacking
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    // Previne MIME sniffing
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    // Controla informações de referrer
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    // Limita acesso a features do browser
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    // HSTS: força HTTPS por 1 ano
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+    next();
+  });
+
   // Gzip/Brotli compression for all responses (improves load time significantly)
   app.use(compression());
 

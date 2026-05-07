@@ -481,3 +481,31 @@
 - [x] Mover procedures weeklyGrowth e conversionFunnel para o router admin (estavam no kyc)
 - [x] Instalar pacote resend (aguardando chave de API do usuário para ativar)
 - [x] TypeScript: 0 erros após todas as correções
+
+## Análise e Correções — 07/05/2026
+
+### SEO
+- [x] Corrigir URLs canonical/og:url/twitter:url para repmatch.com.br
+- [x] Corrigir sitemap.xml com URLs corretas
+- [x] Corrigir robots.txt com URL do sitemap correto
+- [x] Redirect 301 de www.repmatch.com.br para repmatch.com.br (conteúdo duplicado)
+
+### Segurança
+- [x] Adicionar headers de segurança HTTP: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- [x] Remover header X-Powered-By (expõe tecnologia)
+- [x] Adicionar HSTS (Strict-Transport-Security)
+- [ ] Adicionar rate limiting nas rotas de autenticação e API (pendente — requer express-rate-limit)
+
+### Performance
+- [x] Lazy loading nas rotas (bundle: 1.77MB -> 105KB)
+- [x] Brotli/Gzip pré-comprimidos nos assets
+- [x] Cache de 1 ano para assets com hash
+- [x] Adicionar preload para fontes críticas no index.html
+- [x] Adicionar dns-prefetch para domínios externos (fonts.googleapis.com)
+
+### Banco de Dados
+- [x] Adicionar índice em representatives.userId
+- [x] Adicionar índice em companies.userId
+- [x] Adicionar índice em applications.repId e applications.jobId
+- [x] Adicionar índice em messages.applicationId
+- [x] Adicionar índice em directChatMessages.companyId+representativeId e senderId
