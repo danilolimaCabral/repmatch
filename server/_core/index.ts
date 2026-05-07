@@ -37,6 +37,9 @@ async function startServer() {
   const server = createServer(app);
 
   // ─── Segurança: remover header que expõe tecnologia ─────────────────────────
+  // Trust proxy (Railway/Cloudflare) — necessário para express-rate-limit ler o IP real
+  app.set("trust proxy", 1);
+
   app.disable("x-powered-by");
 
   // ─── Redirect www -> non-www (evita conteúdo duplicado no Google) ────────────
