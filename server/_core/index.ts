@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import compression from "compression";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -33,6 +34,9 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // Gzip/Brotli compression for all responses (improves load time significantly)
+  app.use(compression());
 
   // Raw body for Stripe webhook signature verification (must be BEFORE express.json)
   app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));

@@ -172,6 +172,21 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    // Code splitting para reduzir o bundle inicial
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separar vendor principal
+          'react-vendor': ['react', 'react-dom'],
+          // Separar UI components
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs', '@radix-ui/react-toast'],
+          // Separar tRPC/query
+          'trpc-vendor': ['@trpc/client', '@trpc/react-query', '@tanstack/react-query'],
+        },
+      },
+    },
+    // Aumentar limite de warning de chunk
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     host: true,
