@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 
 interface SEOProps {
   title?: string;
@@ -10,13 +10,33 @@ interface SEOProps {
   noIndex?: boolean;
 }
 
-const BASE_URL = "https://repmatch-production.up.railway.app";
-const DEFAULT_IMAGE = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
+const BASE_URL = "https://repmatch.com.br";
+const DEFAULT_IMAGE = "https://repmatch.com.br/manus-storage/repmatch-logo-nobg_ec328e76.png";
 const SITE_NAME = "RepMatch";
+
+function setMeta(name: string, content: string, attr = "name") {
+  let el = document.querySelector(`meta[${attr}="${name}"]`);
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute(attr, name);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", content);
+}
+
+function setLink(rel: string, href: string) {
+  let el = document.querySelector(`link[rel="${rel}"]`);
+  if (!el) {
+    el = document.createElement("link");
+    el.setAttribute("rel", rel);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("href", href);
+}
 
 export default function SEO({
   title,
-  description = "RepMatch é o maior marketplace de representantes comerciais do Brasil. Conectamos empresas com representantes qualificados por IA.",
+  description = "RepMatch é o maior marketplace de representantes comerciais do Brasil. Conectamos empresas com representantes qualificados.",
   keywords,
   canonical,
   ogImage = DEFAULT_IMAGE,
@@ -29,28 +49,33 @@ export default function SEO({
 
   const canonicalUrl = canonical ? `${BASE_URL}${canonical}` : BASE_URL;
 
-  return (
-    <Helmet>
-      <title>{fullTitle}</title>
-      <meta name="description" content={description} />
-      {keywords && <meta name="keywords" content={keywords} />}
-      <link rel="canonical" href={canonicalUrl} />
-      {noIndex && <meta name="robots" content="noindex, nofollow" />}
+  useEffect(() => {
+    // Title
+    document.title = fullTitle;
 
-      {/* Open Graph */}
-      <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description} />
-      <meta property="og:type" content={ogType} />
-      <meta property="og:url" content={canonicalUrl} />
-      <meta property="og:image" content={ogImage} />
-      <meta property="og:site_name" content={SITE_NAME} />
-      <meta property="og:locale" content="pt_BR" />
+    // Meta básico
+    setMeta("description", description);
+    if (keywords) setMeta("keywords", keywords);
+    if (noIndex) setMeta("robots", "noindex, nofollow");
 
-      {/* Twitter */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={ogImage} />
-    </Helmet>
-  );
+    // Canonical
+    setLink("canonical", canonicalUrl);
+
+    // Open Graph
+    setMeta("og:title", fullTitle, "property");
+    setMeta("og:description", description, "property");
+    setMeta("og:type", ogType, "property");
+    setMeta("og:url", canonicalUrl, "property");
+    setMeta("og:image", ogImage, "property");
+    setMeta("og:site_name", SITE_NAME, "property");
+    setMeta("og:locale", "pt_BR", "property");
+
+    // Twitter
+    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", fullTitle);
+    setMeta("twitter:description", description);
+    setMeta("twitter:image", ogImage);
+  }, [fullTitle, description, keywords, canonicalUrl, ogImage, ogType, noIndex]);
+
+  return null;
 }
