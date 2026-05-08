@@ -509,3 +509,19 @@
 - [x] Adicionar índice em applications.repId e applications.jobId
 - [x] Adicionar índice em messages.applicationId
 - [x] Adicionar índice em directChatMessages.companyId+representativeId e senderId
+
+## E-mail Transacional (Resend) + Teste de Fluxo — 07/05/2026
+
+- [ ] Instalar Resend e configurar RESEND_API_KEY
+- [ ] Criar server/email.ts com helper sendEmail() e templates HTML profissionais
+- [ ] Template: e-mail de boas-vindas para representante
+- [ ] Template: e-mail de boas-vindas para empresa
+- [ ] Template: notificação de nova candidatura (para empresa)
+- [ ] Template: alerta de candidatura aceita/match (para representante)
+- [ ] Template: reset de senha com link seguro
+- [ ] Integrar envio de boas-vindas no fluxo de onboarding (routers.ts)
+- [ ] Integrar envio de notificação de candidatura no fluxo de apply
+- [ ] Integrar envio de alerta de match quando empresa aceita candidatura
+- [ ] Integrar envio de e-mail de reset de senha real (substituir notifyOwner)
+- [ ] Testar fluxo completo: cadastro representante → candidatura → aceite
+- [ ] Testar fluxo completo: cadastro empresa → publicar vaga → aceitar candidato
