@@ -27,6 +27,7 @@ import EsqueciSenha from "./pages/EsqueciSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import VerificarEmail from "./pages/VerificarEmail";
 import OportunidadesReps from "./pages/OportunidadesReps";
+import { Redirect } from "wouter";
 
 function Router() {
   return (
@@ -34,8 +35,11 @@ function Router() {
       {/* Public routes */}
       <Route path="/" component={Home} />
       <Route path="/buscar" component={BuscarRepresentantes} />
+      <Route path="/buscar-reps" component={BuscarRepresentantes} />
       <Route path="/vagas" component={Vagas} />
       <Route path="/oportunidades-reps" component={OportunidadesReps} />
+      <Route path="/reps-disponiveis" component={OportunidadesReps} />
+      <Route path="/faq">{() => { window.location.replace('/#faq'); return null; }}</Route>
       <Route path="/planos" component={Planos} />
       <Route path="/privacidade" component={Privacidade} />
       <Route path="/termos" component={Termos} />
