@@ -128,6 +128,51 @@ async function startServer() {
     }
   });
 
+  // ─── Setup Admin (executar uma vez em produção) ─────────────────────────────
+  // Cria o admin demo@repmatch.com.br se não existir
+  app.get("/api/admin/setup-admin", async (req, res) => {
+    const secret = req.query.secret;
+    if (secret !== "repmatch-setup-2026") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    try {
+      const bcrypt = await import("bcryptjs");
+      const { getDb } = await import("../db");
+      const { users } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const db = await getDb();
+      if (!db) return res.status(500).json({ error: "DB not available" });
+
+      // Verificar se já existe
+      const existing = await db.select().from(users).where(eq(users.email, "demo@repmatch.com.br")).limit(1);
+      if (existing.length > 0) {
+        // Atualizar senha e role
+        const hash = bcrypt.default.hashSync("Rawail", 12);
+        await db.update(users).set({ passwordHash: hash, role: "admin" }).where(eq(users.email, "demo@repmatch.com.br"));
+        return res.json({ success: true, action: "updated", email: "demo@repmatch.com.br" });
+      }
+
+      // Criar novo admin
+      const hash = bcrypt.default.hashSync("Rawail", 12);
+      await db.insert(users).values({
+        name: "Demo Admin",
+        email: "demo@repmatch.com.br",
+        role: "admin",
+        userType: "company",
+        passwordHash: hash,
+        emailVerified: true,
+        openId: "local_demo_admin_prod_001",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      res.json({ success: true, action: "created", email: "demo@repmatch.com.br", password: "Rawail" });
+    } catch (err: any) {
+      console.error("[setup-admin]", err);
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
   // Health check endpoint for Railway
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
