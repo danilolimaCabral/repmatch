@@ -371,9 +371,15 @@ export const appRouter = router({
         }).optional()
       )
       .query(async ({ ctx, input }) => {
-        const company = await getCompanyByUserId(ctx.user.id);
-        if (!company) throw new TRPCError({ code: "FORBIDDEN", message: "Crie seu perfil de empresa primeiro" });
-        return listRepresentativesForCompany(company.id, input);
+        const isAdmin = ctx.user.role === "admin";
+        // Admin can bypass company profile requirement
+        let companyId = 0;
+        if (!isAdmin) {
+          const company = await getCompanyByUserId(ctx.user.id);
+          if (!company) throw new TRPCError({ code: "FORBIDDEN", message: "Crie seu perfil de empresa primeiro" });
+          companyId = company.id;
+        }
+        return listRepresentativesForCompany(companyId, { ...input, _isAdmin: isAdmin } as any);
       }),
 
     countAvailableNow: publicProcedure.query(async () => {

@@ -588,6 +588,37 @@ export async function getRepresentativePreview(filters?: { region?: string; segm
 }
 
 // ─── Representatives for Company (full listing with unlock awareness) ─────────
+// ─── Data Masking Helpers ────────────────────────────────────────────────────
+
+/**
+ * Masks sensitive contact data for non-admin, non-unlocked views.
+ * Admin master always sees full data.
+ * Company sees full data only for unlocked contacts.
+ */
+export function maskRepresentativeData<T extends {
+  fullName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  linkedinUrl?: string | null;
+  bio?: string | null;
+}>(rep: T, isUnlocked: boolean, isAdmin: boolean): T {
+  if (isAdmin || isUnlocked) return rep; // Full data
+
+  // Mask: show only first name + last initial, hide phone/email/linkedin
+  const firstName = rep.fullName?.split(" ")[0] ?? "Rep";
+  const lastInitial = rep.fullName?.split(" ").slice(-1)[0]?.[0] ?? "●";
+  const maskedName = `${firstName} ${lastInitial}.`;
+
+  return {
+    ...rep,
+    fullName: maskedName,
+    phone: rep.phone ? `(${rep.phone.replace(/\D/g, "").slice(0, 2)}) ●●●●●-${rep.phone.replace(/\D/g, "").slice(-4)}` : null,
+    email: rep.email ? `${rep.email.split("@")[0].slice(0, 2)}●●●@${rep.email.split("@")[1] ?? "●●●"}` : null,
+    linkedinUrl: rep.linkedinUrl ? "[Desbloqueie para ver]" : null,
+    bio: rep.bio ? rep.bio.slice(0, 80) + (rep.bio.length > 80 ? "..." : "") : null,
+  };
+}
+
 export async function listRepresentativesForCompany(
   companyId: number,
   filters?: {
@@ -691,7 +722,14 @@ export async function listRepresentativesForCompany(
     .where(eq(unlockedContacts.companyId, companyId));
   const unlockedIds = unlocked.map((u) => u.representativeId);
 
-  return { reps, total, unlockedIds };
+  // Apply masking: non-unlocked contacts get masked data (admin flag passed via filters)
+  const isAdmin = (filters as any)?._isAdmin === true;
+  const maskedReps = reps.map((rep) => {
+    const isUnlocked = unlockedIds.includes(rep.id);
+    return maskRepresentativeData(rep, isUnlocked, isAdmin);
+  });
+
+  return { reps: maskedReps, total, unlockedIds };
 }
 
 // ─── Direct Chat (Company ↔ Representative) ───────────────────────────────────

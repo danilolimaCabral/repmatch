@@ -1080,20 +1080,25 @@ export default function CompanyDashboard() {
                     const isUnlocked = searchData?.unlockedIds.includes(rep.id);
                     const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : rep.subscriptionTier === "bronze" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200";
                     const tierLabel = rep.subscriptionTier === "ouro" ? "Ouro" : rep.subscriptionTier === "prata" ? "Prata" : rep.subscriptionTier === "bronze" ? "Bronze" : "Pendente";
+                    // Backend already masks data for non-unlocked; we just show what we receive
+                    const isMasked = !isUnlocked;
                     return (
                       <div key={rep.id} className={`rounded-xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow ${isUnlocked ? "border-emerald-200" : "border-slate-200"}`}>
-                        {isUnlocked && (
-                          <div className="flex justify-end mb-1">
+                        <div className="flex justify-between items-start mb-1">
+                          {isUnlocked ? (
                             <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs"><CheckCircle className="w-3 h-3 mr-1" />Desbloqueado</Badge>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm flex-shrink-0">
-                            {rep.fullName?.charAt(0) ?? "R"}
+                          ) : (
+                            <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-xs">🔒 Dados protegidos</Badge>
+                          )}
+                          <Badge className={`text-xs border ${tierBadge}`}>{tierLabel}</Badge>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3 mt-2">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0 ${isUnlocked ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
+                            {isMasked ? "🔒" : (rep.fullName?.charAt(0) ?? "R")}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-bold text-sm truncate text-slate-800">{isUnlocked ? rep.fullName : `${rep.fullName?.split(" ")[0]} ${rep.fullName?.split(" ").slice(1).map(() => "●").join("") ?? "●●"}`}</div>
-                            <Badge className={`text-xs mt-0.5 border ${tierBadge}`}>{tierLabel}</Badge>
+                            {/* Backend already returns masked name for non-unlocked */}
+                            <div className={`font-bold text-sm truncate ${isUnlocked ? "text-slate-800" : "text-slate-500"}`}>{rep.fullName ?? "Rep. Comercial"}</div>
                             {rep.availability === "imediata" && (
                               <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs mt-0.5">🟢 Disponível agora</Badge>
                             )}
@@ -1105,18 +1110,34 @@ export default function CompanyDashboard() {
                           <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears ?? 0} anos de experiência</div>
                           <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{Number(rep.averageRating ?? 0).toFixed(1)} avaliação</div>
                         </div>
+                        {/* Contact info — backend masks if not unlocked */}
+                        <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
+                          {rep.phone && (
+                            <div className={`flex items-center gap-1.5 font-medium ${isUnlocked ? "text-slate-700" : "text-slate-400"}`}>
+                              <span className="text-xs">📞</span>
+                              {isMasked ? <span className="italic">{rep.phone}</span> : rep.phone}
+                            </div>
+                          )}
+                          {rep.email && (
+                            <div className={`flex items-center gap-1.5 font-medium ${isUnlocked ? "text-slate-700" : "text-slate-400"}`}>
+                              <span className="text-xs">📧</span>
+                              {isMasked ? <span className="italic">{rep.email}</span> : rep.email}
+                            </div>
+                          )}
+                          {rep.bio && (
+                            <div className={`text-xs mt-1 ${isUnlocked ? "text-slate-600" : "text-slate-400 italic"}`}>
+                              {rep.bio}{isMasked && rep.bio.endsWith("...") && " (desbloqueie para ver mais)"}
+                            </div>
+                          )}
+                        </div>
                         {isUnlocked ? (
-                          <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
-                            {rep.phone && <div className="flex items-center gap-1.5 text-slate-700 font-medium"><DollarSign className="w-3 h-3 text-emerald-600" />{rep.phone}</div>}
-                            {rep.email && <div className="flex items-center gap-1.5 text-slate-700 font-medium"><ChevronRight className="w-3 h-3 text-emerald-600" />{rep.email}</div>}
-                            <Button size="sm" variant="outline" className="w-full mt-2 text-xs border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => { setReviewRepId(rep.id); setReviewRepName(rep.fullName ?? ""); setReviewModalOpen(true); }}>
-                              <Star className="w-3 h-3 mr-1 fill-amber-400 text-amber-400" /> Avaliar Representante
-                            </Button>
-                          </div>
+                          <Button size="sm" variant="outline" className="w-full mt-3 text-xs border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => { setReviewRepId(rep.id); setReviewRepName(rep.fullName ?? ""); setReviewModalOpen(true); }}>
+                            <Star className="w-3 h-3 mr-1 fill-amber-400 text-amber-400" /> Avaliar Representante
+                          </Button>
                         ) : (
-                          <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+                          <Button size="sm" className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
                             onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}>
-                            Desbloquear Contato — R$29
+                            🔓 Desbloquear Contato completo — R$29
                           </Button>
                         )}
                       </div>
