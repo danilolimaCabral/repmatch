@@ -531,3 +531,15 @@
 - [ ] Verificar se o sistema de auth próprio (email/senha) está funcionando em produção
 - [ ] Criar usuário admin padrão (admin@repmatch.com.br)
 - [ ] Testar fluxo de login/cadastro/logout em produção
+
+## Carrinho de Desbloqueio (Pix + Admin)
+
+- [x] Schema: tabelas unlock_requests e unlock_request_items criadas e migradas
+- [x] Backend tRPC: create, uploadPixProof, myRequests, adminList, approve, reject
+- [x] CompanyDashboard: botão "Adicionar ao carrinho" em cada card de rep
+- [x] CompanyDashboard: botão "Carrinho" no header com badge de contagem
+- [x] CompanyDashboard: modal do carrinho com resumo, total e opções de pagamento (Pix / Stripe)
+- [x] CompanyDashboard: fluxo Pix — chave Pix, upload de comprovante, confirmação
+- [x] AdminDashboard: aba "Desbloqueios" com lista de solicitações, filtros e busca
+- [x] AdminDashboard: botões Aprovar / Rejeitar com visualização do comprovante
+- [x] Contatos desbloqueados automaticamente ao aprovar (tabela unlocked_contacts)

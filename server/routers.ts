@@ -1919,5 +1919,223 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         return { hasReviewed: !!existing };
       }),
   }),
+
+  // ─── Unlock Requests (Carrinho de desbloqueios via Pix ou Stripe) ───────────────
+  unlockRequests: router({
+    // Empresa cria um pedido de desbloqueio (carrinho)
+    create: protectedProcedure
+      .input(z.object({
+        repIds: z.array(z.number()).min(1),
+        paymentMethod: z.enum(["pix", "stripe"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB unavailable");
+        const { unlockRequests, unlockRequestItems, companies, representatives } = await import('../drizzle/schema');
+
+        // Get company
+        const [company] = await db.select({ id: companies.id })
+          .from(companies).where(eq(companies.userId, ctx.user.id)).limit(1);
+        if (!company) throw new Error("Empresa não encontrada");
+
+        // Price: R$29 per rep
+        const PRICE_PER_REP = 29;
+        const totalAmount = input.repIds.length * PRICE_PER_REP;
+
+        // Create the request
+        const [result] = await db.insert(unlockRequests).values({
+          companyId: company.id,
+          paymentMethod: input.paymentMethod,
+          status: input.paymentMethod === "pix" ? "pending_payment" : "pending_payment",
+          totalAmount: totalAmount.toFixed(2),
+        });
+        const requestId = (result as any).insertId as number;
+
+        // Fetch rep names
+        const reps = await db.select({ id: representatives.id, fullName: representatives.fullName })
+          .from(representatives).where(inArray(representatives.id, input.repIds));
+        const repMap = Object.fromEntries(reps.map(r => [r.id, r.fullName]));
+
+        // Insert items
+        await db.insert(unlockRequestItems).values(
+          input.repIds.map(repId => ({
+            unlockRequestId: requestId,
+            representativeId: repId,
+            repName: repMap[repId] ?? "Representante",
+            priceUnit: PRICE_PER_REP.toFixed(2),
+          }))
+        );
+
+        // Notify admin
+        await notifyOwner({
+          title: `🛒 Nova solicitação de desbloqueio (#${requestId})`,
+          content: `Empresa ID ${company.id} solicitou desbloqueio de ${input.repIds.length} representante(s) via ${input.paymentMethod.toUpperCase()}. Total: R$${totalAmount}.`,
+        });
+
+        return { requestId, totalAmount };
+      }),
+
+    // Empresa faz upload do comprovante Pix
+    uploadPixProof: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        fileBase64: z.string(),
+        fileName: z.string(),
+        mimeType: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB unavailable");
+        const { unlockRequests, companies } = await import('../drizzle/schema');
+
+        // Verify ownership
+        const [company] = await db.select({ id: companies.id })
+          .from(companies).where(eq(companies.userId, ctx.user.id)).limit(1);
+        if (!company) throw new Error("Empresa não encontrada");
+
+        const [req] = await db.select()
+          .from(unlockRequests)
+          .where(and(eq(unlockRequests.id, input.requestId), eq(unlockRequests.companyId, company.id)))
+          .limit(1);
+        if (!req) throw new Error("Solicitação não encontrada");
+
+        // Upload to storage
+        const buffer = Buffer.from(input.fileBase64, "base64");
+        const key = `pix-proofs/${company.id}/${input.requestId}-${Date.now()}-${input.fileName}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+
+        // Update request
+        await db.update(unlockRequests)
+          .set({ pixProofUrl: url, pixProofKey: key, status: "pending_approval" })
+          .where(eq(unlockRequests.id, input.requestId));
+
+        // Notify admin
+        await notifyOwner({
+          title: `📸 Comprovante Pix enviado (#${input.requestId})`,
+          content: `Empresa ID ${company.id} enviou comprovante Pix para solicitação #${input.requestId}. Acesse o painel admin para aprovar.`,
+        });
+
+        return { success: true, url };
+      }),
+
+    // Empresa lista suas solicitações
+    myRequests: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const { unlockRequests, unlockRequestItems, companies } = await import('../drizzle/schema');
+
+      const [company] = await db.select({ id: companies.id })
+        .from(companies).where(eq(companies.userId, ctx.user.id)).limit(1);
+      if (!company) return [];
+
+      const requests = await db.select()
+        .from(unlockRequests)
+        .where(eq(unlockRequests.companyId, company.id))
+        .orderBy(unlockRequests.createdAt);
+
+      const items = requests.length > 0
+        ? await db.select().from(unlockRequestItems)
+            .where(inArray(unlockRequestItems.unlockRequestId, requests.map(r => r.id)))
+        : [];
+
+      return requests.map(r => ({
+        ...r,
+        items: items.filter(i => i.unlockRequestId === r.id),
+      }));
+    }),
+
+    // Admin lista todas as solicitações pendentes
+    adminList: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new Error("Forbidden");
+      const db = await getDb();
+      if (!db) return [];
+      const { unlockRequests, unlockRequestItems, companies, users } = await import('../drizzle/schema');
+
+      const requests = await db.select({
+        id: unlockRequests.id,
+        companyId: unlockRequests.companyId,
+        paymentMethod: unlockRequests.paymentMethod,
+        status: unlockRequests.status,
+        totalAmount: unlockRequests.totalAmount,
+        pixProofUrl: unlockRequests.pixProofUrl,
+        adminNotes: unlockRequests.adminNotes,
+        createdAt: unlockRequests.createdAt,
+        updatedAt: unlockRequests.updatedAt,
+        companyName: companies.companyName,
+        companyEmail: users.email,
+      })
+        .from(unlockRequests)
+        .leftJoin(companies, eq(unlockRequests.companyId, companies.id))
+        .leftJoin(users, eq(companies.userId, users.id))
+        .orderBy(unlockRequests.createdAt);
+
+      const items = requests.length > 0
+        ? await db.select().from(unlockRequestItems)
+            .where(inArray(unlockRequestItems.unlockRequestId, requests.map(r => r.id)))
+        : [];
+
+      return requests.map(r => ({
+        ...r,
+        items: items.filter(i => i.unlockRequestId === r.id),
+      }));
+    }),
+
+    // Admin aprova solicitação (desbloqueia todos os reps do pedido)
+    approve: protectedProcedure
+      .input(z.object({ requestId: z.number(), notes: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new Error("Forbidden");
+        const db = await getDb();
+        if (!db) throw new Error("DB unavailable");
+        const { unlockRequests, unlockRequestItems, unlockedContacts } = await import('../drizzle/schema');
+
+        const [req] = await db.select().from(unlockRequests)
+          .where(eq(unlockRequests.id, input.requestId)).limit(1);
+        if (!req) throw new Error("Solicitação não encontrada");
+
+        const items = await db.select().from(unlockRequestItems)
+          .where(eq(unlockRequestItems.unlockRequestId, input.requestId));
+
+        // Unlock each rep
+        for (const item of items) {
+          const [existing] = await db.select({ id: unlockedContacts.id })
+            .from(unlockedContacts)
+            .where(and(
+              eq(unlockedContacts.companyId, req.companyId),
+              eq(unlockedContacts.representativeId, item.representativeId),
+            )).limit(1);
+          if (!existing) {
+            await db.insert(unlockedContacts).values({
+              companyId: req.companyId,
+              representativeId: item.representativeId,
+              pricePaid: item.priceUnit,
+            });
+          }
+        }
+
+        // Update request status
+        await db.update(unlockRequests)
+          .set({ status: "approved", adminNotes: input.notes ?? null, reviewedBy: ctx.user.id, reviewedAt: new Date() })
+          .where(eq(unlockRequests.id, input.requestId));
+
+        return { success: true, unlockedCount: items.length };
+      }),
+
+    // Admin rejeita solicitação
+    reject: protectedProcedure
+      .input(z.object({ requestId: z.number(), notes: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new Error("Forbidden");
+        const db = await getDb();
+        if (!db) throw new Error("DB unavailable");
+        const { unlockRequests } = await import('../drizzle/schema');
+
+        await db.update(unlockRequests)
+          .set({ status: "rejected", adminNotes: input.notes ?? null, reviewedBy: ctx.user.id, reviewedAt: new Date() })
+          .where(eq(unlockRequests.id, input.requestId));
+
+        return { success: true };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

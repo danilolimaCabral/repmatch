@@ -25,7 +25,10 @@ function normalizePhone(raw: string): string | null {
 export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"stats" | "analytics" | "import" | "users" | "jobs" | "pagamentos" | "documentos">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "analytics" | "import" | "users" | "jobs" | "pagamentos" | "documentos" | "desbloqueios">("stats");
+  const [unlockSearch, setUnlockSearch] = useState("");
+  const [unlockStatusFilter, setUnlockStatusFilter] = useState<"all" | "pending_proof" | "pending_approval" | "approved" | "rejected">("all");
+  const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
   const [docStatusFilter, setDocStatusFilter] = useState("all");
   const [docSearch, setDocSearch] = useState("");
   const [reviewModal, setReviewModal] = useState<{ rep: Record<string, unknown>; mode: "kyc" | "core" } | null>(null);
@@ -56,6 +59,23 @@ export default function AdminDashboard() {
     onSuccess: (_, vars) => { toast.success(vars.isActive ? "Usuário reativado!" : "Usuário desativado!"); refetchUsers(); },
     onError: () => toast.error("Erro ao alterar status do usuário"),
   });
+  // Unlock requests queries
+  const { data: unlockRequestsRaw, refetch: refetchUnlockRequests, isLoading: unlockLoading } = trpc.unlockRequests.adminList.useQuery();
+  const unlockRequests = (unlockRequestsRaw ?? []).filter(r => {
+    const matchStatus = unlockStatusFilter === "all" || r.status === unlockStatusFilter;
+    const q = unlockSearch.toLowerCase();
+    const matchSearch = !q || (r.companyName ?? "").toLowerCase().includes(q) || (r.companyEmail ?? "").toLowerCase().includes(q);
+    return matchStatus && matchSearch;
+  });
+  const approveUnlockMutation = trpc.unlockRequests.approve.useMutation({
+    onSuccess: () => { toast.success("Desbloqueio aprovado! Contatos liberados."); refetchUnlockRequests(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const rejectUnlockMutation = trpc.unlockRequests.reject.useMutation({
+    onSuccess: () => { toast.success("Solicitação rejeitada."); refetchUnlockRequests(); },
+    onError: (e) => toast.error(e.message),
+  });
+
   // KYC/Documents queries
   const { data: docStats, refetch: refetchDocStats } = trpc.kyc.documentStats.useQuery();
   const { data: allDocs, isLoading: docsLoading, refetch: refetchDocs } = trpc.kyc.listAllDocuments.useQuery({
@@ -189,6 +209,7 @@ export default function AdminDashboard() {
               { id: "stats", label: "Dashboard", icon: TrendingUp },
               { id: "analytics", label: "Analytics", icon: BarChart2 },
               { id: "pagamentos", label: "Pagamentos PIX", icon: CreditCard },
+              { id: "desbloqueios", label: "Desbloqueios", icon: ShieldCheck },
               { id: "documentos", label: "Documentos", icon: FileText },
               { id: "jobs", label: "Vagas", icon: Briefcase },
               { id: "import", label: "Importar Dados", icon: Upload },
@@ -822,6 +843,159 @@ export default function AdminDashboard() {
               )}
             </div>
           )}
+          {/* ─── ABA DESBLOQUEIOS ─────────────────────────────────────────────── */}
+          {activeTab === "desbloqueios" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-black">Solicitações de Desbloqueio</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Aprove ou rejeite solicitações de desbloqueio de contato via Pix</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 px-3 py-1">
+                    {(unlockRequestsRaw ?? []).filter(r => r.status === "pending_approval").length} pendentes
+                  </Badge>
+                  <Button size="sm" variant="outline" onClick={() => refetchUnlockRequests()} className="border-border">
+                    <RefreshCw className="w-4 h-4 mr-1" /> Atualizar
+                  </Button>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap gap-3 mb-5">
+                <div className="relative flex-1 min-w-48">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por empresa ou e-mail..."
+                    value={unlockSearch}
+                    onChange={(e) => setUnlockSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <select
+                  value={unlockStatusFilter}
+                  onChange={e => setUnlockStatusFilter(e.target.value as typeof unlockStatusFilter)}
+                  className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground focus:outline-none"
+                >
+                  <option value="all">Todos os status</option>
+                  <option value="pending_proof">Aguardando comprovante</option>
+                  <option value="pending_approval">Aguardando aprovação</option>
+                  <option value="approved">Aprovados</option>
+                  <option value="rejected">Rejeitados</option>
+                </select>
+              </div>
+
+              {unlockLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : unlockRequests.length === 0 ? (
+                <div className="text-center py-16">
+                  <CheckCheck className="w-12 h-12 text-primary mx-auto mb-3 opacity-60" />
+                  <p className="text-muted-foreground">Nenhuma solicitação encontrada.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {unlockRequests.map(req => (
+                    <div key={req.id} className="rounded-xl border border-border bg-card p-5">
+                      <div className="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                          <div className="font-bold text-foreground">{req.companyName ?? "Empresa"}</div>
+                          <div className="text-xs text-muted-foreground">{req.companyEmail ?? ""}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge className={`text-xs ${
+                              req.status === "pending_approval" ? "bg-amber-900/30 text-amber-300 border-amber-700/40" :
+                              req.status === "approved" ? "bg-emerald-900/30 text-emerald-300 border-emerald-700/40" :
+                              req.status === "rejected" ? "bg-red-900/30 text-red-300 border-red-700/40" :
+                              "bg-secondary text-muted-foreground border-border"
+                            } border`}>
+                              {req.status === "pending_payment" && "Aguardando comprovante"}
+                              {req.status === "pending_approval" && "Aguardando aprovação"}
+                              {req.status === "approved" && "Aprovado"}
+                              {req.status === "rejected" && "Rejeitado"}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {req.paymentMethod === "pix" ? "Pix" : "Cartão"} • R${req.totalAmount}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(req.createdAt).toLocaleDateString("pt-BR")}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {req.pixProofUrl && (
+                            <Button size="sm" variant="outline" className="border-border text-xs" onClick={() => setViewProofUrl(req.pixProofUrl!)}>
+                              <Eye className="w-3 h-3 mr-1" /> Ver comprovante
+                            </Button>
+                          )}
+                          {req.status === "pending_approval" && (
+                            <>
+                              <Button
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                                disabled={approveUnlockMutation.isPending}
+                                onClick={() => approveUnlockMutation.mutate({ requestId: req.id })}
+                              >
+                                {approveUnlockMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <ThumbsUp className="w-3 h-3 mr-1" />}
+                                Aprovar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-700/40 text-red-400 hover:bg-red-900/20 text-xs"
+                                disabled={rejectUnlockMutation.isPending}
+                                onClick={() => rejectUnlockMutation.mutate({ requestId: req.id })}
+                              >
+                                {rejectUnlockMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <ThumbsDown className="w-3 h-3 mr-1" />}
+                                Rejeitar
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {/* Items */}
+                          {req.items && req.items.length > 0 && (
+                        <div className="border-t border-border pt-3">
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">Representantes a desbloquear ({req.items.length}):</p>
+                          <div className="flex flex-wrap gap-2">
+                            {req.items.map((item) => (
+                              <span key={item.id} className="text-xs bg-secondary text-muted-foreground rounded-lg px-2 py-1">
+                                {item.repName ?? `Rep #${item.representativeId}`}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Proof image viewer modal */}
+          {viewProofUrl && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setViewProofUrl(null)}>
+              <div className="bg-card rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+                  <span className="font-semibold text-sm">Comprovante de Pagamento</span>
+                  <button onClick={() => setViewProofUrl(null)} className="text-muted-foreground hover:text-foreground">
+                    <XCircle className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-4">
+                  {viewProofUrl.endsWith(".pdf") ? (
+                    <iframe src={viewProofUrl} className="w-full h-96 rounded-lg" />
+                  ) : (
+                    <img src={viewProofUrl} alt="Comprovante" className="w-full rounded-lg object-contain max-h-96" />
+                  )}
+                  <a href={viewProofUrl} target="_blank" rel="noopener noreferrer" className="block mt-3 text-center text-xs text-primary hover:underline">Abrir em nova aba</a>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ─── ABA DOCUMENTOS ─────────────────────────────────────────────────── */}
           {activeTab === "documentos" && (
             <div>

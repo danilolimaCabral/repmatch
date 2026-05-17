@@ -12,7 +12,8 @@ import {
   Briefcase, Building2, Users, LogOut, Plus, MapPin, DollarSign,
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
   ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil, Shield,
-  BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight, MessageSquare, Send
+  BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight, MessageSquare, Send,
+  ShoppingCart, Trash2, Upload, X as XIcon, QrCode
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
@@ -219,6 +220,7 @@ function DirectChatTab({
           </>
         )}
       </div>
+
     </div>
   );
 }
@@ -260,6 +262,68 @@ export default function CompanyDashboard() {
   const [chatInput, setChatInput] = useState("");
   const [previewRegion, setPreviewRegion] = useState<string | undefined>(undefined);
   const [previewSegment, setPreviewSegment] = useState<string | undefined>(undefined);
+
+  // ─── Cart state (desbloqueio em lote) ─────────────────────────────────────
+  const [cart, setCart] = useState<Array<{ id: number; name: string }>>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartStep, setCartStep] = useState<"summary" | "pix" | "done">("summary");
+  const [pixProofFile, setPixProofFile] = useState<File | null>(null);
+  const [pixProofUploading, setPixProofUploading] = useState(false);
+  const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
+
+  const createUnlockRequest = trpc.unlockRequests.create.useMutation({
+    onError: (e) => toast.error(e.message),
+  });
+  const uploadPixProof = trpc.unlockRequests.uploadPixProof.useMutation({
+    onError: (e) => { setPixProofUploading(false); toast.error(e.message); },
+  });
+
+  const addToCart = (repId: number, repName: string) => {
+    if (cart.some(c => c.id === repId)) { toast.info("Já está no carrinho"); return; }
+    setCart(prev => [...prev, { id: repId, name: repName }]);
+    toast.success(`${repName} adicionado ao carrinho`);
+  };
+  const removeFromCart = (repId: number) => setCart(prev => prev.filter(c => c.id !== repId));
+
+  const handleCheckoutCart = async (method: "pix" | "stripe") => {
+    if (cart.length === 0) return;
+    if (method === "stripe") {
+      // Stripe: create request then redirect to checkout
+      const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "stripe" });
+      if (res) {
+        user && startCheckout("UNLOCK_BATCH", user.id, user.email ?? "", user.name ?? "", { repId: res.requestId });
+        setCartOpen(false);
+        setCart([]);
+      }
+      return;
+    }
+    // Pix: create request and show pix step
+    const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "pix" });
+    if (res) {
+      setCurrentRequestId(res.requestId);
+      setCartStep("pix");
+    }
+  };
+
+  const handlePixProofUpload = async () => {
+    if (!pixProofFile || !currentRequestId) return;
+    setPixProofUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = (e.target?.result as string).split(",")[1];
+      await uploadPixProof.mutateAsync({
+        requestId: currentRequestId,
+        fileBase64: base64,
+        fileName: pixProofFile.name,
+        mimeType: pixProofFile.type,
+      });
+      setPixProofUploading(false);
+      setCartStep("done");
+      setCart([]);
+      toast.success("Comprovante enviado! Aguarde a aprovação do admin.");
+    };
+    reader.readAsDataURL(pixProofFile);
+  };
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewRepId, setReviewRepId] = useState<number | null>(null);
@@ -1055,16 +1119,158 @@ export default function CompanyDashboard() {
           </div>
         )}
 
-        {/* ─── Search Tab ─────────────────────────────────────────────── */}
+        {/* ─── Cart Modal ──────────────────────────────────────────────────────────────────────────────────── */}
+        <Dialog open={cartOpen} onOpenChange={(o) => { setCartOpen(o); if (!o) { setCartStep("summary"); setPixProofFile(null); } }}>
+          <DialogContent className="bg-white border-slate-200 max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-slate-800 flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                {cartStep === "summary" && "Carrinho de Desbloqueios"}
+                {cartStep === "pix" && "Pagar via Pix"}
+                {cartStep === "done" && "Solicitação Enviada!"}
+              </DialogTitle>
+            </DialogHeader>
+
+            {cartStep === "summary" && (
+              <div className="space-y-4">
+                {cart.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <ShoppingCart className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Nenhum representante no carrinho.</p>
+                    <p className="text-xs mt-1">Clique em "+ Carrinho" nos cards para adicionar.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {cart.map(c => (
+                        <div key={c.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">{c.name.charAt(0)}</div>
+                            <span className="text-sm text-slate-700 font-medium">{c.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">R$29</span>
+                            <button onClick={() => removeFromCart(c.id)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                      <span className="font-semibold text-slate-700">{cart.length} representante{cart.length > 1 ? "s" : ""}</span>
+                      <span className="text-lg font-bold text-emerald-700">R${cart.length * 29}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-3">
+                      Após o pagamento, o admin irá aprovar e os contatos serão liberados automaticamente.
+                    </p>
+                    <div className="grid grid-cols-1 gap-2">
+                      <Button
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                        onClick={() => handleCheckoutCart("pix")}
+                        disabled={createUnlockRequest.isPending}
+                      >
+                        {createUnlockRequest.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
+                        Pagar via Pix
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-slate-200 text-slate-600"
+                        onClick={() => handleCheckoutCart("stripe")}
+                        disabled={createUnlockRequest.isPending}
+                      >
+                        💳 Pagar com Cartão (Stripe)
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {cartStep === "pix" && (
+              <div className="space-y-4">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                  <p className="text-sm font-semibold text-emerald-800 mb-1">Chave Pix</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-lg font-bold text-emerald-700">41999499815</span>
+                    <button onClick={() => { navigator.clipboard.writeText("41999499815"); toast.success("Chave copiada!"); }} className="text-emerald-500 hover:text-emerald-700">
+                      <Upload className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-emerald-600 mt-1">Valor: <strong>R${currentRequestId ? cart.length * 29 : 0}</strong></p>
+                </div>
+                <div className="space-y-2 text-sm text-slate-600">
+                  <p className="font-semibold text-slate-700">Como pagar:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs text-slate-500">
+                    <li>Abra seu app do banco e vá em Pix</li>
+                    <li>Cole a chave acima e informe o valor</li>
+                    <li>Confirme o pagamento e salve o comprovante</li>
+                    <li>Faça o upload do comprovante abaixo</li>
+                  </ol>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-700 text-sm">Upload do Comprovante *</Label>
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-300 transition-colors" onClick={() => document.getElementById('pix-proof-input')?.click()}>
+                    {pixProofFile ? (
+                      <div className="flex items-center justify-center gap-2 text-emerald-600">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="text-sm font-medium">{pixProofFile.name}</span>
+                      </div>
+                    ) : (
+                      <div className="text-slate-400">
+                        <Upload className="w-6 h-6 mx-auto mb-1" />
+                        <p className="text-xs">Clique para selecionar o comprovante (JPG, PNG, PDF)</p>
+                      </div>
+                    )}
+                    <input id="pix-proof-input" type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => setPixProofFile(e.target.files?.[0] ?? null)} />
+                  </div>
+                </div>
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                  onClick={handlePixProofUpload}
+                  disabled={!pixProofFile || pixProofUploading}
+                >
+                  {pixProofUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                  Enviar Comprovante
+                </Button>
+              </div>
+            )}
+
+            {cartStep === "done" && (
+              <div className="text-center py-6 space-y-3">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle className="w-8 h-8 text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">Solicitação Enviada!</h3>
+                <p className="text-sm text-slate-500">Seu comprovante foi recebido. O admin irá revisar e liberar os contatos em até 24h.</p>
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setCartOpen(false); setCartStep("summary"); }}>
+                  Fechar
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* ─── Search Tab ──────────────────────────────────────────────────────────────────────────────────── */}
         {activeTab === "search" && (
           <div className="p-8">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-slate-800 mb-1">Buscar Representantes</h1>
-              <p className="text-slate-500 text-sm">
-                Encontre representantes qualificados por região, segmento e disponibilidade. Contatos desbloqueados aparecem com dados completos.
-              </p>
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800 mb-1">Buscar Representantes</h1>
+                <p className="text-slate-500 text-sm">
+                  Encontre representantes qualificados por região, segmento e disponibilidade. Contatos desbloqueados aparecem com dados completos.
+                </p>
+              </div>
+              {/* Cart button */}
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative flex-shrink-0 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Carrinho
+                {cart.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{cart.length}</span>
+                )}
+              </button>
             </div>
-
             {/* Filters */}
             <div className="flex flex-wrap gap-3 mb-4">
               <Select value={searchRegion ?? "all"} onValueChange={v => { setSearchRegion(v === "all" ? undefined : v); setSearchPage(1); }}>
@@ -1224,10 +1430,15 @@ export default function CompanyDashboard() {
                           <Button size="sm" variant="outline" className="w-full mt-3 text-xs border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => { setReviewRepId(rep.id); setReviewRepName(rep.fullName ?? ""); setReviewModalOpen(true); }}>
                             <Star className="w-3 h-3 mr-1 fill-amber-400 text-amber-400" /> Avaliar Representante
                           </Button>
+                        ) : cart.some(c => c.id === rep.id) ? (
+                          <Button size="sm" variant="outline" className="w-full mt-3 text-xs border-emerald-300 text-emerald-700 bg-emerald-50"
+                            onClick={() => removeFromCart(rep.id)}>
+                            <ShoppingCart className="w-3 h-3 mr-1" /> No carrinho — remover
+                          </Button>
                         ) : (
                           <Button size="sm" className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
-                            onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}>
-                            🔓 Desbloquear Contato completo — R$29
+                            onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
+                            <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — R$29
                           </Button>
                         )}
                       </div>

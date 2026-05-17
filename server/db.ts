@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import {
   Application,
   Company,
+  CnpjRepresentative,
   ImportLog,
   InsertApplication,
   InsertCompany,
@@ -16,6 +17,7 @@ import {
   Representative,
   UnlockedContact,
   applications,
+  cnpjRepresentatives,
   companies,
   importLogs,
   jobs,
@@ -390,13 +392,90 @@ export async function getExistingApplication(jobId: number, representativeId: nu
 
 // ─── Match Algorithm ──────────────────────────────────────────────────────────
 
+export interface MatchBreakdown {
+  score: number;
+  criteria: {
+    region: { points: number; max: number; match: boolean };
+    segment: { points: number; max: number; match: boolean };
+    experience: { points: number; max: number; years: number };
+    active: { points: number; max: number; isActive: boolean };
+    kyc: { points: number; max: number; approved: boolean };
+    core: { points: number; max: number; active: boolean };
+  };
+  strengths: string[];
+  revenueEstimate: string | null;
+  cnaeDescricao: string | null;
+}
+
 export function calculateMatchScore(rep: Representative, job: Job): number {
   let score = 0;
   if (rep.region && job.region && rep.region === job.region) score += 40;
   if (rep.segment && job.segment && rep.segment === job.segment) score += 30;
   if ((rep.experienceYears ?? 0) >= 3) score += 20;
-  if (rep.isActive) score += 10;
+  if (rep.isActive) score += 5;
+  if (rep.kycStatus === "approved") score += 3;
+  if (rep.coreStatus === "active") score += 2;
   return score;
+}
+
+export function calculateMatchBreakdown(
+  rep: Representative,
+  job: Job,
+  cnpjData?: CnpjRepresentative | null
+): MatchBreakdown {
+  const regionMatch = !!(rep.region && job.region && rep.region === job.region);
+  const segmentMatch = !!(rep.segment && job.segment && rep.segment === job.segment);
+  const expYears = rep.experienceYears ?? 0;
+  const kycApproved = rep.kycStatus === "approved";
+  const coreActive = rep.coreStatus === "active";
+
+  const regionPts = regionMatch ? 40 : 0;
+  const segmentPts = segmentMatch ? 30 : 0;
+  const expPts = expYears >= 3 ? 20 : expYears >= 1 ? 10 : 0;
+  const activePts = rep.isActive ? 5 : 0;
+  const kycPts = kycApproved ? 3 : 0;
+  const corePts = coreActive ? 2 : 0;
+  const score = regionPts + segmentPts + expPts + activePts + kycPts + corePts;
+
+  const strengths: string[] = [];
+  if (regionMatch) strengths.push(`Atua na região correta (${rep.region})`);
+  if (segmentMatch) strengths.push(`Especialista em ${rep.segment}`);
+  if (expYears >= 10) strengths.push(`${expYears} anos de experiência (sênior)`);
+  else if (expYears >= 5) strengths.push(`${expYears} anos de experiência (pleno)`);
+  else if (expYears >= 1) strengths.push(`${expYears} anos de experiência`);
+  if (kycApproved) strengths.push("Identidade verificada (KYC ✓)");
+  if (coreActive) strengths.push("Registro CORE ativo");
+  if (rep.availability === "imediata") strengths.push("Disponibilidade imediata");
+  if (rep.workModel === "exclusivo") strengths.push("Disponível para exclusividade");
+  if (rep.portfolioSize) strengths.push(`Carteira: ${rep.portfolioSize} clientes`);
+  if (cnpjData?.municipio && cnpjData?.uf) strengths.push(`Base em ${cnpjData.municipio}/${cnpjData.uf}`);
+
+  // Estimativa de faturamento
+  let revenueEstimate: string | null = null;
+  if (cnpjData) {
+    const porte = (cnpjData.porte ?? "").toLowerCase();
+    const isMei = Number(cnpjData.isMei) === 1;
+    if (isMei) revenueEstimate = "Até R$ 81 mil/ano (MEI)";
+    else if (porte.includes("micro")) revenueEstimate = "R$ 81 mil – R$ 360 mil/ano";
+    else if (porte.includes("pequen")) revenueEstimate = "R$ 360 mil – R$ 4,8 mi/ano";
+    else if (porte.includes("médi") || porte.includes("medi")) revenueEstimate = "R$ 4,8 mi – R$ 300 mi/ano";
+    else if (porte.includes("grande")) revenueEstimate = "Acima de R$ 300 mi/ano";
+  }
+
+  return {
+    score,
+    criteria: {
+      region: { points: regionPts, max: 40, match: regionMatch },
+      segment: { points: segmentPts, max: 30, match: segmentMatch },
+      experience: { points: expPts, max: 20, years: expYears },
+      active: { points: activePts, max: 5, isActive: rep.isActive },
+      kyc: { points: kycPts, max: 3, approved: kycApproved },
+      core: { points: corePts, max: 2, active: coreActive },
+    },
+    strengths,
+    revenueEstimate,
+    cnaeDescricao: cnpjData?.cnaeDescricao ?? null,
+  };
 }
 
 export async function getTopMatchesForJob(jobId: number, limit = 10) {
@@ -406,7 +485,24 @@ export async function getTopMatchesForJob(jobId: number, limit = 10) {
   if (!job) return [];
 
   const reps = await db.select().from(representatives).where(eq(representatives.isActive, true));
-  const scored = reps.map((rep) => ({ rep, score: calculateMatchScore(rep, job) }));
+
+  // Fetch CNPJ enrichment data for reps that have a CNPJ
+  const cnpjList = reps.map(r => r.cnpj).filter(Boolean) as string[];
+  const cnpjDataMap = new Map<string, CnpjRepresentative>();
+  if (cnpjList.length > 0) {
+    try {
+      const cnpjRows = await db.select().from(cnpjRepresentatives).where(
+        sql`cnpj IN (${sql.join(cnpjList.map(c => sql`${c}`), sql`, `)})`
+      );
+      for (const row of cnpjRows) cnpjDataMap.set(row.cnpj, row);
+    } catch (_) { /* ignore if table not yet populated */ }
+  }
+
+  const scored = reps.map((rep) => {
+    const cnpjData = rep.cnpj ? (cnpjDataMap.get(rep.cnpj) ?? null) : null;
+    const breakdown = calculateMatchBreakdown(rep, job, cnpjData);
+    return { rep, score: breakdown.score, breakdown };
+  });
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, limit);
 }

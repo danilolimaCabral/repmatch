@@ -348,6 +348,43 @@ export const managerUnlocks = mysqlTable("manager_unlocks", {
 export type ManagerUnlock = typeof managerUnlocks.$inferSelect;
 export type InsertManagerUnlock = typeof managerUnlocks.$inferInsert;
 
+// ─── Unlock Requests (Carrinho de desbloqueios via Pix ou Stripe) ───────────────
+export const unlockRequests = mysqlTable("unlock_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  companyId: int("companyId").notNull(),
+  // Método de pagamento
+  paymentMethod: mysqlEnum("paymentMethod", ["pix", "stripe"]).default("pix").notNull(),
+  // Status do pedido
+  status: mysqlEnum("status", ["pending_payment", "pending_approval", "approved", "rejected", "cancelled"]).default("pending_payment").notNull(),
+  // Valor total
+  totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }).notNull(),
+  // Comprovante Pix (URL do arquivo enviado)
+  pixProofUrl: varchar("pixProofUrl", { length: 500 }),
+  pixProofKey: varchar("pixProofKey", { length: 200 }),
+  // Stripe
+  stripePaymentId: varchar("stripePaymentId", { length: 100 }),
+  // Notas do admin ao aprovar/rejeitar
+  adminNotes: text("adminNotes"),
+  reviewedBy: int("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type UnlockRequest = typeof unlockRequests.$inferSelect;
+export type InsertUnlockRequest = typeof unlockRequests.$inferInsert;
+
+// Itens do carrinho de desbloqueio
+export const unlockRequestItems = mysqlTable("unlock_request_items", {
+  id: int("id").autoincrement().primaryKey(),
+  unlockRequestId: int("unlockRequestId").notNull(),
+  representativeId: int("representativeId").notNull(),
+  repName: varchar("repName", { length: 100 }),
+  priceUnit: decimal("priceUnit", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type UnlockRequestItem = typeof unlockRequestItems.$inferSelect;
+export type InsertUnlockRequestItem = typeof unlockRequestItems.$inferInsert;
+
 // ─── Rep Reviews (Empresa avalia representante após contratação) ──────────────
 export const repReviews = mysqlTable("rep_reviews", {
   id: int("id").autoincrement().primaryKey(),
