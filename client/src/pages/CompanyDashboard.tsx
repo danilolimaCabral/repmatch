@@ -951,29 +951,101 @@ export default function CompanyDashboard() {
                 </div>
 
                 <div>
-                  <h2 className="font-semibold mb-4 text-slate-500 text-xs uppercase tracking-wider">Top Matches por IA</h2>
-                  <div className="space-y-3">
-                    {topMatches?.map(({ rep, score }, i) => (
-                      <div key={rep.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
-                          {i + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-sm text-slate-800">{rep.fullName}</div>
-                          <div className="text-xs text-slate-400">{rep.region} · {rep.segment}</div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5">
-                          <div className="text-emerald-600 font-black">{score}/100</div>
-                          <Button size="sm" variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs h-7 px-2"
+                  <div className="flex items-center gap-2 mb-4">
+                    <h2 className="font-semibold text-slate-500 text-xs uppercase tracking-wider">Top Matches por IA</h2>
+                    <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5 font-medium">✦ Análise Inteligente</span>
+                  </div>
+                  <div className="space-y-4">
+                    {topMatches?.map((m: any, i: number) => {
+                      const rep = m.rep;
+                      const score = m.score as number;
+                      const bd = m.breakdown as any;
+                      const criteria = bd?.criteria;
+                      const strengths: string[] = bd?.strengths ?? [];
+                      const revenueEstimate: string | null = bd?.revenueEstimate ?? null;
+                      const cnaeDescricao: string | null = bd?.cnaeDescricao ?? null;
+                      const scoreColor = score >= 80 ? "text-emerald-600" : score >= 50 ? "text-amber-500" : "text-slate-400";
+                      const scoreBorderBg = score >= 80 ? "border-emerald-200 bg-emerald-50/30" : score >= 50 ? "border-amber-200 bg-amber-50/30" : "border-slate-200 bg-white";
+                      return (
+                        <div key={rep.id} className={`rounded-xl border ${scoreBorderBg} p-4 shadow-sm`}>
+                          {/* Header */}
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm flex-shrink-0">
+                              {i + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-sm text-slate-800">{rep.fullName}</div>
+                              <div className="text-xs text-slate-400 mt-0.5">{rep.region} · {rep.segment}</div>
+                              {cnaeDescricao && <div className="text-xs text-slate-400 mt-0.5 truncate">CNAE: {cnaeDescricao}</div>}
+                            </div>
+                            <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                              <div className={`font-black text-2xl leading-none ${scoreColor}`}>{score}</div>
+                              <div className="text-[10px] text-slate-400">/ 100 pts</div>
+                            </div>
+                          </div>
+                          {/* Score bar */}
+                          <div className="mb-3">
+                            <div className="w-full bg-slate-100 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full ${score >= 80 ? "bg-emerald-500" : score >= 50 ? "bg-amber-400" : "bg-slate-300"}`}
+                                style={{ width: `${score}%` }}
+                              />
+                            </div>
+                          </div>
+                          {/* Criteria breakdown */}
+                          {criteria && (
+                            <div className="grid grid-cols-3 gap-1.5 mb-3">
+                              {[
+                                { label: "Região", pts: criteria.region?.points ?? 0, max: 40, ok: criteria.region?.match },
+                                { label: "Segmento", pts: criteria.segment?.points ?? 0, max: 30, ok: criteria.segment?.match },
+                                { label: "Experiência", pts: criteria.experience?.points ?? 0, max: 20, ok: (criteria.experience?.years ?? 0) >= 3 },
+                                { label: "Ativo", pts: criteria.active?.points ?? 0, max: 5, ok: criteria.active?.isActive },
+                                { label: "KYC", pts: criteria.kyc?.points ?? 0, max: 3, ok: criteria.kyc?.approved },
+                                { label: "CORE", pts: criteria.core?.points ?? 0, max: 2, ok: criteria.core?.active },
+                              ].map(({ label, pts, max, ok }) => (
+                                <div key={label} className={`rounded-lg p-1.5 text-center border ${ok ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-200"}`}>
+                                  <div className={`text-xs font-bold ${ok ? "text-emerald-700" : "text-slate-400"}`}>{pts}/{max}</div>
+                                  <div className="text-[10px] text-slate-500 leading-tight">{label}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* Strengths */}
+                          {strengths.length > 0 && (
+                            <div className="mb-3">
+                              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Pontos Fortes</div>
+                              <div className="flex flex-wrap gap-1">
+                                {strengths.map((s: string, si: number) => (
+                                  <span key={si} className="text-[11px] bg-white border border-emerald-200 text-emerald-700 rounded-full px-2 py-0.5">{s}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {/* Revenue estimate */}
+                          {revenueEstimate && (
+                            <div className="mb-3 flex items-center gap-1.5 text-xs text-slate-600 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-1.5">
+                              <span className="text-blue-500">💰</span>
+                              <span><strong>Faturamento estimado:</strong> {revenueEstimate}</span>
+                            </div>
+                          )}
+                          {/* Experience */}
+                          {(rep.experienceYears ?? 0) > 0 && (
+                            <div className="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
+                              <span>⏱</span>
+                              <span><strong>{rep.experienceYears} anos</strong> de experiência em representação comercial</span>
+                            </div>
+                          )}
+                          {/* Action */}
+                          <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
                             onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}>
-                            Desbloquear R$29
+                            🔓 Desbloquear contato completo — R$29
                           </Button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {!topMatches?.length && (
                       <div className="text-center py-8 text-slate-400 text-sm bg-white rounded-xl border border-slate-200 p-6">
-                        Selecione uma vaga com candidaturas para ver os top matches.
+                        Selecione uma vaga para ver os top matches da IA.
                       </div>
                     )}
                   </div>
