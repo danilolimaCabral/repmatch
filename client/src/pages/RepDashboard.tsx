@@ -45,10 +45,10 @@ const STATUS_CONFIG = {
 };
 
 const TIER_CONFIG = {
-  free:   { label: "Pendente", color: "bg-slate-100 text-slate-600",       upgrade: "Ativar plano Bronze — R$9,99/mês" },
-  bronze: { label: "Bronze",   color: "bg-orange-100 text-orange-700",     upgrade: "Upgrade para Prata — R$19,90/mês" },
-  prata:  { label: "Prata",    color: "bg-emerald-100 text-emerald-700",   upgrade: "Upgrade para Ouro — R$29,90/mês" },
-  ouro:   { label: "Ouro",     color: "bg-amber-100 text-amber-700",       upgrade: null },
+  free:   { label: "Gratuito", color: "bg-emerald-100 text-emerald-700",  upgrade: null },
+  bronze: { label: "Bronze",   color: "bg-orange-100 text-orange-700",    upgrade: null },
+  prata:  { label: "Prata",    color: "bg-emerald-100 text-emerald-700",  upgrade: null },
+  ouro:   { label: "Ouro",     color: "bg-amber-100 text-amber-700",      upgrade: null },
 };
 
 const RANK_TIER_MAP: Record<string, string[]> = {
@@ -486,18 +486,6 @@ export default function RepDashboard() {
           </nav>
 
           <div className="p-4 border-t border-slate-100 space-y-2">
-            {tierConfig.upgrade && (
-              <Button
-                size="sm"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
-                onClick={() => startCheckout(
-                  tier === "free" ? "REP_BRONZE" : tier === "bronze" ? "REP_PRATA" : "REP_OURO",
-                  user?.id ?? 0, user?.email ?? "", user?.name ?? ""
-                )}
-              >
-                <Star className="w-3 h-3 mr-1" />{tierConfig.upgrade}
-              </Button>
-            )}
             <RepThemeToggle />
             <Button
               size="sm" variant="ghost"
@@ -520,11 +508,7 @@ export default function RepDashboard() {
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900">Oportunidades</h1>
                   <p className="text-slate-500 text-sm mt-1">
-                    Plano <span className="font-semibold text-emerald-700">{tierConfig.label}</span> — {
-                      tier === "free" ? "pagamento pendente — vagas bloqueadas" :
-                      tier === "bronze" ? "vagas Bronze disponíveis" :
-                      tier === "prata" ? "vagas até Prata" : "todas as vagas (Ouro incluso)"
-                    }
+                    Acesso gratuito — todas as vagas disponíveis
                   </p>
                 </div>
                 <Badge className={`${tierConfig.color} border-0 px-3 py-1 text-sm font-semibold`}>{tierConfig.label}</Badge>
@@ -587,19 +571,7 @@ export default function RepDashboard() {
                 </div>
               )}
 
-              {/* Tier lock banner */}
-              {tier === "free" && (
-                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Lock className="w-4 h-4 text-amber-600" />
-                    <span className="text-amber-800 font-medium">Pagamento pendente — ative um plano para acessar as vagas.</span>
-                  </div>
-                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold"
-                    onClick={() => startCheckout("REP_BRONZE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
-                    Ativar Plano
-                  </Button>
-                </div>
-              )}
+
 
               {/* Filters */}
               <div className="flex flex-wrap gap-3 mb-6">
@@ -647,12 +619,10 @@ export default function RepDashboard() {
               ) : (
                 <div className="space-y-3">
                   {jobs.map((job) => {
-                    const isLocked = (job.minTierRequired === "bronze" && tier === "free") ||
-                                     (job.minTierRequired === "prata" && tier !== "prata" && tier !== "ouro") ||
-                                     (job.minTierRequired === "ouro" && tier !== "ouro");
+                    const isLocked = false;
                     const alreadyApplied = myApplications?.some(a => a.job?.id === job.id);
                     return (
-                      <div key={job.id} className={`rounded-xl border p-5 bg-white transition-all shadow-sm ${isLocked ? "border-slate-200 opacity-60" : "border-slate-200 hover:border-emerald-300 hover:shadow-md"}`}>
+                      <div key={job.id} className="rounded-xl border p-5 bg-white transition-all shadow-sm border-slate-200 hover:border-emerald-300 hover:shadow-md">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -660,7 +630,7 @@ export default function RepDashboard() {
                               {job.createdAt && Date.now() - new Date(job.createdAt).getTime() < 3 * 24 * 60 * 60 * 1000 && (
                                 <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs">Nova</Badge>
                               )}
-                              {isLocked && <Badge className="bg-slate-100 text-slate-500 border-0 text-xs"><Lock className="w-3 h-3 mr-1" />Bloqueado</Badge>}
+
                             </div>
                             <h3 className="font-semibold text-base text-slate-900">{job.title}</h3>
                             <div className="flex items-center gap-3 text-sm text-slate-500 mt-1 flex-wrap">
@@ -675,12 +645,7 @@ export default function RepDashboard() {
                             {job.description && <p className="text-sm text-slate-500 mt-2 line-clamp-2">{job.description}</p>}
                           </div>
                           <div className="shrink-0">
-                            {isLocked ? (
-                              <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold"
-                                onClick={() => startCheckout(tier === "free" ? "REP_PREMIUM" : "REP_ELITE", user?.id ?? 0, user?.email ?? "", user?.name ?? "")}>
-                                <Lock className="w-3 h-3 mr-1" />Desbloquear
-                              </Button>
-                            ) : alreadyApplied ? (
+                            {alreadyApplied ? (
                               <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs px-3 py-1.5">
                                 <CheckCircle className="w-3 h-3 mr-1" />Candidatado
                               </Badge>
@@ -1110,29 +1075,7 @@ export default function RepDashboard() {
                 </div>
               </div>
 
-              {/* Upgrade Card */}
-              {tierConfig.upgrade && (
-                <div className="mt-5 bg-white rounded-xl border border-emerald-200 p-6 shadow-sm">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-4 h-4 text-emerald-700" />
-                    </div>
-                    <h3 className="font-semibold text-slate-800">Desbloqueie mais oportunidades</h3>
-                  </div>
-                  <p className="text-sm text-slate-500 mb-4">
-                    {tier === "free" ? "Ative o Bronze (R$9,99/mês) para aparecer para empresas e acessar vagas exclusivas." :
-                     tier === "bronze" ? "Com o Prata (R$19,90/mês) você tem destaque na busca e acessa vagas Prata." :
-                     "Com o Ouro (R$29,90/mês) você aparece em primeiro na busca e acessa TODAS as vagas."}
-                  </p>
-                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                    onClick={() => startCheckout(
-                      tier === "free" ? "REP_BRONZE" : tier === "bronze" ? "REP_PRATA" : "REP_OURO",
-                      user?.id ?? 0, user?.email ?? "", user?.name ?? ""
-                    )}>
-                    {tierConfig.upgrade}
-                  </Button>
-                </div>
-              )}
+
             </div>
           )}
         </main>
