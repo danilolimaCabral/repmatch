@@ -495,6 +495,15 @@ export default function RepDashboard() {
               <span className="ml-auto text-xs bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-full font-bold">Novo</span>
             </a>
             <RepThemeToggle />
+            {user?.role === "admin" && (
+              <Button
+                size="sm" variant="ghost"
+                className="w-full text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={() => navigate("/admin")}
+              >
+                <span className="mr-2">🔑</span>Painel Admin
+              </Button>
+            )}
             <Button
               size="sm" variant="ghost"
               className="w-full text-slate-500 hover:text-slate-800 hover:bg-slate-50"

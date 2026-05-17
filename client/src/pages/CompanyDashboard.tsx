@@ -557,6 +557,15 @@ export default function CompanyDashboard() {
 
         <div className="p-3 border-t border-slate-100 space-y-1">
           <ThemeToggleCompact />
+          {user?.role === "admin" && (
+            <Button
+              size="sm" variant="ghost"
+              className="w-full text-red-500 hover:text-red-700 hover:bg-red-50"
+              onClick={() => navigate("/admin")}
+            >
+              <span className="mr-2">🔑</span>Painel Admin
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"

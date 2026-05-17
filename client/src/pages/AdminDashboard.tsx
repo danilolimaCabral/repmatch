@@ -227,10 +227,31 @@ export default function AdminDashboard() {
               </button>
             ))}
           </nav>
-          <div className="p-4 border-t border-border">
-            <Button size="sm" variant="ghost" className="w-full text-muted-foreground" onClick={() => { logout(); navigate("/"); }}>
-              <LogOut className="w-4 h-4 mr-2" />Sair
-            </Button>
+          <div className="p-4 border-t border-border space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 pb-1">Visualizar como</p>
+            <button
+              onClick={() => navigate("/dashboard/rep")}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-green-900/30 hover:text-green-400 transition-colors"
+            >
+              <span>🤝</span> Representante
+            </button>
+            <button
+              onClick={() => navigate("/dashboard/company")}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-blue-900/30 hover:text-blue-400 transition-colors"
+            >
+              <span>🏢</span> Empresa
+            </button>
+            <button
+              onClick={() => navigate("/dashboard/manager")}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-purple-900/30 hover:text-purple-400 transition-colors"
+            >
+              <span>📊</span> Gerente
+            </button>
+            <div className="pt-2">
+              <Button size="sm" variant="ghost" className="w-full text-muted-foreground" onClick={() => { logout(); navigate("/"); }}>
+                <LogOut className="w-4 h-4 mr-2" />Sair
+              </Button>
+            </div>
           </div>
         </aside>
 

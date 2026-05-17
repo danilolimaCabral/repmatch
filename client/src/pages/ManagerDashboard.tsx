@@ -194,6 +194,15 @@ export default function ManagerDashboard() {
             <UserCog className="w-4 h-4" />
             Meu Perfil
           </button>
+          {user?.role === "admin" && (
+            <button
+              onClick={() => navigate("/admin")}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-400/10 transition-colors"
+            >
+              <span>🔑</span>
+              Painel Admin
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
