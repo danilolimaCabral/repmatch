@@ -1,4 +1,9 @@
 import "dotenv/config";
+import { webcrypto } from "crypto";
+// Polyfill globalThis.crypto for jose@6 (Web Crypto API) on older Node.js versions
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = webcrypto;
+}
 import express from "express";
 import compression from "compression";
 import { createServer } from "http";
