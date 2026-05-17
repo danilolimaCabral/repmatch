@@ -1182,23 +1182,41 @@ export default function CompanyDashboard() {
                           <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears ?? 0} anos de experiência</div>
                           <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{Number(rep.averageRating ?? 0).toFixed(1)} avaliação</div>
                         </div>
-                        {/* Contact info — backend masks if not unlocked */}
+                        {/* Contact info — completely hidden when not unlocked */}
                         <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
-                          {rep.phone && (
-                            <div className={`flex items-center gap-1.5 font-medium ${isUnlocked ? "text-slate-700" : "text-slate-400"}`}>
-                              <span className="text-xs">📞</span>
-                              {isMasked ? <span className="italic">{rep.phone}</span> : rep.phone}
-                            </div>
-                          )}
-                          {rep.email && (
-                            <div className={`flex items-center gap-1.5 font-medium ${isUnlocked ? "text-slate-700" : "text-slate-400"}`}>
-                              <span className="text-xs">📧</span>
-                              {isMasked ? <span className="italic">{rep.email}</span> : rep.email}
-                            </div>
-                          )}
-                          {rep.bio && (
-                            <div className={`text-xs mt-1 ${isUnlocked ? "text-slate-600" : "text-slate-400 italic"}`}>
-                              {rep.bio}{isMasked && rep.bio.endsWith("...") && " (desbloqueie para ver mais)"}
+                          {isUnlocked ? (
+                            <>
+                              {rep.phone && (
+                                <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                                  <span className="text-xs">📞</span>
+                                  {rep.phone}
+                                </div>
+                              )}
+                              {rep.email && (
+                                <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                                  <span className="text-xs">📧</span>
+                                  {rep.email}
+                                </div>
+                              )}
+                              {rep.bio && (
+                                <div className="text-xs mt-1 text-slate-600">
+                                  {rep.bio}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="rounded-lg bg-slate-50 border border-dashed border-slate-200 p-3 flex flex-col gap-2">
+                              <div className="flex items-center gap-2 text-slate-400">
+                                <span>🔒</span>
+                                <div className="h-2.5 w-28 bg-slate-200 rounded-full" />
+                              </div>
+                              <div className="flex items-center gap-2 text-slate-400">
+                                <span>🔒</span>
+                                <div className="h-2.5 w-36 bg-slate-200 rounded-full" />
+                              </div>
+                              <div className="h-2 w-full bg-slate-100 rounded-full mt-1" />
+                              <div className="h-2 w-4/5 bg-slate-100 rounded-full" />
+                              <p className="text-[10px] text-slate-400 text-center mt-1">Desbloqueie para ver contato e bio completos</p>
                             </div>
                           )}
                         </div>
