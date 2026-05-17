@@ -983,6 +983,32 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         return weeks;
       }
     }),
+    // Admin: diagnóstico de representantes (ver dados brutos)
+    diagReps: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const rows = await db.select({
+        id: representatives.id,
+        fullName: representatives.fullName,
+        region: representatives.region,
+        segment: representatives.segment,
+        isActive: representatives.isActive,
+        experienceYears: representatives.experienceYears,
+        userId: representatives.userId,
+      }).from(representatives).limit(20);
+      return rows;
+    }),
+    // Admin: corrigir dados dos representantes de teste
+    fixTestReps: protectedProcedure.mutation(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const { sql } = await import("drizzle-orm");
+      await db.execute(sql`UPDATE representatives SET isActive = 1 WHERE userId = 0`);
+      await db.execute(sql`UPDATE representatives SET region = 'Nacional (Todo Brasil)', segment = 'Tecnologia', experienceYears = 5 WHERE userId = 0 AND fullName = 'Carlos Silva'`);
+      return { success: true };
+    }),
   }),
 
   // ─── KYC / Verificação de Identidade + CORE ────────────────────────────────
