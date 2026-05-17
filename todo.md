@@ -543,3 +543,11 @@
 - [x] AdminDashboard: aba "Desbloqueios" com lista de solicitações, filtros e busca
 - [x] AdminDashboard: botões Aprovar / Rejeitar com visualização do comprovante
 - [x] Contatos desbloqueados automaticamente ao aprovar (tabela unlocked_contacts)
+
+## Tema Claro + Botões Modernos
+
+- [x] Forçar tema claro (light) em toda a plataforma — ThemeProvider fixo em "light"
+- [x] Redesenhar página de Login com fundo claro, cards com fotos e badges modernos
+- [x] Botões com gradientes, sombras coloridas e hover effects (hover:-translate-y-0.5)
+- [x] AdminDashboard: corrigir loading state (bg-[#080808] → bg-slate-50)
+- [x] Usuário demo com acesso a todos os 3 painéis (Representante, Empresa, Gerente)

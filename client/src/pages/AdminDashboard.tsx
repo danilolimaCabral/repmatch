@@ -120,7 +120,7 @@ export default function AdminDashboard() {
   // Wait for auth to load before checking role
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );

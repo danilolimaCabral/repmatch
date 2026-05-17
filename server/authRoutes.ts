@@ -31,6 +31,19 @@ function generateToken(): string {
 }
 
 export function registerAuthRoutes(app: Express) {
+  // TEMP: Reset demo user password (dev only)
+  app.get("/api/auth/reset-demo", async (_req: Request, res: Response) => {
+    try {
+      const db = await getDb();
+      if (!db) { res.status(500).json({ error: "DB unavailable" }); return; }
+      const hash = await bcrypt.hash("Demo@2024", 12);
+      await db.update(users).set({ passwordHash: hash }).where(eq(users.email, "demo@repmatch.com.br"));
+      res.json({ success: true, message: "Demo password reset to Demo@2024" });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // POST /api/auth/register
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
