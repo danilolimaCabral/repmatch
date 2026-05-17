@@ -1068,11 +1068,11 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           faceMatchResult = "error";
         }
 
-        // ─── LLM Vision: extração de dados do documento ──────────────────────────────
+        // ─── LLM Vision: extração de dados do documento ──────────────────────────────────────────────
         let extractedName: string | null = null;
         let extractedCpf: string | null = null;
         let kycNotes: string | null = null;
-
+        let autoApprove = false;
         try {
           const llmResult = await invokeLLM({
             messages: [
@@ -1112,13 +1112,18 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           const parsed = JSON.parse(llmResult.choices[0].message.content as string);
           extractedName = parsed.name || null;
           extractedCpf = parsed.cpf || null;
-          kycNotes = `DeepFace: score=${faceMatchScore ?? 'N/A'}, resultado=${faceMatchResult}. IA: faceMatch=${parsed.faceMatch}, docValid=${parsed.documentValid}. ${parsed.notes}`;
+          kycNotes = `IA: faceMatch=${parsed.faceMatch}, docValid=${parsed.documentValid}. ${parsed.notes}`;
+          // Auto-approve: IA confirms face match AND document valid
+          if (parsed.faceMatch === true && parsed.documentValid === true) {
+            autoApprove = true;
+          }
         } catch (e) {
           kycNotes = "Erro na análise automática. Requer revisão manual.";
         }
 
-        // Determinar status automático baseado no face match
-        const autoStatus = faceMatchResult === "match" ? "pending_review" : "pending_review"; // sempre pending para revisão manual
+        // Determinar status automático: aprovado pela IA ou aguardando revisão manual
+        const autoStatus: "approved" | "pending_review" = autoApprove ? "approved" : "pending_review";
+        const reviewedAt = autoApprove ? new Date() : null;
 
         // Update representative record
         await db.update(representatives)
@@ -1132,18 +1137,27 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
             kycNotes: kycNotes,
             kycFaceMatchScore: faceMatchScore,
             kycFaceMatchResult: faceMatchResult,
+            kycReviewedAt: reviewedAt,
             coreNumber: input.coreNumber || null,
             coreState: input.coreState || null,
           })
           .where(eq(representatives.userId, ctx.user.id));
 
-        // Notify admin
-        await notifyOwner({
-          title: "Nova solicitação de verificação KYC",
-          content: `Representante ${ctx.user.name} (ID ${ctx.user.id}) enviou documentos para verificação. Notas da IA: ${kycNotes}`,
-        });
+        if (autoApprove) {
+          // Auto-approved: notify the rep and admin
+          await notifyOwner({
+            title: "✅ KYC Aprovado Automaticamente",
+            content: `Representante ${ctx.user.name} (ID ${ctx.user.id}) teve o KYC aprovado automaticamente pela IA. ${kycNotes}`,
+          });
+        } else {
+          // Needs manual review
+          await notifyOwner({
+            title: "🔍 Nova solicitação de verificação KYC",
+            content: `Representante ${ctx.user.name} (ID ${ctx.user.id}) enviou documentos para verificação manual. Notas da IA: ${kycNotes}`,
+          });
+        }
 
-        return { success: true, status: "pending_review", notes: kycNotes };
+        return { success: true, status: autoStatus, autoApproved: autoApprove, notes: kycNotes };
       }),
 
     // Consultar status KYC do representante logado

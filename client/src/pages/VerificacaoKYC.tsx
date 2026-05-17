@@ -71,7 +71,11 @@ export default function VerificacaoKYC() {
 
   const submitDocuments = trpc.kyc.submitDocuments.useMutation({
     onSuccess: (data) => {
-      toast.success("Documentos enviados! Sua verificação está em análise. Retorno em até 24h.");
+      if ((data as any).autoApproved) {
+        toast.success("✅ Identidade verificada pela IA! Acesso liberado a todas as vagas.", { duration: 6000 });
+      } else {
+        toast.success("🔍 Documentos enviados! Nossa IA está analisando. Retorno em até 24h.");
+      }
       setStep("done");
       refetch();
     },
@@ -183,10 +187,11 @@ export default function VerificacaoKYC() {
               <div>
                 <p className="text-sm font-medium text-emerald-300 mb-1">Por que verificar?</p>
                 <ul className="text-xs text-emerald-200/80 space-y-1">
+                  <li>✓ <strong className="text-emerald-300">Aprovação automática por IA</strong> — resultado imediato</li>
+                  <li>✓ Acesso completo a <strong className="text-emerald-300">todas as vagas</strong> após aprovação</li>
                   <li>✓ Badge "Identidade Verificada" no seu perfil</li>
                   <li>✓ Prioridade nos resultados de busca das empresas</li>
-                  <li>✓ Maior taxa de contato e confiança</li>
-                  <li>✓ Acesso a vagas exclusivas para representantes verificados</li>
+                  <li>✓ Maior taxa de contato e confiança com empresas</li>
                 </ul>
               </div>
             </div>

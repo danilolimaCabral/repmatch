@@ -507,6 +507,31 @@ export default function RepDashboard() {
 
         {/* ─── Main Content ─────────────────────────────────────────────── */}
         <main className="flex-1 overflow-auto bg-slate-50">
+          {/* KYC Verification Banner */}
+          {profile && (profile as any).kycStatus !== "approved" && (
+            <div className={`flex items-center justify-between gap-3 px-6 py-3 text-sm font-medium ${
+              (profile as any).kycStatus === "pending_review"
+                ? "bg-amber-50 border-b border-amber-200 text-amber-800"
+                : (profile as any).kycStatus === "rejected"
+                ? "bg-red-50 border-b border-red-200 text-red-800"
+                : "bg-emerald-50 border-b border-emerald-200 text-emerald-800"
+            }`}>
+              <div className="flex items-center gap-2">
+                {(profile as any).kycStatus === "pending_review" ? (
+                  <><Clock className="w-4 h-4 text-amber-500" /> Verificação em análise pela IA — retorno em até 24h</>
+                ) : (profile as any).kycStatus === "rejected" ? (
+                  <><XCircle className="w-4 h-4 text-red-500" /> Verificação rejeitada — envie novamente para liberar o badge verificado</>
+                ) : (
+                  <><Shield className="w-4 h-4 text-emerald-500" /> Verifique sua identidade para obter o badge verificado e aumentar suas chances de contato com empresas</>
+                )}
+              </div>
+              {(profile as any).kycStatus !== "pending_review" && (
+                <a href="/verificacao" className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                  Verificar agora →
+                </a>
+              )}
+            </div>
+          )}
 
           {/* ══ Jobs Tab ══════════════════════════════════════════════════ */}
           {activeTab === "jobs" && (
