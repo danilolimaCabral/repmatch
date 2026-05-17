@@ -525,3 +525,9 @@
 - [ ] Integrar envio de e-mail de reset de senha real (substituir notifyOwner)
 - [ ] Testar fluxo completo: cadastro representante → candidatura → aceite
 - [ ] Testar fluxo completo: cadastro empresa → publicar vaga → aceitar candidato
+
+## Autenticação Própria — Revisão e Admin
+
+- [ ] Verificar se o sistema de auth próprio (email/senha) está funcionando em produção
+- [ ] Criar usuário admin padrão (admin@repmatch.com.br)
+- [ ] Testar fluxo de login/cadastro/logout em produção
