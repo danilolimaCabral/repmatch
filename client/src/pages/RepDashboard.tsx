@@ -486,6 +486,14 @@ export default function RepDashboard() {
           </nav>
 
           <div className="p-4 border-t border-slate-100 space-y-2">
+            <a
+              href="/parcerias"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+            >
+              <span className="text-base">🤝</span>
+              <span>Parcerias RepMatch</span>
+              <span className="ml-auto text-xs bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-full font-bold">Novo</span>
+            </a>
             <RepThemeToggle />
             <Button
               size="sm" variant="ghost"

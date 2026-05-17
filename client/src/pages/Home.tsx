@@ -500,6 +500,7 @@ export default function Home() {
             <a href="/buscar" className="hover:text-foreground transition-colors font-medium text-foreground/80">Buscar Reps</a>
             <a href="/oportunidades-reps" className="hover:text-foreground transition-colors font-medium text-foreground/80">Reps Disponíveis</a>
             <a href="#planos" className="hover:text-foreground transition-colors">Planos</a>
+            <a href="/parcerias" className="hover:text-foreground transition-colors font-semibold text-emerald-600">Parcerias</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>
           <div className="flex items-center gap-3">
