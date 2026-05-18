@@ -559,3 +559,14 @@
 - [x] Remover leftJoin com tabela users (não mais necessário após correção)
 - [x] CompanyDashboard: exibir cidade/estado do CNPJA nos cards (em vez de região genérica)
 - [x] CompanyDashboard: exibir CNPJ e nome fantasia para representantes desbloqueados
+
+## Correção Fluxo Pix — Carrinho de Desbloqueios
+
+- [x] Corrigir erro de insert na tabela unlock_requests (totalAmount com cifrão → String(totalAmount))
+- [x] Corrigir priceUnit nos itens (String(PRICE_PER_REP) em vez de toFixed)
+- [x] Implementar fluxo QR Code (30s countdown) → upload comprovante → admin libera
+- [x] QR Code gerado via api.qrserver.com com chave Pix 41999499815
+- [x] Botão "Já paguei — Enviar comprovante agora" para pular countdown
+- [x] Barra de progresso visual durante countdown
+- [x] Corrigir filtro "pending_proof" → "pending_payment" no AdminDashboard
+- [x] Adicionar status "Cancelado" no badge do AdminDashboard

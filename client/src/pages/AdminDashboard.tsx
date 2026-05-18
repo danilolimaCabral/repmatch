@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   const [repOffset, setRepOffset] = useState(0);
   const [expandedRepId, setExpandedRepId] = useState<number | null>(null);
   const [unlockSearch, setUnlockSearch] = useState("");
-  const [unlockStatusFilter, setUnlockStatusFilter] = useState<"all" | "pending_proof" | "pending_approval" | "approved" | "rejected">("all");
+  const [unlockStatusFilter, setUnlockStatusFilter] = useState<"all" | "pending_payment" | "pending_approval" | "approved" | "rejected">("all");
   const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
   const [docStatusFilter, setDocStatusFilter] = useState("all");
   const [docSearch, setDocSearch] = useState("");
@@ -1021,7 +1021,7 @@ export default function AdminDashboard() {
                   className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground focus:outline-none"
                 >
                   <option value="all">Todos os status</option>
-                  <option value="pending_proof">Aguardando comprovante</option>
+                  <option value="pending_payment">Aguardando comprovante</option>
                   <option value="pending_approval">Aguardando aprovação</option>
                   <option value="approved">Aprovados</option>
                   <option value="rejected">Rejeitados</option>
@@ -1053,6 +1053,7 @@ export default function AdminDashboard() {
                               "bg-secondary text-muted-foreground border-border"
                             } border`}>
                               {req.status === "pending_payment" && "Aguardando comprovante"}
+                              {req.status === "cancelled" && "Cancelado"}
                               {req.status === "pending_approval" && "Aguardando aprovação"}
                               {req.status === "approved" && "Aprovado"}
                               {req.status === "rejected" && "Rejeitado"}

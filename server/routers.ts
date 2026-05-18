@@ -1973,12 +1973,12 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         const PRICE_PER_REP = 29;
         const totalAmount = input.repIds.length * PRICE_PER_REP;
 
-        // Create the request
+        // Create the request - pass numeric string without currency symbol for MySQL decimal
         const [result] = await db.insert(unlockRequests).values({
           companyId: company.id,
           paymentMethod: input.paymentMethod,
-          status: input.paymentMethod === "pix" ? "pending_payment" : "pending_payment",
-          totalAmount: totalAmount.toFixed(2),
+          status: "pending_payment" as const,
+          totalAmount: String(totalAmount),
         });
         const requestId = (result as any).insertId as number;
 
@@ -1993,7 +1993,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
             unlockRequestId: requestId,
             representativeId: repId,
             repName: repMap[repId] ?? "Representante",
-            priceUnit: PRICE_PER_REP.toFixed(2),
+            priceUnit: String(PRICE_PER_REP),
           }))
         );
 

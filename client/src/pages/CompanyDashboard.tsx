@@ -15,7 +15,7 @@ import {
   BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight, MessageSquare, Send,
   ShoppingCart, Trash2, Upload, X as XIcon, QrCode
 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -266,10 +266,12 @@ export default function CompanyDashboard() {
   // ─── Cart state (desbloqueio em lote) ─────────────────────────────────────
   const [cart, setCart] = useState<Array<{ id: number; name: string }>>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [cartStep, setCartStep] = useState<"summary" | "pix" | "done">("summary");
+  const [cartStep, setCartStep] = useState<"summary" | "qrcode" | "upload" | "done">("summary");
   const [pixProofFile, setPixProofFile] = useState<File | null>(null);
   const [pixProofUploading, setPixProofUploading] = useState(false);
   const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
+  const [pixCountdown, setPixCountdown] = useState(30);
+  const pixCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const createUnlockRequest = trpc.unlockRequests.create.useMutation({
     onError: (e) => toast.error(e.message),
@@ -297,11 +299,23 @@ export default function CompanyDashboard() {
       }
       return;
     }
-    // Pix: create request and show pix step
+    // Pix: create request and show QR Code step
     const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "pix" });
     if (res) {
       setCurrentRequestId(res.requestId);
-      setCartStep("pix");
+      setPixCountdown(30);
+      setCartStep("qrcode");
+      // Start countdown: after 30s go to upload step
+      if (pixCountdownRef.current) clearInterval(pixCountdownRef.current);
+      let count = 30;
+      pixCountdownRef.current = setInterval(() => {
+        count -= 1;
+        setPixCountdown(count);
+        if (count <= 0) {
+          if (pixCountdownRef.current) clearInterval(pixCountdownRef.current);
+          setCartStep("upload");
+        }
+      }, 1000);
     }
   };
 
@@ -1135,7 +1149,8 @@ export default function CompanyDashboard() {
               <DialogTitle className="text-slate-800 flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-emerald-600" />
                 {cartStep === "summary" && "Carrinho de Desbloqueios"}
-                {cartStep === "pix" && "Pagar via Pix"}
+                {cartStep === "qrcode" && "Pagar via Pix — QR Code"}
+                {cartStep === "upload" && "Enviar Comprovante"}
                 {cartStep === "done" && "Solicitação Enviada!"}
               </DialogTitle>
             </DialogHeader>
@@ -1194,29 +1209,62 @@ export default function CompanyDashboard() {
               </div>
             )}
 
-            {cartStep === "pix" && (
+            {/* ─── QR Code Step (30s countdown) ─── */}
+            {cartStep === "qrcode" && (
               <div className="space-y-4">
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
-                  <p className="text-sm font-semibold text-emerald-800 mb-1">Chave Pix</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-lg font-bold text-emerald-700">41999499815</span>
-                    <button onClick={() => { navigator.clipboard.writeText("41999499815"); toast.success("Chave copiada!"); }} className="text-emerald-500 hover:text-emerald-700">
-                      <Upload className="w-4 h-4" />
+                {/* QR Code visual */}
+                <div className="bg-white border-2 border-emerald-200 rounded-xl p-4 text-center">
+                  <div className="w-40 h-40 mx-auto mb-3 bg-white border border-slate-200 rounded-lg flex items-center justify-center">
+                    {/* QR Code SVG gerado via API pública */}
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=00020126580014BR.GOV.BCB.PIX0136${encodeURIComponent("41999499815")}5204000053039865802BR5924RepMatch6009SAO PAULO62070503***6304`}
+                      alt="QR Code Pix"
+                      className="w-36 h-36 rounded"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mb-2">Ou use a chave Pix abaixo:</p>
+                  <div className="flex items-center justify-center gap-2 bg-emerald-50 rounded-lg px-3 py-2">
+                    <span className="text-base font-bold text-emerald-700">41999499815</span>
+                    <button onClick={() => { navigator.clipboard.writeText("41999499815"); toast.success("Chave copiada!"); }} className="text-emerald-500 hover:text-emerald-700 ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                     </button>
                   </div>
-                  <p className="text-xs text-emerald-600 mt-1">Valor: <strong>R${currentRequestId ? cart.length * 29 : 0}</strong></p>
+                  <p className="text-sm font-bold text-emerald-700 mt-2">Valor: R${cart.length * 29}</p>
                 </div>
-                <div className="space-y-2 text-sm text-slate-600">
-                  <p className="font-semibold text-slate-700">Como pagar:</p>
-                  <ol className="list-decimal list-inside space-y-1 text-xs text-slate-500">
-                    <li>Abra seu app do banco e vá em Pix</li>
-                    <li>Cole a chave acima e informe o valor</li>
-                    <li>Confirme o pagamento e salve o comprovante</li>
-                    <li>Faça o upload do comprovante abaixo</li>
-                  </ol>
+                {/* Countdown */}
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-2">
+                    <div className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center">{pixCountdown}</div>
+                    <span className="text-sm text-amber-700 font-medium">segundos para ir para o upload do comprovante</span>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <div className="w-full bg-slate-100 rounded-full h-1.5">
+                  <div
+                    className="bg-emerald-500 h-1.5 rounded-full transition-all duration-1000"
+                    style={{ width: `${((30 - pixCountdown) / 30) * 100}%` }}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full border-slate-200 text-slate-600"
+                  onClick={() => { if (pixCountdownRef.current) clearInterval(pixCountdownRef.current); setCartStep("upload"); }}
+                >
+                  Já paguei — Enviar comprovante agora
+                </Button>
+              </div>
+            )}
+
+            {/* ─── Upload Comprovante Step ─── */}
+            {cartStep === "upload" && (
+              <div className="space-y-4">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
+                  <p className="text-xs text-emerald-700">Pagamento via Pix para <strong>41999499815</strong></p>
+                  <p className="text-sm font-bold text-emerald-800">Valor: R${cart.length * 29}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-700 text-sm">Upload do Comprovante *</Label>
+                  <Label className="text-slate-700 text-sm font-semibold">Comprovante de Pagamento *</Label>
                   <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-300 transition-colors" onClick={() => document.getElementById('pix-proof-input')?.click()}>
                     {pixProofFile ? (
                       <div className="flex items-center justify-center gap-2 text-emerald-600">
@@ -1240,6 +1288,7 @@ export default function CompanyDashboard() {
                   {pixProofUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
                   Enviar Comprovante
                 </Button>
+                <p className="text-xs text-slate-400 text-center">Após o envio, o admin irá revisar e liberar os contatos em até 24h.</p>
               </div>
             )}
 
