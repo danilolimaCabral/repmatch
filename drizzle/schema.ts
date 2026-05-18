@@ -65,6 +65,7 @@ export const representatives = mysqlTable("representatives", {
   kycReviewedAt: timestamp("kycReviewedAt"),
   // CORE — Conselho Regional dos Representantes Comerciais
   cnpj: varchar("cnpj", { length: 20 }),
+  cpf: varchar("cpf", { length: 14 }),
   coreNumber: varchar("coreNumber", { length: 30 }),
   coreState: varchar("coreState", { length: 2 }),
   coreStatus: mysqlEnum("coreStatus", ["not_checked", "active", "inactive", "not_found"]).default("not_checked").notNull(),
