@@ -1392,7 +1392,7 @@ export default function CompanyDashboard() {
                           </div>
                         </div>
                         <div className="space-y-1.5 text-xs text-slate-500 mb-4">
-                          <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{rep.region ?? "Brasil"}</div>
+                          <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{(rep as any).cidade && (rep as any).estado ? `${(rep as any).cidade} - ${(rep as any).estado}` : (rep.region ?? "Brasil")}</div>
                           <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3" />{rep.segment ?? "Geral"}</div>
                           <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears ?? 0} anos de experiência</div>
                           <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{Number(rep.averageRating ?? 0).toFixed(1)} avaliação</div>
@@ -1401,6 +1401,18 @@ export default function CompanyDashboard() {
                         <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
                           {isUnlocked ? (
                             <>
+                              {(rep as any).nomeFantasia && (
+                                <div className="flex items-center gap-1.5 font-medium text-emerald-700">
+                                  <span className="text-xs">🏢</span>
+                                  {(rep as any).nomeFantasia}
+                                </div>
+                              )}
+                              {(rep as any).cnpj && (
+                                <div className="flex items-center gap-1.5 text-slate-500">
+                                  <span className="text-xs">💼</span>
+                                  CNPJ: {(rep as any).cnpj}
+                                </div>
+                              )}
                               {rep.phone && (
                                 <div className="flex items-center gap-1.5 font-medium text-slate-700">
                                   <span className="text-xs">📞</span>

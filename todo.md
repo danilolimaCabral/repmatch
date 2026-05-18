@@ -551,3 +551,11 @@
 - [x] Botões com gradientes, sombras coloridas e hover effects (hover:-translate-y-0.5)
 - [x] AdminDashboard: corrigir loading state (bg-[#080808] → bg-slate-50)
 - [x] Usuário demo com acesso a todos os 3 painéis (Representante, Empresa, Gerente)
+
+## Dados de Contato Reais (CNPJA) para Empresas
+
+- [x] Corrigir listRepresentativesForCompany: retornar representatives.email (CNPJA) em vez de users.email (fake import)
+- [x] Adicionar campos cidade, estado, situacaoCadastral, cnpj, nomeFantasia ao select da busca
+- [x] Remover leftJoin com tabela users (não mais necessário após correção)
+- [x] CompanyDashboard: exibir cidade/estado do CNPJA nos cards (em vez de região genérica)
+- [x] CompanyDashboard: exibir CNPJ e nome fantasia para representantes desbloqueados

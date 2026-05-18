@@ -869,10 +869,14 @@ export async function listRepresentativesForCompany(
       additionalSegments: representatives.additionalSegments,
       highlightedAt: representatives.highlightedAt,
       createdAt: representatives.createdAt,
-      email: users.email,
+      email: representatives.email,
+      cidade: representatives.cidade,
+      estado: representatives.estado,
+      situacaoCadastral: representatives.situacaoCadastral,
+      cnpj: representatives.cnpj,
+      nomeFantasia: representatives.nomeFantasia,
     })
     .from(representatives)
-    .leftJoin(users, eq(representatives.userId, users.id))
     .where(and(...conditions))
     .orderBy(...orderClauses)
     .limit(limit)
