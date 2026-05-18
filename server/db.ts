@@ -103,10 +103,46 @@ export async function toggleUserActive(userId: number, isActive: boolean): Promi
   await db.update(users).set({ isActive }).where(eq(users.id, userId));
 }
 
-export async function listAllUsers(limit = 50) {
+export async function listAllUsers(limit = 200) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(users).orderBy(users.createdAt).limit(limit);
+  const { not, like } = await import("drizzle-orm");
+  // Exclude imported fake users (rep_XXXXX@import.repmatch.com)
+  return db
+    .select()
+    .from(users)
+    .where(not(like(users.email, "%@import.repmatch.com")))
+    .orderBy(desc(users.createdAt))
+    .limit(limit);
+}
+
+export async function listRepresentativesWithFiscalId(limit = 500, offset = 0, search = "") {
+  const db = await getDb();
+  if (!db) return [];
+  const { or, like, isNotNull, ne } = await import("drizzle-orm");
+  let query = db
+    .select({
+      id: representatives.id,
+      fullName: representatives.fullName,
+      cnpj: representatives.cnpj,
+      phone: representatives.phone,
+      region: representatives.region,
+      segment: representatives.segment,
+      kycStatus: representatives.kycStatus,
+      subscriptionTier: representatives.subscriptionTier,
+      createdAt: representatives.createdAt,
+    })
+    .from(representatives)
+    .$dynamic();
+  if (search) {
+    query = query.where(
+      or(
+        like(representatives.fullName, `%${search}%`),
+        like(representatives.cnpj, `%${search}%`),
+      )
+    );
+  }
+  return query.orderBy(representatives.fullName).limit(limit).offset(offset);
 }
 
 export async function listPendingPayments() {
