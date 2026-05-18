@@ -712,40 +712,61 @@ export default function Onboarding() {
                 <div>
                   <Label className="flex items-center gap-2">
                     CNPJ *
-                    {cnpjVerified && (
+                    {cnpjQuery.isFetching && (
+                      <span className="flex items-center gap-1 text-xs text-blue-500 font-medium">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando...
+                      </span>
+                    )}
+                    {cnpjVerified && !cnpjQuery.isFetching && (
                       <span className="flex items-center gap-1 text-xs text-green-500 font-medium">
                         <BadgeCheck className="w-3.5 h-3.5" /> Verificado
                       </span>
                     )}
                   </Label>
-                  <div className="flex gap-2 mt-1">
+                  <div className="relative mt-1">
                     <Input
                       value={companyForm.cnpj}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setCompanyForm({ ...companyForm, cnpj: val });
+                        // Format as CNPJ mask: 00.000.000/0001-00
+                        const digits = val.replace(/\D/g, "").slice(0, 14);
+                        let masked = digits;
+                        if (digits.length > 2) masked = digits.slice(0, 2) + "." + digits.slice(2);
+                        if (digits.length > 5) masked = digits.slice(0, 2) + "." + digits.slice(2, 5) + "." + digits.slice(5);
+                        if (digits.length > 8) masked = digits.slice(0, 2) + "." + digits.slice(2, 5) + "." + digits.slice(5, 8) + "/" + digits.slice(8);
+                        if (digits.length > 12) masked = digits.slice(0, 2) + "." + digits.slice(2, 5) + "." + digits.slice(5, 8) + "/" + digits.slice(8, 12) + "-" + digits.slice(12);
+                        setCompanyForm({ ...companyForm, cnpj: masked });
                         setCnpjVerified(false);
+                        // Auto-trigger lookup when 14 digits are entered
+                        if (digits.length === 14) {
+                          setCnpjLookupCnpj(masked);
+                        } else {
+                          setCnpjLookupCnpj("");
+                        }
                       }}
                       placeholder="00.000.000/0001-00"
-                      className="bg-secondary border-border"
+                      className="bg-secondary border-border pr-10"
                       required
+                      maxLength={18}
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="shrink-0"
-                      disabled={companyForm.cnpj.replace(/\D/g, "").length !== 14 || cnpjQuery.isFetching}
-                      onClick={() => setCnpjLookupCnpj(companyForm.cnpj)}
-                      title="Consultar CNPJ"
-                    >
-                      {cnpjQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                    </Button>
+                    {cnpjQuery.isFetching && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                      </div>
+                    )}
+                    {cnpjVerified && !cnpjQuery.isFetching && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <BadgeCheck className="w-4 h-4 text-green-500" />
+                      </div>
+                    )}
                   </div>
                   {cnpjQuery.data && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {cnpjQuery.data.razaoSocial} · {cnpjQuery.data.situacao} · {cnpjQuery.data.municipio}/{cnpjQuery.data.uf}
+                    <p className="text-xs text-green-600 mt-1 font-medium">
+                      ✓ {cnpjQuery.data.razaoSocial} · {cnpjQuery.data.situacao} · {cnpjQuery.data.municipio}/{cnpjQuery.data.uf}
                     </p>
+                  )}
+                  {cnpjQuery.isError && companyForm.cnpj.replace(/\D/g, "").length === 14 && (
+                    <p className="text-xs text-red-500 mt-1">CNPJ não encontrado ou inválido</p>
                   )}
                 </div>
 

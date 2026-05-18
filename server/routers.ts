@@ -432,6 +432,10 @@ export const appRouter = router({
         try {
           const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`, {
             signal: AbortSignal.timeout(10000),
+            headers: {
+              "User-Agent": "Mozilla/5.0 (compatible; RepMatch/1.0; +https://repmatch.com.br)",
+              "Accept": "application/json",
+            },
           });
           if (!res.ok) {
             if (res.status === 404) throw new TRPCError({ code: "NOT_FOUND", message: "CNPJ não encontrado na Receita Federal" });
