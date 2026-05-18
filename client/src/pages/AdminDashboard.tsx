@@ -25,7 +25,11 @@ function normalizePhone(raw: string): string | null {
 export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"stats" | "analytics" | "import" | "users" | "jobs" | "pagamentos" | "documentos" | "desbloqueios">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "analytics" | "import" | "users" | "jobs" | "pagamentos" | "documentos" | "desbloqueios" | "representantes">("stats");
+  const [repSearch, setRepSearch] = useState("");
+  const [repEstado, setRepEstado] = useState("");
+  const [repOffset, setRepOffset] = useState(0);
+  const [expandedRepId, setExpandedRepId] = useState<number | null>(null);
   const [unlockSearch, setUnlockSearch] = useState("");
   const [unlockStatusFilter, setUnlockStatusFilter] = useState<"all" | "pending_proof" | "pending_approval" | "approved" | "rejected">("all");
   const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
@@ -46,6 +50,10 @@ export default function AdminDashboard() {
   const { data: weeklyRevenue, isLoading: revenueLoading } = trpc.admin.weeklyRevenue.useQuery();
   const { data: importLogs } = trpc.admin.importLogs.useQuery();
   const { data: allUsers, refetch: refetchUsers } = trpc.admin.listUsers.useQuery();
+  const { data: enrichedReps, isLoading: repsLoading } = trpc.admin.listEnrichedReps.useQuery(
+    { limit: 100, offset: repOffset, search: repSearch || undefined, estado: repEstado || undefined },
+    { enabled: activeTab === "representantes" }
+  );
   const { data: pendingPayments, refetch: refetchPending, isLoading: pendingLoading } = trpc.admin.listPendingPayments.useQuery();
   const activatePlanMutation = trpc.admin.activatePlan.useMutation({
     onSuccess: () => { toast.success("Plano ativado com sucesso!"); setActivatingId(null); refetchPending(); },
@@ -214,6 +222,7 @@ export default function AdminDashboard() {
               { id: "jobs", label: "Vagas", icon: Briefcase },
               { id: "import", label: "Importar Dados", icon: Upload },
               { id: "users", label: "Usuários", icon: Users },
+              { id: "representantes", label: "Representantes", icon: UserCheck },
             ].map((item) => (
               <button
                 key={item.id}
@@ -746,6 +755,118 @@ export default function AdminDashboard() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          )}
+          {activeTab === "representantes" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-black">Representantes Importados</h1>
+                  <p className="text-muted-foreground text-sm mt-1">9.680 representantes enriquecidos via CNPJÁ — CNPJ, e-mail, telefone, sócios e mais</p>
+                </div>
+                <Badge className="bg-blue-900/30 text-blue-300 border border-blue-700/40 px-3 py-1">
+                  <UserCheck className="w-3 h-3 mr-1" />9.680 reps
+                </Badge>
+              </div>
+              <div className="flex gap-3 mb-5">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="Buscar por nome, CNPJ ou e-mail..."
+                    value={repSearch}
+                    onChange={e => { setRepSearch(e.target.value); setRepOffset(0); }}
+                  />
+                </div>
+                <select
+                  className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none"
+                  value={repEstado}
+                  onChange={e => { setRepEstado(e.target.value); setRepOffset(0); }}
+                >
+                  <option value="">Todos os estados</option>
+                  {["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"].map(uf => (
+                    <option key={uf} value={uf}>{uf}</option>
+                  ))}
+                </select>
+              </div>
+              {repsLoading ? (
+                <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+              ) : (
+                <div className="rounded-xl border border-border bg-card overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/30">
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome / Razão Social</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">CNPJ / CPF</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">E-mail</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Telefone</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cidade/UF</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Situação</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Detalhes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(enrichedReps?.reps ?? []).map((r) => (
+                        <>
+                          <tr key={r.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-sm">{r.fullName}</div>
+                              {r.nomeFantasia && <div className="text-xs text-muted-foreground">{r.nomeFantasia}</div>}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-xs">
+                              {r.cnpj ? r.cnpj : r.cpf ? <span className="text-blue-400">CPF: {r.cpf}</span> : <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">{r.email ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">{r.phone ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs">{r.cidade && r.estado ? `${r.cidade}/${r.estado}` : r.estado ?? "—"}</td>
+                            <td className="px-4 py-3">
+                              {r.situacaoCadastral ? (
+                                <Badge className={r.situacaoCadastral.toLowerCase().includes("ativa") ? "bg-green-900/30 text-green-300 text-xs" : "bg-zinc-700 text-zinc-300 text-xs"}>
+                                  {r.situacaoCadastral}
+                                </Badge>
+                              ) : <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Button size="sm" variant="outline" className="text-xs" onClick={() => setExpandedRepId(expandedRepId === r.id ? null : r.id)}>
+                                <Eye className="w-3 h-3 mr-1" />{expandedRepId === r.id ? "Fechar" : "Ver"}
+                              </Button>
+                            </td>
+                          </tr>
+                          {expandedRepId === r.id && (
+                            <tr key={`${r.id}-detail`} className="bg-secondary/10">
+                              <td colSpan={7} className="px-6 py-4">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                                  <div><span className="text-muted-foreground">Porte:</span> <span className="font-medium">{r.porte ?? "—"}</span></div>
+                                  <div><span className="text-muted-foreground">Capital Social:</span> <span className="font-medium">{r.capitalSocial ? `R$ ${r.capitalSocial}` : "—"}</span></div>
+                                  <div><span className="text-muted-foreground">Abertura:</span> <span className="font-medium">{r.dataAbertura ?? "—"}</span></div>
+                                  <div><span className="text-muted-foreground">Natureza Jurídica:</span> <span className="font-medium">{r.naturezaJuridica ?? "—"}</span></div>
+                                  <div><span className="text-muted-foreground">CNAE:</span> <span className="font-medium">{r.cnaeDescricao ?? "—"}</span></div>
+                                  <div><span className="text-muted-foreground">CEP:</span> <span className="font-medium">{r.cep ?? "—"}</span></div>
+                                  <div><span className="text-muted-foreground">Simples Nacional:</span> <span className="font-medium">{r.simplesNacional ? "Sim" : "Não"}</span></div>
+                                  <div><span className="text-muted-foreground">MEI:</span> <span className="font-medium">{r.mei ? "Sim" : "Não"}</span></div>
+                                </div>
+                                {r.socios && (
+                                  <div className="mt-3">
+                                    <span className="text-muted-foreground text-xs">Sócios: </span>
+                                    <span className="text-xs font-medium">{r.socios}</span>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Total: {enrichedReps?.total ?? 0} representantes · Página {Math.floor(repOffset / 100) + 1}</span>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" disabled={repOffset === 0} onClick={() => setRepOffset(Math.max(0, repOffset - 100))}>← Anterior</Button>
+                      <Button size="sm" variant="outline" disabled={(repOffset + 100) >= (enrichedReps?.total ?? 0)} onClick={() => setRepOffset(repOffset + 100)}>Próximo →</Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

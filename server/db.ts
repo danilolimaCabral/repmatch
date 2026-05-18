@@ -116,33 +116,64 @@ export async function listAllUsers(limit = 200) {
     .limit(limit);
 }
 
-export async function listRepresentativesWithFiscalId(limit = 500, offset = 0, search = "") {
+export async function listRepresentativesWithFiscalId(limit = 100, offset = 0, search = "", estado = "", situacao = "") {
   const db = await getDb();
-  if (!db) return [];
-  const { or, like, isNotNull, ne } = await import("drizzle-orm");
+  if (!db) return { reps: [], total: 0 };
+  const { or: orOp, like: likeOp, and: andOp } = await import("drizzle-orm");
+  const conditions: any[] = [];
+  if (search) {
+    conditions.push(
+      orOp(
+        likeOp(representatives.fullName, `%${search}%`),
+        likeOp(representatives.cnpj, `%${search}%`),
+        likeOp(representatives.email, `%${search}%`),
+        likeOp(representatives.phone, `%${search}%`),
+      )
+    );
+  }
+  if (estado) conditions.push(eq(representatives.estado, estado));
+  if (situacao) conditions.push(eq(representatives.situacaoCadastral, situacao));
   let query = db
     .select({
       id: representatives.id,
       fullName: representatives.fullName,
+      nomeFantasia: representatives.nomeFantasia,
       cnpj: representatives.cnpj,
+      cpf: representatives.cpf,
       phone: representatives.phone,
+      email: representatives.email,
       region: representatives.region,
       segment: representatives.segment,
+      cidade: representatives.cidade,
+      estado: representatives.estado,
+      cep: representatives.cep,
+      situacaoCadastral: representatives.situacaoCadastral,
+      dataAbertura: representatives.dataAbertura,
+      naturezaJuridica: representatives.naturezaJuridica,
+      porte: representatives.porte,
+      capitalSocial: representatives.capitalSocial,
+      simplesNacional: representatives.simplesNacional,
+      mei: representatives.mei,
+      cnaeDescricao: representatives.cnaeDescricao,
+      socios: representatives.socios,
       kycStatus: representatives.kycStatus,
       subscriptionTier: representatives.subscriptionTier,
       createdAt: representatives.createdAt,
     })
     .from(representatives)
     .$dynamic();
-  if (search) {
-    query = query.where(
-      or(
-        like(representatives.fullName, `%${search}%`),
-        like(representatives.cnpj, `%${search}%`),
-      )
-    );
+  if (conditions.length > 0) {
+    query = query.where(conditions.length === 1 ? conditions[0] : andOp(...conditions));
   }
-  return query.orderBy(representatives.fullName).limit(limit).offset(offset);
+  const reps = await query.orderBy(representatives.fullName).limit(limit).offset(offset);
+  // Count total matching records
+  const { count: countFn } = await import("drizzle-orm");
+  let countQuery = db.select({ total: countFn() }).from(representatives).$dynamic();
+  if (conditions.length > 0) {
+    countQuery = countQuery.where(conditions.length === 1 ? conditions[0] : andOp(...conditions));
+  }
+  const [{ total }] = await countQuery;
+  return { reps, total: Number(total) };
 }
 
 export async function listPendingPayments() {

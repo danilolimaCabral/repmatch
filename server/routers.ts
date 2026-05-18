@@ -41,6 +41,7 @@ import {
   getDirectMessages,
   getDirectChatConversations,
   markDirectMessagesRead,
+  listRepresentativesWithFiscalId,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
@@ -849,6 +850,18 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       return listAllUsers(100);
     }),
+    listEnrichedReps: protectedProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(200).default(100),
+        offset: z.number().min(0).default(0),
+        search: z.string().default(""),
+        estado: z.string().default(""),
+        situacao: z.string().default(""),
+      }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        return listRepresentativesWithFiscalId(input.limit, input.offset, input.search, input.estado, input.situacao);
+      }),
     promoteUser: protectedProcedure
       .input(z.object({ userId: z.number() }))
       .mutation(async ({ ctx, input }) => {
