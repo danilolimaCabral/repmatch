@@ -30,11 +30,27 @@ const SEGMENTS = [
 
 const STATES = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
+function getTypeFromUrl(): "representative" | "company" | "manager" | null {
+  const params = new URLSearchParams(window.location.search);
+  const t = params.get("type");
+  if (t === "representative" || t === "company" || t === "manager") return t;
+  return null;
+}
+
+function typeToStep(t: "representative" | "company" | "manager"): "rep-form" | "company-form" | "manager-form" {
+  if (t === "representative") return "rep-form";
+  if (t === "company") return "company-form";
+  return "manager-form";
+}
+
 export default function Onboarding() {
   const { user, isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
-  const [step, setStep] = useState<"choose" | "rep-form" | "company-form" | "manager-form">("choose");
-  const [userType, setUserType] = useState<"representative" | "company" | "manager" | null>(null);
+  const urlType = getTypeFromUrl();
+  const [step, setStep] = useState<"choose" | "rep-form" | "company-form" | "manager-form">(
+    urlType ? typeToStep(urlType) : "choose"
+  );
+  const [userType, setUserType] = useState<"representative" | "company" | "manager" | null>(urlType);
 
   // Rep form state
   const [repForm, setRepForm] = useState({
@@ -148,6 +164,14 @@ export default function Onboarding() {
     navigate("/");
     return null;
   }
+
+  // If URL has type param and we haven't set it yet in DB, do it on mount
+  useEffect(() => {
+    if (urlType && !setTypeMutation.isSuccess && !setTypeMutation.isPending) {
+      setTypeMutation.mutate({ userType: urlType });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChooseType = async (type: "representative" | "company" | "manager") => {
     setUserType(type);
