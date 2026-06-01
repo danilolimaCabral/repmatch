@@ -37,17 +37,25 @@ describe("calculateMatchScore", () => {
     updatedAt: new Date(),
   };
 
-  it("returns 100 when region, segment, experience and active all match", () => {
+  it("returns 95 when region, segment, experience and active all match (without KYC/CORE)", () => {
     const score = calculateMatchScore(baseRep, baseJob);
-    expect(score).toBe(100);
+    expect(score).toBe(95); // 40+30+20+5
   });
 
-  it("returns 60 when only region matches", () => {
+  it("returns 100 when all criteria match including KYC and CORE", () => {
+    const score = calculateMatchScore(
+      { ...baseRep, kycStatus: "approved", coreStatus: "active" },
+      baseJob
+    );
+    expect(score).toBe(100); // 40+30+20+5+3+2
+  });
+
+  it("returns 45 when only region and active status match", () => {
     const score = calculateMatchScore(
       { ...baseRep, segment: "Tecnologia", experienceYears: 1 },
       baseJob
     );
-    expect(score).toBe(50); // region(40) + active(10)
+    expect(score).toBe(45); // region(40) + active(5)
   });
 
   it("returns 0 for inactive rep with no matches", () => {
@@ -58,7 +66,7 @@ describe("calculateMatchScore", () => {
     expect(score).toBe(0);
   });
 
-  it("returns 90 when region and segment match but rep is inactive", () => {
+  it("returns 90 when region and segment and experience match but rep is inactive", () => {
     const score = calculateMatchScore(
       { ...baseRep, isActive: false },
       baseJob
@@ -66,12 +74,12 @@ describe("calculateMatchScore", () => {
     expect(score).toBe(90); // region(40) + segment(30) + experience(20)
   });
 
-  it("returns 90 when region and segment match but experience < 3", () => {
+  it("returns 75 when region, segment and active match but experience < 3", () => {
     const score = calculateMatchScore(
       { ...baseRep, experienceYears: 2 },
       baseJob
     );
-    expect(score).toBe(80); // region(40) + segment(30) + active(10)
+    expect(score).toBe(75); // region(40) + segment(30) + active(5)
   });
 });
 
