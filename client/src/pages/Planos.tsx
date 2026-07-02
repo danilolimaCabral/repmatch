@@ -26,10 +26,17 @@ interface Plan {
 
 const REP_PLANS: Plan[] = [
   {
+    name: "Free",
+    monthly: 0,
+    description: "Para começar sem custo",
+    features: ["Perfil visível na base", "Candidaturas ilimitadas", "Chat com empresas", "Aparece no fim da lista"],
+    productKey: "REP_FREE",
+  },
+  {
     name: "Bronze",
     monthly: 9.99,
     description: "Para representantes que querem começar a se destacar",
-    features: ["Perfil visível na base", "Badge Bronze no perfil", "Aparece antes dos Free", "Acesso a vagas exclusivas Bronze"],
+    features: ["Tudo do Free", "Badge Bronze no perfil", "Aparece antes dos Free", "Acesso a vagas exclusivas Bronze"],
     productKey: "REP_BRONZE",
   },
   {
@@ -437,102 +444,105 @@ export default function Planos() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16 items-stretch">
-          {plans.map((plan) => {
-            const price = billing === "annual" ? (plan.monthly * 0.8).toFixed(2) : plan.monthly.toFixed(2);
-            const annualTotal = (plan.monthly * 0.8 * 12).toFixed(2);
-            const savings = (plan.monthly * 12 * 0.2).toFixed(0);
+        {(() => {
+          // Color config per plan name
+          const planColors: Record<string, { border: string; accent: string; badgeBg: string; checkColor: string; btnClass: string; priceCls: string }> = {
+            Free:       { border: "border-border",           accent: "bg-secondary/50",         badgeBg: "",                                     checkColor: "text-muted-foreground", btnClass: "bg-secondary border border-border text-foreground hover:bg-secondary/80",                                     priceCls: "text-foreground" },
+            Bronze:     { border: "border-orange-400/50",    accent: "bg-orange-400/8",         badgeBg: "bg-orange-400/15 text-orange-400",       checkColor: "text-orange-400",       btnClass: "bg-white border border-orange-400/40 text-orange-500 hover:bg-orange-50",                              priceCls: "text-foreground" },
+            Prata:      { border: "border-primary",          accent: "bg-primary/6",            badgeBg: "bg-primary text-primary-foreground",     checkColor: "text-primary",          btnClass: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25",                  priceCls: "text-primary" },
+            Ouro:       { border: "border-yellow-400/50",    accent: "bg-yellow-400/8",         badgeBg: "bg-yellow-400/15 text-yellow-600",       checkColor: "text-yellow-500",       btnClass: "bg-white border border-yellow-400/40 text-yellow-600 hover:bg-yellow-50",                              priceCls: "text-foreground" },
+            Starter:    { border: "border-border",           accent: "bg-secondary/50",         badgeBg: "",                                     checkColor: "text-muted-foreground", btnClass: "bg-secondary border border-border text-foreground hover:bg-secondary/80",                                     priceCls: "text-foreground" },
+            Pro:        { border: "border-primary",          accent: "bg-primary/6",            badgeBg: "bg-primary text-primary-foreground",     checkColor: "text-primary",          btnClass: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25",                  priceCls: "text-primary" },
+            Enterprise: { border: "border-purple-400/50",   accent: "bg-purple-400/8",         badgeBg: "bg-purple-400/15 text-purple-500",       checkColor: "text-purple-500",       btnClass: "bg-white border border-purple-400/40 text-purple-600 hover:bg-purple-50",                            priceCls: "text-foreground" },
+          };
+          const cols = plans.length === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 md:grid-cols-3";
+          return (
+            <div className={`grid ${cols} gap-5 mb-16 items-stretch`}>
+              {plans.map((plan) => {
+                const price = billing === "annual" && plan.monthly > 0 ? (plan.monthly * 0.8).toFixed(2) : plan.monthly.toFixed(2);
+                const annualTotal = (plan.monthly * 0.8 * 12).toFixed(2);
+                const savings = (plan.monthly * 12 * 0.2).toFixed(0);
+                const cfg = planColors[plan.name] ?? planColors["Free"];
+                const isFree = plan.monthly === 0;
 
-            return (
-              <div
-                key={plan.productKey}
-                className={`relative rounded-2xl flex flex-col transition-all duration-200 overflow-hidden ${
-                  plan.highlight
-                    ? "border-2 border-primary bg-gradient-to-b from-primary/8 to-card shadow-2xl shadow-primary/20 scale-[1.03]"
-                    : "border border-border bg-card hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-                }`}
-              >
-                {/* Top accent bar */}
-                {plan.highlight && (
-                  <div className="h-1 w-full bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
-                )}
-
-                {/* Popular badge */}
-                {plan.highlight && (
-                  <div className="absolute top-4 right-4">
-                    <span className="bg-primary text-primary-foreground text-[10px] font-black px-3 py-1 rounded-full tracking-wider uppercase">
-                      ⭐ Mais Popular
-                    </span>
-                  </div>
-                )}
-
-                <div className="p-7 flex flex-col flex-1">
-                  {/* Plan name + description */}
-                  <div className="mb-5">
-                    <h3 className="text-lg font-black text-foreground mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-                      {plan.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{plan.description}</p>
-                  </div>
-
-                  {/* Price block */}
-                  <div className={`rounded-xl p-4 mb-5 ${
-                    plan.highlight ? "bg-primary/10 border border-primary/20" : "bg-secondary/50 border border-border"
-                  }`}>
-                    <div className="flex items-end gap-1">
-                      <span className={`text-5xl font-black leading-none ${
-                        plan.highlight ? "text-primary" : "text-foreground"
-                      }`} style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-                        R${price.split(".")[0]}
-                      </span>
-                      <span className={`text-xl font-bold mb-0.5 ${
-                        plan.highlight ? "text-primary/70" : "text-muted-foreground"
-                      }`}>,{price.split(".")[1]}</span>
-                      <span className="text-muted-foreground text-sm mb-1 ml-1">/mês</span>
-                    </div>
-                    {billing === "annual" ? (
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-xs bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-full">-20%</span>
-                        <span className="text-xs text-muted-foreground">R${annualTotal}/ano · Economize R${savings}</span>
-                      </div>
-                    ) : (
-                      <div className="mt-1.5 text-xs text-muted-foreground/60">Cobrado mensalmente · Cancele quando quiser</div>
-                    )}
-                  </div>
-
-                  {/* Features */}
-                  <ul className="space-y-2.5 mb-7 flex-1">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-sm">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                          plan.highlight ? "bg-primary/20" : "bg-secondary"
-                        }`}>
-                          <CheckCircle className={`w-3 h-3 ${
-                            plan.highlight ? "text-primary" : "text-muted-foreground"
-                          }`} />
-                        </div>
-                        <span className={plan.highlight ? "text-foreground" : "text-muted-foreground"}>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* CTA Button */}
-                  <button
-                    onClick={() => setSelectedPlan(plan)}
-                    className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-4 rounded-xl transition-all ${
-                      plan.highlight
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/30"
-                        : "bg-secondary hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border text-foreground"
+                return (
+                  <div
+                    key={plan.productKey}
+                    className={`relative rounded-2xl border-2 ${cfg.border} bg-card flex flex-col transition-all duration-200 overflow-hidden ${
+                      plan.highlight ? "shadow-xl" : "hover:shadow-md"
                     }`}
                   >
-                    <Zap className="w-4 h-4" />
-                    Assinar {plan.name}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                    {/* Popular badge */}
+                    {plan.highlight && (
+                      <div className="absolute -top-px left-1/2 -translate-x-1/2">
+                        <span className={`${cfg.badgeBg} text-[10px] font-black px-4 py-1 rounded-b-lg tracking-widest uppercase block`}>
+                          MAIS POPULAR
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="p-6 flex flex-col flex-1">
+                      {/* Plan name */}
+                      <div className="mb-4 mt-1">
+                        <h3 className="text-base font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                          {plan.name}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{plan.description}</p>
+                      </div>
+
+                      {/* Price */}
+                      <div className="mb-5">
+                        <div className="flex items-end gap-0.5">
+                          <span className={`text-4xl font-black leading-none ${cfg.priceCls}`} style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                            {isFree ? "R$0" : `R$${price.replace(".", ",")}`}
+                          </span>
+                          <span className="text-muted-foreground text-sm mb-1 ml-1">{isFree ? "para sempre" : "/mês"}</span>
+                        </div>
+                        {billing === "annual" && !isFree && (
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            <span className="text-[10px] bg-primary/15 text-primary font-bold px-2 py-0.5 rounded-full">-20%</span>
+                            <span className="text-[10px] text-muted-foreground">R${annualTotal}/ano · Economize R${savings}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Divider */}
+                      <div className="border-t border-border mb-4" />
+
+                      {/* Features */}
+                      <ul className="space-y-2 mb-6 flex-1">
+                        {plan.features.map((f) => (
+                          <li key={f} className="flex items-start gap-2 text-sm">
+                            <CheckCircle className={`w-4 h-4 ${cfg.checkColor} flex-shrink-0 mt-0.5`} />
+                            <span className="text-muted-foreground">{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* CTA Button */}
+                      {isFree ? (
+                        <a
+                          href="/cadastro"
+                          className="w-full flex items-center justify-center gap-2 font-bold text-sm py-3 rounded-xl transition-all bg-secondary border border-border text-foreground hover:bg-secondary/80"
+                        >
+                          Cadastrar agora
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => setSelectedPlan(plan)}
+                          className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-3 rounded-xl transition-all ${cfg.btnClass}`}
+                        >
+                          Assinar {plan.name}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
 
         {/* One-time charges */}
         <div className="border border-border rounded-2xl p-8 mb-12 bg-card">
