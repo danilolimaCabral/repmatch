@@ -437,7 +437,7 @@ export default function Planos() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid md:grid-cols-3 gap-6 mb-16">
+        <div className="grid md:grid-cols-3 gap-8 mb-16 items-stretch">
           {plans.map((plan) => {
             const price = billing === "annual" ? (plan.monthly * 0.8).toFixed(2) : plan.monthly.toFixed(2);
             const annualTotal = (plan.monthly * 0.8 * 12).toFixed(2);
@@ -446,85 +446,128 @@ export default function Planos() {
             return (
               <div
                 key={plan.productKey}
-                className={`relative rounded-2xl border p-7 flex flex-col transition-all ${
+                className={`relative rounded-2xl flex flex-col transition-all duration-200 overflow-hidden ${
                   plan.highlight
-                    ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                    : "border-border bg-card"
+                    ? "border-2 border-primary bg-gradient-to-b from-primary/8 to-card shadow-2xl shadow-primary/20 scale-[1.03]"
+                    : "border border-border bg-card hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
                 }`}
               >
+                {/* Top accent bar */}
                 {plan.highlight && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full">MAIS POPULAR</span>
+                  <div className="h-1 w-full bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
+                )}
+
+                {/* Popular badge */}
+                {plan.highlight && (
+                  <div className="absolute top-4 right-4">
+                    <span className="bg-primary text-primary-foreground text-[10px] font-black px-3 py-1 rounded-full tracking-wider uppercase">
+                      ⭐ Mais Popular
+                    </span>
                   </div>
                 )}
 
-                <div className="mb-6">
-                  <h3 className="text-xl font-black text-foreground mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-                    {plan.name}
-                  </h3>
-                  <div className="flex items-end gap-1 mb-1">
-                    <span className="text-4xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-                      R${price}
-                    </span>
-                    <span className="text-muted-foreground text-sm mb-1.5">/mês</span>
+                <div className="p-7 flex flex-col flex-1">
+                  {/* Plan name + description */}
+                  <div className="mb-5">
+                    <h3 className="text-lg font-black text-foreground mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                      {plan.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{plan.description}</p>
                   </div>
-                  {billing === "annual" && (
-                    <div className="text-xs text-primary font-semibold mb-1">
-                      R${annualTotal}/ano — Economize R${savings}
+
+                  {/* Price block */}
+                  <div className={`rounded-xl p-4 mb-5 ${
+                    plan.highlight ? "bg-primary/10 border border-primary/20" : "bg-secondary/50 border border-border"
+                  }`}>
+                    <div className="flex items-end gap-1">
+                      <span className={`text-5xl font-black leading-none ${
+                        plan.highlight ? "text-primary" : "text-foreground"
+                      }`} style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                        R${price.split(".")[0]}
+                      </span>
+                      <span className={`text-xl font-bold mb-0.5 ${
+                        plan.highlight ? "text-primary/70" : "text-muted-foreground"
+                      }`}>,{price.split(".")[1]}</span>
+                      <span className="text-muted-foreground text-sm mb-1 ml-1">/mês</span>
                     </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">{plan.description}</p>
+                    {billing === "annual" ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-xs bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-full">-20%</span>
+                        <span className="text-xs text-muted-foreground">R${annualTotal}/ano · Economize R${savings}</span>
+                      </div>
+                    ) : (
+                      <div className="mt-1.5 text-xs text-muted-foreground/60">Cobrado mensalmente · Cancele quando quiser</div>
+                    )}
+                  </div>
+
+                  {/* Features */}
+                  <ul className="space-y-2.5 mb-7 flex-1">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          plan.highlight ? "bg-primary/20" : "bg-secondary"
+                        }`}>
+                          <CheckCircle className={`w-3 h-3 ${
+                            plan.highlight ? "text-primary" : "text-muted-foreground"
+                          }`} />
+                        </div>
+                        <span className={plan.highlight ? "text-foreground" : "text-muted-foreground"}>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => setSelectedPlan(plan)}
+                    className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-4 rounded-xl transition-all ${
+                      plan.highlight
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/30"
+                        : "bg-secondary hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border text-foreground"
+                    }`}
+                  >
+                    <Zap className="w-4 h-4" />
+                    Assinar {plan.name}
+                  </button>
                 </div>
-
-                <ul className="space-y-3 mb-8 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                      <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={() => setSelectedPlan(plan)}
-                  className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-3.5 rounded-xl transition-colors ${
-                    plan.highlight
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-secondary hover:bg-secondary/80 border border-border text-foreground"
-                  }`}
-                >
-                  <Smartphone className="w-4 h-4" />
-                  Assinar agora
-                </button>
               </div>
             );
           })}
         </div>
 
         {/* One-time charges */}
-        <div className="border border-border rounded-2xl p-8 mb-12">
-          <h3 className="font-bold text-lg text-foreground mb-6">Cobranças avulsas (sem assinatura)</h3>
+        <div className="border border-border rounded-2xl p-8 mb-12 bg-card">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-black text-lg text-foreground">Cobranças avulsas</h3>
+              <p className="text-xs text-muted-foreground">Sem assinatura · Pague apenas o que usar</p>
+            </div>
+          </div>
           <div className="grid sm:grid-cols-2 gap-5">
             {[
-              { name: "Desbloquear Contato", price: 29, desc: "Acesse o contato direto de um representante específico. Cobrança única, sem recorrência.", icon: Zap, productKey: "UNLOCK_CONTACT" },
-              { name: "Vaga em Destaque", price: 49, desc: "Destaque sua vaga no topo dos resultados por 30 dias. Mais visibilidade, mais candidatos.", icon: ArrowRight, productKey: "FEATURED_JOB" },
-            ].map(({ name, price, desc, icon: Icon, productKey }) => (
-              <div key={name} className="flex items-start gap-4 bg-secondary/40 rounded-xl p-5">
-                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-5 h-5 text-primary" />
+              { name: "Desbloquear Contato", price: 29, desc: "Acesse o contato direto de um representante específico. Cobrança única, sem recorrência.", icon: Zap, productKey: "UNLOCK_CONTACT", color: "text-primary", bg: "bg-primary/10", border: "border-primary/20" },
+              { name: "Vaga em Destaque", price: 49, desc: "Destaque sua vaga no topo dos resultados por 30 dias. Mais visibilidade, mais candidatos.", icon: ArrowRight, productKey: "FEATURED_JOB", color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20" },
+            ].map(({ name, price, desc, icon: Icon, productKey, color, bg, border }) => (
+              <div key={name} className={`rounded-xl border ${border} ${bg} p-6 flex flex-col gap-4`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl ${bg} border ${border} flex items-center justify-center flex-shrink-0`}>
+                    <Icon className={`w-5 h-5 ${color}`} />
+                  </div>
+                  <div>
+                    <div className="font-bold text-foreground text-sm">{name}</div>
+                    <div className={`text-2xl font-black ${color}`} style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R${price}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-semibold text-foreground mb-1">{name}</div>
-                  <div className="text-2xl font-black text-primary mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R${price}</div>
-                  <div className="text-xs text-muted-foreground mb-3">{desc}</div>
-                  <button
-                    onClick={() => setSelectedPlan({ name, monthly: price, description: desc, features: [], productKey })}
-                    className="flex items-center gap-1.5 bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <Smartphone className="w-3.5 h-3.5" />
-                    Pagar agora
-                  </button>
-                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                <button
+                  onClick={() => setSelectedPlan({ name, monthly: price, description: desc, features: [], productKey })}
+                  className={`w-full flex items-center justify-center gap-2 ${bg} hover:opacity-80 border ${border} ${color} text-sm font-bold px-4 py-3 rounded-xl transition-all`}
+                >
+                  <Smartphone className="w-4 h-4" />
+                  Pagar agora
+                </button>
               </div>
             ))}
           </div>
