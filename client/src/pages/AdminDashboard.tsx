@@ -121,6 +121,12 @@ export default function AdminDashboard() {
     onError: (e) => toast.error(e.message),
   });
 
+  const [analyticsDays, setAnalyticsDays] = useState(30);
+  const { data: siteAnalytics, isLoading: analyticsLoading } = trpc.admin.siteAnalytics.useQuery(
+    { days: analyticsDays },
+    { enabled: activeTab === "analytics" }
+  );
+
   // KYC/Documents queries
   const { data: docStats, refetch: refetchDocStats } = trpc.kyc.documentStats.useQuery();
   const { data: allDocs, isLoading: docsLoading, refetch: refetchDocs } = trpc.kyc.listAllDocuments.useQuery({
@@ -431,6 +437,69 @@ export default function AdminDashboard() {
                 <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 px-3 py-1">Admin</Badge>
               </div>
 
+              {/* Visitas ao Site (Umami) */}
+              <div className="rounded-xl border border-border bg-card p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="font-bold text-sm uppercase tracking-wide text-muted-foreground">Visitas ao Site</h2>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">Pageviews e visitantes únicos</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {[7, 30, 90].map(d => (
+                      <button key={d} onClick={() => setAnalyticsDays(d)}
+                        className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                          analyticsDays === d
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border text-muted-foreground hover:border-primary/50"
+                        }`}>
+                        {d === 7 ? "7 dias" : d === 30 ? "30 dias" : "90 dias"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {analyticsLoading ? (
+                  <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                      {[
+                        { label: "Pageviews", value: (siteAnalytics?.pageviews ?? 0).toLocaleString("pt-BR"), color: "text-blue-400", bg: "bg-blue-400/10" },
+                        { label: "Visitantes", value: (siteAnalytics?.visitors ?? 0).toLocaleString("pt-BR"), color: "text-emerald-400", bg: "bg-emerald-400/10" },
+                        { label: "Sessões", value: (siteAnalytics?.visits ?? 0).toLocaleString("pt-BR"), color: "text-amber-400", bg: "bg-amber-400/10" },
+                        { label: "Taxa de Rejeição", value: `${siteAnalytics?.bounceRate ?? 0}%`, color: "text-red-400", bg: "bg-red-400/10" },
+                      ].map(kpi => (
+                        <div key={kpi.label} className={`rounded-lg border border-border p-4 ${kpi.bg}`}>
+                          <div className={`text-2xl font-black ${kpi.color}`}>{kpi.value}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">{kpi.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {siteAnalytics?.dailyViews && siteAnalytics.dailyViews.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <LineChart data={siteAnalytics.dailyViews} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                            tickFormatter={(v: string) => { const d = new Date(v); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`; }}
+                          />
+                          <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                          <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                            labelFormatter={(v: string) => new Date(v).toLocaleDateString('pt-BR')}
+                          />
+                          <Legend wrapperStyle={{ fontSize: 11 }} />
+                          <Line type="monotone" dataKey="pageviews" name="Pageviews" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="visitors" name="Visitantes" stroke="#10b981" strokeWidth={2} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <BarChart2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">Dados de visitas aparecerão após o site estar em produção</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
               {/* Crescimento Semanal */}
               <div className="rounded-xl border border-border bg-card p-6 mb-6">
                 <h2 className="font-bold mb-1 text-sm uppercase tracking-wide text-muted-foreground">Crescimento Semanal de Cadastros</h2>
@@ -517,15 +586,15 @@ export default function AdminDashboard() {
 
               {/* Receita Semanal */}
               <div className="rounded-xl border border-border bg-card p-6 mt-6">
-                <h2 className="font-bold mb-1 text-sm uppercase tracking-wide text-muted-foreground">Receita Semanal (Stripe)</h2>
-                <p className="text-xs text-muted-foreground/60 mb-5">Pagamentos confirmados por semana nas últimas 8 semanas — em R$</p>
+                <h2 className="font-bold mb-1 text-sm uppercase tracking-wide text-muted-foreground">Receita Semanal (Mercado Pago)</h2>
+                <p className="text-xs text-muted-foreground/60 mb-5">Pagamentos aprovados por semana nas últimas 8 semanas — em R$</p>
                 {revenueLoading ? (
                   <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
                 ) : !weeklyRevenue || weeklyRevenue.every(w => w.revenue === 0) ? (
                   <div className="text-center py-16 text-muted-foreground">
                     <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">Nenhuma receita registrada no período</p>
-                    <p className="text-xs mt-1 opacity-60">Os dados aparecerão após os primeiros pagamentos via Stripe</p>
+                    <p className="text-xs mt-1 opacity-60">Os dados aparecerão após os primeiros pagamentos via Mercado Pago</p>
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={260}>

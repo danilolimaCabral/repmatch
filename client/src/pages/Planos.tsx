@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   CheckCircle, ArrowRight, Users, Building2, Copy, MessageCircle,
-  QrCode, Smartphone, Shield, Zap
+  QrCode, Smartphone, Shield, Zap, CreditCard, Loader2, CheckCheck, X
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
-const PIX_KEY = "41999499815";
 const WHATSAPP_NUMBER = "5541999499815";
 
 type PlanType = "rep" | "company";
 type BillingCycle = "monthly" | "annual";
+type PaymentStep = "choose" | "pix_form" | "pix_qr" | "card_redirect" | "success";
 
 interface Plan {
   name: string;
@@ -52,14 +54,14 @@ const COMPANY_PLANS: Plan[] = [
     name: "Starter",
     monthly: 49,
     description: "Para empresas que estão começando a buscar representantes",
-    features: ["Até 3 vagas ativas", "5 desbloqueos de contato/mês", "Acesso a reps Bronze+", "Ranking Bronze", "Chat com candidatos"],
+    features: ["Até 3 vagas ativas", "5 desbloqueios de contato/mês", "Acesso a reps Bronze+", "Ranking Bronze", "Chat com candidatos"],
     productKey: "COMPANY_STARTER",
   },
   {
     name: "Pro",
     monthly: 149,
     description: "Para empresas em expansão comercial",
-    features: ["Até 10 vagas ativas", "15 desbloqueos de contato/mês", "Acesso a todos os reps", "Match por IA", "Ranking Gold", "Notificações de candidatos"],
+    features: ["Até 10 vagas ativas", "15 desbloqueios de contato/mês", "Acesso a todos os reps", "Match por IA", "Ranking Gold", "Notificações de candidatos"],
     highlight: true,
     productKey: "COMPANY_PRO",
   },
@@ -67,89 +69,268 @@ const COMPANY_PLANS: Plan[] = [
     name: "Enterprise",
     monthly: 399,
     description: "Para empresas com alta demanda de representantes",
-    features: ["Vagas ilimitadas", "Desbloqueos ilimitados", "Reps Ouro em destaque", "Ranking Platinum", "Gerente de conta dedicado", "API de integração"],
+    features: ["Vagas ilimitadas", "Desbloqueios ilimitados", "Reps Ouro em destaque", "Ranking Platinum", "Gerente de conta dedicado", "API de integração"],
     productKey: "COMPANY_ENTERPRISE",
   },
 ];
 
-function PixModal({ plan, billing, onClose }: { plan: Plan; billing: BillingCycle; onClose: () => void }) {
-  const price = billing === "annual" ? (plan.monthly * 0.8 * 12).toFixed(2) : plan.monthly.toFixed(2);
+// ─── Modal de Pagamento ───────────────────────────────────────────────────────
+function PaymentModal({
+  plan,
+  billing,
+  onClose,
+}: {
+  plan: Plan;
+  billing: BillingCycle;
+  onClose: () => void;
+}) {
+  const { user } = useAuth();
+  const amount = billing === "annual" ? parseFloat((plan.monthly * 0.8 * 12).toFixed(2)) : plan.monthly;
   const period = billing === "annual" ? "ano" : "mês";
+  const displayAmount = amount.toFixed(2).replace(".", ",");
+
+  const [step, setStep] = useState<PaymentStep>("choose");
+  const [cpf, setCpf] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [pixData, setPixData] = useState<{ paymentId: number; qrCode: string; qrCodeBase64: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [countdown, setCountdown] = useState(300); // 5 min
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const pixMessage = `Olá! Quero assinar o plano ${plan.name} do RepMatch — R$${price}/${period}. Segue o comprovante do PIX.`;
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(pixMessage)}`;
+  useEffect(() => {
+    if (step === "pix_qr" && pixData) {
+      timerRef.current = setInterval(() => {
+        setCountdown(c => {
+          if (c <= 1) {
+            clearInterval(timerRef.current!);
+            return 0;
+          }
+          return c - 1;
+        });
+      }, 1000);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [step, pixData]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(PIX_KEY);
-    setCopied(true);
-    toast.success("Chave PIX copiada!");
-    setTimeout(() => setCopied(false), 2000);
+  const formatCpf = (v: string) => {
+    const d = v.replace(/\D/g, "").slice(0, 11);
+    return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+            .replace(/(\d{3})(\d{3})(\d{3})/, "$1.$2.$3")
+            .replace(/(\d{3})(\d{3})/, "$1.$2")
+            .replace(/(\d{3})/, "$1");
   };
+
+  const handlePixGenerate = async () => {
+    const rawCpf = cpf.replace(/\D/g, "");
+    if (rawCpf.length !== 11) {
+      toast.error("Informe um CPF válido com 11 dígitos");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/mp/pix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planKey: plan.productKey,
+          userId: user?.id ?? 0,
+          userEmail: user?.email ?? "cliente@repmatch.com.br",
+          userName: user?.name ?? "Cliente RepMatch",
+          cpf: rawCpf,
+          annual: billing === "annual",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao gerar PIX");
+      setPixData({ paymentId: data.paymentId, qrCode: data.qrCode, qrCodeBase64: data.qrCodeBase64 });
+      setStep("pix_qr");
+      setCountdown(300);
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao gerar PIX");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCardCheckout = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/mp/preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planKey: plan.productKey,
+          userId: user?.id ?? 0,
+          userEmail: user?.email ?? "cliente@repmatch.com.br",
+          userName: user?.name ?? "Cliente RepMatch",
+          annual: billing === "annual",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao criar preferência");
+      toast.info("Redirecionando para o Mercado Pago...");
+      window.open(data.initPoint, "_blank");
+      setStep("card_redirect");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao iniciar pagamento");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyPix = () => {
+    if (pixData?.qrCode) {
+      navigator.clipboard.writeText(pixData.qrCode);
+      setCopied(true);
+      toast.success("Código PIX copiado!");
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-card border border-border rounded-2xl max-w-md w-full p-8 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-xl font-bold">×</button>
+      <div className="bg-card border border-border rounded-2xl max-w-md w-full p-8 relative max-h-[90vh] overflow-y-auto">
+        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
+          <X className="w-5 h-5" />
+        </button>
 
+        {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/15 mb-4">
-            <QrCode className="w-7 h-7 text-primary" />
-          </div>
           <h3 className="text-xl font-black text-foreground mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-            Pagar via PIX
+            {step === "choose" ? "Escolha como pagar" : step === "pix_form" ? "Pagar via PIX" : step === "pix_qr" ? "QR Code PIX" : step === "card_redirect" ? "Pagamento iniciado" : "Pagamento confirmado!"}
           </h3>
           <p className="text-muted-foreground text-sm">
-            Plano <strong className="text-foreground">{plan.name}</strong> — <strong className="text-primary">R${price}/{period}</strong>
+            Plano <strong className="text-foreground">{plan.name}</strong> — <strong className="text-primary">R${displayAmount}/{period}</strong>
           </p>
         </div>
 
-        {/* PIX Key */}
-        <div className="bg-secondary/60 border border-border rounded-xl p-4 mb-4">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Chave PIX (Telefone)</div>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 font-mono text-foreground font-bold text-lg">{PIX_KEY}</div>
+        {/* Step: Choose payment method */}
+        {step === "choose" && (
+          <div className="space-y-3">
             <button
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 bg-primary/15 hover:bg-primary/25 text-primary text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+              onClick={() => setStep("pix_form")}
+              className="w-full flex items-center gap-4 bg-secondary/50 hover:bg-secondary border border-border rounded-xl p-4 transition-colors text-left"
             >
-              <Copy className="w-3.5 h-3.5" />
-              {copied ? "Copiado!" : "Copiar"}
-            </button>
-          </div>
-        </div>
-
-        {/* Instructions */}
-        <div className="space-y-3 mb-6">
-          {[
-            { step: "1", text: `Abra o app do seu banco e acesse a área de PIX` },
-            { step: "2", text: `Cole a chave PIX acima e informe o valor R$${price}` },
-            { step: "3", text: `Após o pagamento, envie o comprovante pelo WhatsApp` },
-            { step: "4", text: `Seu acesso será liberado em até 2 horas úteis` },
-          ].map(({ step, text }) => (
-            <div key={step} className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">
-                {step}
+              <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                <QrCode className="w-6 h-6 text-primary" />
               </div>
-              <span className="text-sm text-muted-foreground">{text}</span>
+              <div>
+                <div className="font-bold text-foreground">Pagar via PIX</div>
+                <div className="text-xs text-muted-foreground">QR Code gerado na hora. Aprovação instantânea.</div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto" />
+            </button>
+
+            <button
+              onClick={handleCardCheckout}
+              disabled={loading}
+              className="w-full flex items-center gap-4 bg-secondary/50 hover:bg-secondary border border-border rounded-xl p-4 transition-colors text-left disabled:opacity-60"
+            >
+              <div className="w-12 h-12 rounded-xl bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+                {loading ? <Loader2 className="w-6 h-6 text-blue-500 animate-spin" /> : <CreditCard className="w-6 h-6 text-blue-500" />}
+              </div>
+              <div>
+                <div className="font-bold text-foreground">Cartão de Crédito</div>
+                <div className="text-xs text-muted-foreground">Parcelamento disponível. Via Mercado Pago.</div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto" />
+            </button>
+
+            <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground justify-center">
+              <Shield className="w-3.5 h-3.5" />
+              Pagamento seguro via Mercado Pago
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
-        {/* WhatsApp Button */}
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-xl text-base transition-colors mb-3"
-        >
-          <MessageCircle className="w-5 h-5" />
-          Enviar comprovante pelo WhatsApp
-        </a>
+        {/* Step: PIX form (CPF) */}
+        {step === "pix_form" && (
+          <div className="space-y-4">
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-sm text-muted-foreground">
+              Para gerar o QR Code PIX, precisamos do seu CPF (exigência do Banco Central para pagamentos instantâneos).
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">CPF do pagador</label>
+              <input
+                type="text"
+                value={cpf}
+                onChange={e => setCpf(formatCpf(e.target.value))}
+                placeholder="000.000.000-00"
+                className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-foreground font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary/40"
+                maxLength={14}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setStep("choose")}>Voltar</Button>
+              <Button className="flex-1" onClick={handlePixGenerate} disabled={loading || cpf.replace(/\D/g, "").length !== 11}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <QrCode className="w-4 h-4 mr-2" />}
+                Gerar QR Code
+              </Button>
+            </div>
+          </div>
+        )}
 
-        <p className="text-center text-xs text-muted-foreground/60">
-          Após confirmar o pagamento, seu plano será ativado manualmente pela equipe RepMatch.
-        </p>
+        {/* Step: PIX QR Code */}
+        {step === "pix_qr" && pixData && (
+          <div className="space-y-4">
+            {/* Countdown */}
+            <div className="text-center">
+              <div className={`text-2xl font-black font-mono ${countdown < 60 ? "text-red-400" : "text-primary"}`}>
+                {formatTime(countdown)}
+              </div>
+              <div className="text-xs text-muted-foreground">tempo restante para pagar</div>
+            </div>
+
+            {/* QR Code Image */}
+            {pixData.qrCodeBase64 && (
+              <div className="flex justify-center">
+                <div className="bg-white p-3 rounded-xl border border-border">
+                  <img
+                    src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                    alt="QR Code PIX"
+                    className="w-48 h-48 object-contain"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Copy code */}
+            <div className="bg-secondary/60 border border-border rounded-xl p-3">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">PIX Copia e Cola</div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 font-mono text-xs text-foreground truncate">{pixData.qrCode?.slice(0, 40)}...</div>
+                <button
+                  onClick={handleCopyPix}
+                  className="flex items-center gap-1.5 bg-primary/15 hover:bg-primary/25 text-primary text-xs font-semibold px-3 py-2 rounded-lg transition-colors flex-shrink-0"
+                >
+                  {copied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+            </div>
+
+            <div className="text-xs text-center text-muted-foreground bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
+              ⚡ Após o pagamento, seu plano será ativado automaticamente em segundos.
+            </div>
+
+            <Button variant="outline" className="w-full" onClick={onClose}>Fechar — já paguei</Button>
+          </div>
+        )}
+
+        {/* Step: Card redirect */}
+        {step === "card_redirect" && (
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-blue-500/15 flex items-center justify-center mx-auto">
+              <CreditCard className="w-8 h-8 text-blue-500" />
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Uma nova aba foi aberta com o checkout do Mercado Pago. Complete o pagamento lá e seu plano será ativado automaticamente.
+            </p>
+            <Button variant="outline" className="w-full" onClick={onClose}>Fechar</Button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -161,10 +342,6 @@ export default function Planos() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
 
   const plans = planType === "rep" ? REP_PLANS : COMPANY_PLANS;
-
-  const handleSelectPlan = (plan: Plan) => {
-    setSelectedPlan(plan);
-  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -192,19 +369,28 @@ export default function Planos() {
             <span className="text-gradient-green">que você merece.</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Sem contrato de fidelidade. Cancele quando quiser. Pagamento 100% via PIX.
+            Sem contrato de fidelidade. Cancele quando quiser. PIX ou cartão via Mercado Pago.
           </p>
         </div>
 
-        {/* Payment Method Banner — PIX only */}
+        {/* Payment Method Banner */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
           <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-6 py-4">
             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-              <Smartphone className="w-5 h-5 text-primary" />
+              <QrCode className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <div className="font-bold text-sm text-foreground">Pagamento via PIX</div>
-              <div className="text-xs text-muted-foreground">Rápido, seguro e sem taxas extras</div>
+              <div className="font-bold text-sm text-foreground">PIX Instantâneo</div>
+              <div className="text-xs text-muted-foreground">QR Code gerado na hora</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-6 py-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-blue-500" />
+            </div>
+            <div>
+              <div className="font-bold text-sm text-foreground">Cartão de Crédito</div>
+              <div className="text-xs text-muted-foreground">Via Mercado Pago seguro</div>
             </div>
           </div>
           <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-6 py-4">
@@ -212,17 +398,8 @@ export default function Planos() {
               <Shield className="w-5 h-5 text-green-500" />
             </div>
             <div>
-              <div className="font-bold text-sm text-foreground">Ativação em até 2h</div>
+              <div className="font-bold text-sm text-foreground">Ativação automática</div>
               <div className="text-xs text-muted-foreground">Após confirmação do pagamento</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-6 py-4">
-            <div className="w-10 h-10 rounded-xl bg-[#25D366]/10 flex items-center justify-center">
-              <MessageCircle className="w-5 h-5 text-[#25D366]" />
-            </div>
-            <div>
-              <div className="font-bold text-sm text-foreground">Suporte via WhatsApp</div>
-              <div className="text-xs text-muted-foreground">Envie o comprovante e pronto</div>
             </div>
           </div>
         </div>
@@ -308,17 +485,16 @@ export default function Planos() {
                   ))}
                 </ul>
 
-                {/* PIX only button */}
                 <button
-                  onClick={() => handleSelectPlan(plan)}
+                  onClick={() => setSelectedPlan(plan)}
                   className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-3.5 rounded-xl transition-colors ${
                     plan.highlight
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 text-[#25D366]"
+                      : "bg-secondary hover:bg-secondary/80 border border-border text-foreground"
                   }`}
                 >
                   <Smartphone className="w-4 h-4" />
-                  Assinar via PIX
+                  Assinar agora
                 </button>
               </div>
             );
@@ -330,9 +506,9 @@ export default function Planos() {
           <h3 className="font-bold text-lg text-foreground mb-6">Cobranças avulsas (sem assinatura)</h3>
           <div className="grid sm:grid-cols-2 gap-5">
             {[
-              { name: "Desbloquear Contato", price: 29, desc: "Acesse o contato direto de um representante específico. Cobrança única, sem recorrência.", icon: Zap },
-              { name: "Vaga em Destaque", price: 49, desc: "Destaque sua vaga no topo dos resultados por 30 dias. Mais visibilidade, mais candidatos.", icon: ArrowRight },
-            ].map(({ name, price, desc, icon: Icon }) => (
+              { name: "Desbloquear Contato", price: 29, desc: "Acesse o contato direto de um representante específico. Cobrança única, sem recorrência.", icon: Zap, productKey: "UNLOCK_CONTACT" },
+              { name: "Vaga em Destaque", price: 49, desc: "Destaque sua vaga no topo dos resultados por 30 dias. Mais visibilidade, mais candidatos.", icon: ArrowRight, productKey: "FEATURED_JOB" },
+            ].map(({ name, price, desc, icon: Icon, productKey }) => (
               <div key={name} className="flex items-start gap-4 bg-secondary/40 rounded-xl p-5">
                 <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-5 h-5 text-primary" />
@@ -342,11 +518,11 @@ export default function Planos() {
                   <div className="text-2xl font-black text-primary mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R${price}</div>
                   <div className="text-xs text-muted-foreground mb-3">{desc}</div>
                   <button
-                    onClick={() => handleSelectPlan({ name, monthly: price, description: desc, features: [], productKey: name })}
-                    className="flex items-center gap-1.5 bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 text-[#25D366] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    onClick={() => setSelectedPlan({ name, monthly: price, description: desc, features: [], productKey })}
+                    className="flex items-center gap-1.5 bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                   >
                     <Smartphone className="w-3.5 h-3.5" />
-                    Pagar via PIX
+                    Pagar agora
                   </button>
                 </div>
               </div>
@@ -361,35 +537,22 @@ export default function Planos() {
             href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Olá! Tenho dúvidas sobre os planos do RepMatch.")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 border border-border hover:border-primary/40 text-foreground font-semibold px-6 py-3 rounded-xl transition-colors hover:bg-secondary/50"
+            className="inline-flex items-center gap-2 bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 text-[#25D366] font-semibold px-6 py-3 rounded-xl transition-colors"
           >
-            <MessageCircle className="w-4 h-4 text-[#25D366]" />
-            Falar no WhatsApp
+            <MessageCircle className="w-4 h-4" />
+            Falar com o suporte via WhatsApp
           </a>
         </div>
       </div>
 
-      {/* PIX Modal */}
+      {/* Payment Modal */}
       {selectedPlan && (
-        <PixModal
+        <PaymentModal
           plan={selectedPlan}
           billing={billing}
           onClose={() => setSelectedPlan(null)}
         />
       )}
-
-      {/* Footer */}
-      <footer className="border-t border-border py-8 px-6 mt-8">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground/50">
-          <span>© 2026 RepMatch. Todos os direitos reservados.</span>
-          <span>
-            Criado por{" "}
-            <a href="https://itskilltech.com.br" target="_blank" rel="noopener noreferrer" className="text-primary/70 hover:text-primary transition-colors font-semibold">
-              Itskilltech
-            </a>
-          </span>
-        </div>
-      </footer>
     </div>
   );
 }

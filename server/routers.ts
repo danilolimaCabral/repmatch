@@ -957,46 +957,9 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
     // Admin: receita semanal via Stripe (últimas 8 semanas)
     weeklyRevenue: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-      try {
-        const Stripe = (await import("stripe")).default;
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-04-22.dahlia" as any });
 
-        // Buscar charges dos últimos 56 dias (8 semanas)
-        const since = Math.floor(Date.now() / 1000) - 56 * 24 * 3600;
-        const charges = await stripe.charges.list({
-          created: { gte: since },
-          limit: 100,
-        });
-
-        // Agrupar por semana (início da semana = segunda-feira)
-        const weekMap: Record<string, number> = {};
-        for (const charge of charges.data) {
-          if (charge.status !== "succeeded") continue;
-          const d = new Date(charge.created * 1000);
-          // Início da semana (segunda-feira)
-          const day = d.getDay(); // 0=dom, 1=seg...
-          const diff = (day === 0 ? -6 : 1 - day);
-          const monday = new Date(d);
-          monday.setDate(d.getDate() + diff);
-          monday.setHours(0, 0, 0, 0);
-          const key = monday.toISOString().split("T")[0];
-          weekMap[key] = (weekMap[key] ?? 0) + charge.amount;
-        }
-
-        // Garantir 8 semanas mesmo sem dados
-        const weeks: { week: string; revenue: number }[] = [];
-        for (let i = 7; i >= 0; i--) {
-          const d = new Date();
-          const day = d.getDay();
-          const diff = (day === 0 ? -6 : 1 - day) - i * 7;
-          d.setDate(d.getDate() + diff);
-          d.setHours(0, 0, 0, 0);
-          const key = d.toISOString().split("T")[0];
-          weeks.push({ week: key, revenue: Math.round((weekMap[key] ?? 0) / 100) }); // centavos → reais
-        }
-        return weeks;
-      } catch (e) {
-        // Stripe não configurado ou sem dados — retorna zeros
+      // Helper: gera 8 semanas com zeros
+      const emptyWeeks = () => {
         const weeks: { week: string; revenue: number }[] = [];
         for (let i = 7; i >= 0; i--) {
           const d = new Date();
@@ -1007,6 +970,52 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           weeks.push({ week: d.toISOString().split("T")[0], revenue: 0 });
         }
         return weeks;
+      };
+
+      try {
+        const { MercadoPagoConfig, Payment } = await import("mercadopago");
+        const mp = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN! });
+        const paymentClient = new Payment(mp);
+
+        // Buscar pagamentos aprovados dos últimos 56 dias
+        const since = new Date(Date.now() - 56 * 24 * 3600 * 1000).toISOString();
+        const result = await paymentClient.search({
+          options: {
+            criteria: "desc",
+            range: "date_created",
+            begin_date: since,
+            end_date: new Date().toISOString(),
+            status: "approved",
+            limit: 200,
+          },
+        });
+
+        const weekMap: Record<string, number> = {};
+        for (const p of (result.results ?? [])) {
+          if (!p.date_approved) continue;
+          const d = new Date(p.date_approved);
+          const day = d.getDay();
+          const diff = (day === 0 ? -6 : 1 - day);
+          const monday = new Date(d);
+          monday.setDate(d.getDate() + diff);
+          monday.setHours(0, 0, 0, 0);
+          const key = monday.toISOString().split("T")[0];
+          weekMap[key] = (weekMap[key] ?? 0) + (p.transaction_amount ?? 0);
+        }
+
+        const weeks: { week: string; revenue: number }[] = [];
+        for (let i = 7; i >= 0; i--) {
+          const d = new Date();
+          const day = d.getDay();
+          const diff = (day === 0 ? -6 : 1 - day) - i * 7;
+          d.setDate(d.getDate() + diff);
+          d.setHours(0, 0, 0, 0);
+          const key = d.toISOString().split("T")[0];
+          weeks.push({ week: key, revenue: Math.round(weekMap[key] ?? 0) });
+        }
+        return weeks;
+      } catch (e) {
+        return emptyWeeks();
       }
     }),
     // Admin: diagnóstico de representantes (ver dados brutos)
@@ -1025,6 +1034,46 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }).from(representatives).limit(20);
       return rows;
     }),
+    // Admin: analytics de visitas (Umami)
+    siteAnalytics: protectedProcedure
+      .input(z.object({ days: z.number().min(1).max(90).default(30) }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const endpoint = process.env.VITE_ANALYTICS_ENDPOINT;
+        const websiteId = process.env.VITE_ANALYTICS_WEBSITE_ID;
+        const apiKey = process.env.BUILT_IN_FORGE_API_KEY;
+        if (!endpoint || !websiteId) return { pageviews: 0, visitors: 0, visits: 0, bounceRate: 0, avgDuration: 0, dailyViews: [] as { date: string; pageviews: number; visitors: number }[] };
+        const endAt = Date.now();
+        const startAt = endAt - input.days * 24 * 3600 * 1000;
+        try {
+          const [statsRes, pvRes] = await Promise.all([
+            fetch(`${endpoint}/api/websites/${websiteId}/stats?startAt=${startAt}&endAt=${endAt}`, {
+              headers: { Authorization: `Bearer ${apiKey}` },
+            }),
+            fetch(`${endpoint}/api/websites/${websiteId}/pageviews?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=America%2FSao_Paulo`, {
+              headers: { Authorization: `Bearer ${apiKey}` },
+            }),
+          ]);
+          const stats = statsRes.ok ? await statsRes.json() : {};
+          const pvData = pvRes.ok ? await pvRes.json() : { pageviews: [], sessions: [] };
+          const dailyViews = (pvData.pageviews ?? []).map((p: { x: string; y: number }, i: number) => ({
+            date: p.x,
+            pageviews: p.y,
+            visitors: pvData.sessions?.[i]?.y ?? 0,
+          }));
+          return {
+            pageviews: stats.pageviews?.value ?? 0,
+            visitors: stats.visitors?.value ?? 0,
+            visits: stats.visits?.value ?? 0,
+            bounceRate: stats.bounces?.value ? Math.round((stats.bounces.value / (stats.visits?.value || 1)) * 100) : 0,
+            avgDuration: stats.totaltime?.value ? Math.round(stats.totaltime.value / (stats.visits?.value || 1)) : 0,
+            dailyViews,
+          };
+        } catch {
+          return { pageviews: 0, visitors: 0, visits: 0, bounceRate: 0, avgDuration: 0, dailyViews: [] as { date: string; pageviews: number; visitors: number }[] };
+        }
+      }),
+
     // Admin: corrigir dados dos representantes de teste
     fixTestReps: protectedProcedure.mutation(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });

@@ -14,6 +14,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { stripeRouter } from "../stripe/stripeRoutes";
+import { mpRouter } from "../mercadopago/mpRoutes";
 import { registerAuthRoutes } from "../authRoutes";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
@@ -108,6 +109,9 @@ async function startServer() {
 
   // Stripe routes
   app.use("/api/stripe", stripeRouter);
+
+  // Mercado Pago routes
+  app.use("/api/mp", mpRouter);
 
   // Scheduled task endpoint: availability reminder
   app.post("/api/scheduled/availability-reminder", async (req, res) => {
