@@ -1,6 +1,14 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw } from "lucide-react";
 import { useState, useRef } from "react";
@@ -43,6 +51,22 @@ export default function AdminDashboard() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; failed: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Confirmation modal state
+  type ConfirmAction =
+    | { type: "promote"; userId: number; userName: string }
+    | { type: "toggle"; userId: number; userName: string; isActive: boolean };
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+
+  function handleConfirm() {
+    if (!confirmAction) return;
+    if (confirmAction.type === "promote") {
+      promoteMutation.mutate({ userId: confirmAction.userId });
+    } else {
+      toggleActiveMutation.mutate({ userId: confirmAction.userId, isActive: confirmAction.isActive });
+    }
+    setConfirmAction(null);
+  }
 
   const { data: stats, isLoading: statsLoading } = trpc.admin.stats.useQuery();
   const { data: weeklyGrowth, isLoading: growthLoading } = trpc.admin.weeklyGrowth.useQuery();
@@ -778,7 +802,7 @@ export default function AdminDashboard() {
                                   size="sm"
                                   variant="outline"
                                   className="text-xs border-primary/30 text-primary hover:bg-primary/10"
-                                  onClick={() => promoteMutation.mutate({ userId: u.id })}
+                                  onClick={() => setConfirmAction({ type: "promote", userId: u.id, userName: u.name ?? `#${u.id}` })}
                                   disabled={promoteMutation.isPending}
                                 >
                                   <ShieldCheck className="w-3 h-3 mr-1" />
@@ -794,7 +818,12 @@ export default function AdminDashboard() {
                                       ? "border-red-700/40 text-red-400 hover:bg-red-900/20"
                                       : "border-green-700/40 text-green-400 hover:bg-green-900/20"
                                   }`}
-                                  onClick={() => toggleActiveMutation.mutate({ userId: u.id, isActive: (u as Record<string, unknown> & { isActive?: boolean }).isActive === false })}
+                                  onClick={() => setConfirmAction({
+                                    type: "toggle",
+                                    userId: u.id,
+                                    userName: u.name ?? `#${u.id}`,
+                                    isActive: (u as Record<string, unknown> & { isActive?: boolean }).isActive === false,
+                                  })}
                                   disabled={toggleActiveMutation.isPending}
                                 >
                                   {(u as Record<string, unknown> & { isActive?: boolean }).isActive !== false ? (
@@ -1494,6 +1523,43 @@ export default function AdminDashboard() {
           )}
         </main>
       </div>
+
+      {/* Confirmation Modal */}
+      <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction?.type === "promote" ? "Promover a Admin" : confirmAction?.isActive ? "Reativar Usuário" : "Desativar Usuário"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmAction?.type === "promote" ? (
+                <>
+                  Tem certeza que deseja promover <strong>{confirmAction.userName}</strong> a administrador?
+                  <br /><br />
+                  <span className="text-yellow-500 font-medium">⚠️ Atenção:</span> Administradores têm acesso total ao painel e a todos os dados da plataforma. Esta ação não pode ser desfeita facilmente.
+                </>
+              ) : confirmAction?.isActive ? (
+                <>Tem certeza que deseja <strong>reativar</strong> o usuário <strong>{confirmAction?.userName}</strong>? O usuário poderá acessar a plataforma novamente.</>
+              ) : (
+                <>Tem certeza que deseja <strong>desativar</strong> o usuário <strong>{confirmAction?.userName}</strong>? O usuário não conseguirá mais acessar a plataforma.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>Cancelar</Button>
+            <Button
+              variant={confirmAction?.type === "promote" ? "default" : confirmAction?.isActive ? "default" : "destructive"}
+              onClick={handleConfirm}
+              disabled={promoteMutation.isPending || toggleActiveMutation.isPending}
+            >
+              {(promoteMutation.isPending || toggleActiveMutation.isPending) ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              {confirmAction?.type === "promote" ? "Sim, promover" : confirmAction?.isActive ? "Sim, reativar" : "Sim, desativar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
