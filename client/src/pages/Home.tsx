@@ -506,16 +506,26 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <ThemeToggleButton />
             {isAuthenticated ? (
-              <button
-                onClick={() => {
-                  if (companyProfile) navigate("/dashboard/company");
-                  else if (repProfile) navigate("/dashboard/rep");
-                  else navigate("/onboarding");
-                }}
-                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors"
-              >
-                Olá, {user?.name?.split(" ")[0]} <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {user?.role === "admin" && (
+                  <a
+                    href="/admin"
+                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-full text-sm transition-colors"
+                  >
+                    <span>🔑</span> Painel Admin
+                  </a>
+                )}
+                <button
+                  onClick={() => {
+                    if (companyProfile) navigate("/dashboard/company");
+                    else if (repProfile) navigate("/dashboard/rep");
+                    else navigate("/onboarding");
+                  }}
+                  className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors"
+                >
+                  Olá, {user?.name?.split(" ")[0]} <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             ) : (
               <>
                 <a href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Entrar</a>
