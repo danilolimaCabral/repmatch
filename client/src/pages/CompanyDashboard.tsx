@@ -273,6 +273,14 @@ export default function CompanyDashboard() {
   const [pixCountdown, setPixCountdown] = useState(30);
   const pixCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Query para pedidos de desbloqueio pendentes
+  const { data: myUnlockRequests } = trpc.unlockRequests.myRequests.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const pendingUnlockRequests = (myUnlockRequests ?? []).filter(
+    r => r.status === "pending_payment" || r.status === "pending_approval"
+  );
+
   const createUnlockRequest = trpc.unlockRequests.create.useMutation({
     onError: (e) => toast.error(e.message),
   });
@@ -602,6 +610,35 @@ export default function CompanyDashboard() {
               <h1 className="text-2xl font-bold text-slate-800">Visão Geral</h1>
               <p className="text-slate-500 text-sm mt-1">Acompanhe o desempenho das suas vagas e candidaturas</p>
             </div>
+
+            {/* ─── Aviso de pagamento pendente ─── */}
+            {pendingUnlockRequests.length > 0 && (
+              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-amber-800">
+                    {pendingUnlockRequests.some(r => r.status === "pending_approval")
+                      ? "⏳ Pagamento aguardando aprovação do administrador"
+                      : "📋 Comprovante de pagamento aguardando envio"}
+                  </p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    {pendingUnlockRequests.some(r => r.status === "pending_approval")
+                      ? `Você tem ${pendingUnlockRequests.filter(r => r.status === "pending_approval").length} pedido(s) de desbloqueio com comprovante enviado. O administrador irá revisar e liberar os contatos em até 24h.`
+                      : `Você tem ${pendingUnlockRequests.filter(r => r.status === "pending_payment").length} pedido(s) de desbloqueio aguardando envio do comprovante Pix.`}
+                  </p>
+                  {pendingUnlockRequests.some(r => r.status === "pending_payment") && (
+                    <button
+                      className="mt-2 text-xs font-semibold text-amber-700 underline hover:text-amber-900"
+                      onClick={() => { setCartOpen(true); setCurrentRequestId(pendingUnlockRequests.find(r => r.status === "pending_payment")?.id ?? null); setCartStep("upload"); }}
+                    >
+                      Enviar comprovante agora →
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">

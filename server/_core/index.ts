@@ -90,7 +90,7 @@ async function startServer() {
     message: { error: "Muitas tentativas de login. Tente novamente em 15 minutos." },
   });
   app.use("/api/trpc", apiLimiter);
-  app.use("/api/oauth", authLimiter);
+  app.use("/api/auth", authLimiter);
 
   // Gzip/Brotli compression for all responses (improves load time significantly)
   app.use(compression());
