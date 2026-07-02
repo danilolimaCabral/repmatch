@@ -103,17 +103,46 @@ export async function toggleUserActive(userId: number, isActive: boolean): Promi
   await db.update(users).set({ isActive }).where(eq(users.id, userId));
 }
 
-export async function listAllUsers(limit = 200) {
+export async function listAllUsers(
+  limit = 50,
+  offset = 0,
+  search = "",
+  roleFilter = "",
+  userTypeFilter = ""
+) {
   const db = await getDb();
-  if (!db) return [];
-  const { not, like } = await import("drizzle-orm");
-  // Exclude imported fake users (rep_XXXXX@import.repmatch.com)
-  return db
+  if (!db) return { users: [], total: 0 };
+  const { not, like, and, or, eq, count, sql } = await import("drizzle-orm");
+  const conditions: any[] = [
+    not(like(users.email, "%@import.repmatch.com")),
+  ];
+  if (search) {
+    conditions.push(
+      or(
+        like(users.name, `%${search}%`),
+        like(users.email, `%${search}%`)
+      )
+    );
+  }
+  if (roleFilter === "admin" || roleFilter === "user") {
+    conditions.push(eq(users.role, roleFilter as "admin" | "user"));
+  }
+  if (userTypeFilter && ["representative", "company", "manager", "pending"].includes(userTypeFilter)) {
+    conditions.push(eq(users.userType, userTypeFilter as "representative" | "company" | "manager" | "pending"));
+  }
+  const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(users)
+    .where(whereClause);
+  const rows = await db
     .select()
     .from(users)
-    .where(not(like(users.email, "%@import.repmatch.com")))
+    .where(whereClause)
     .orderBy(desc(users.createdAt))
-    .limit(limit);
+    .limit(limit)
+    .offset(offset);
+  return { users: rows, total: Number(totalResult?.count ?? 0) };
 }
 
 export async function listRepresentativesWithFiscalId(limit = 100, offset = 0, search = "", estado = "", situacao = "") {

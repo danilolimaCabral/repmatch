@@ -846,10 +846,19 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
 
         return { imported, failed, logId: log.id };
       }),
-    listUsers: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-      return listAllUsers(100);
-    }),
+    listUsers: protectedProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(200).default(50),
+        offset: z.number().min(0).default(0),
+        search: z.string().default(""),
+        roleFilter: z.string().default(""),
+        userTypeFilter: z.string().default(""),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const { limit = 50, offset = 0, search = "", roleFilter = "", userTypeFilter = "" } = input ?? {};
+        return listAllUsers(limit, offset, search, roleFilter, userTypeFilter);
+      }),
     listEnrichedReps: protectedProcedure
       .input(z.object({
         limit: z.number().min(1).max(200).default(100),

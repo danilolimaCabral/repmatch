@@ -49,7 +49,20 @@ export default function AdminDashboard() {
   const { data: conversionFunnel, isLoading: funnelLoading } = trpc.admin.conversionFunnel.useQuery();
   const { data: weeklyRevenue, isLoading: revenueLoading } = trpc.admin.weeklyRevenue.useQuery();
   const { data: importLogs } = trpc.admin.importLogs.useQuery();
-  const { data: allUsers, refetch: refetchUsers } = trpc.admin.listUsers.useQuery();
+  const [userSearch, setUserSearch] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("");
+  const [userTypeFilter, setUserTypeFilter] = useState("");
+  const [userPage, setUserPage] = useState(0);
+  const USER_PAGE_SIZE = 50;
+  const { data: usersData, refetch: refetchUsers } = trpc.admin.listUsers.useQuery({
+    limit: USER_PAGE_SIZE,
+    offset: userPage * USER_PAGE_SIZE,
+    search: userSearch,
+    roleFilter: userRoleFilter,
+    userTypeFilter: userTypeFilter,
+  });
+  const allUsers = usersData?.users;
+  const userTotal = usersData?.total ?? 0;
   const { data: enrichedReps, isLoading: repsLoading } = trpc.admin.listEnrichedReps.useQuery(
     { limit: 100, offset: repOffset, search: repSearch || undefined, estado: repEstado || undefined },
     { enabled: activeTab === "representantes" }
@@ -664,13 +677,54 @@ export default function AdminDashboard() {
 
           {activeTab === "users" && (
             <div>
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center justify-between mb-6">
                 <div>
                   <h1 className="text-2xl font-black">Gerenciar Usuários</h1>
-                  <p className="text-muted-foreground text-sm mt-1">Todos os usuários cadastrados na plataforma</p>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    {userTotal > 0 ? <><span className="font-semibold text-foreground">{userTotal}</span> usuários cadastrados</> : "Todos os usuários cadastrados na plataforma"}
+                  </p>
                 </div>
                 <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 px-3 py-1">Admin</Badge>
               </div>
+
+              {/* Filtros */}
+              <div className="flex flex-wrap gap-3 mb-5">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="Buscar por nome ou email..."
+                    value={userSearch}
+                    onChange={e => { setUserSearch(e.target.value); setUserPage(0); }}
+                  />
+                </div>
+                <select
+                  className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  value={userTypeFilter}
+                  onChange={e => { setUserTypeFilter(e.target.value); setUserPage(0); }}
+                >
+                  <option value="">Todos os tipos</option>
+                  <option value="representative">Representante</option>
+                  <option value="company">Empresa</option>
+                  <option value="manager">Gerente</option>
+                  <option value="pending">Pendente</option>
+                </select>
+                <select
+                  className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  value={userRoleFilter}
+                  onChange={e => { setUserRoleFilter(e.target.value); setUserPage(0); }}
+                >
+                  <option value="">Todos os papéis</option>
+                  <option value="admin">Admin</option>
+                  <option value="user">Usuário</option>
+                </select>
+                {(userSearch || userTypeFilter || userRoleFilter) && (
+                  <Button size="sm" variant="ghost" className="text-xs" onClick={() => { setUserSearch(""); setUserTypeFilter(""); setUserRoleFilter(""); setUserPage(0); }}>
+                    Limpar filtros
+                  </Button>
+                )}
+              </div>
+
               {!allUsers ? (
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -678,6 +732,7 @@ export default function AdminDashboard() {
               ) : allUsers.length === 0 ? (
                 <div className="text-center py-16 text-muted-foreground">Nenhum usuário encontrado</div>
               ) : (
+                <div>
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
@@ -686,7 +741,7 @@ export default function AdminDashboard() {
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Email</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Tipo</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Role</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Papel</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cadastro</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ações</th>
@@ -755,6 +810,19 @@ export default function AdminDashboard() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+                {/* Paginação */}
+                {userTotal > USER_PAGE_SIZE && (
+                  <div className="flex items-center justify-between mt-4 px-1">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {userPage * USER_PAGE_SIZE + 1}–{Math.min((userPage + 1) * USER_PAGE_SIZE, userTotal)} de {userTotal}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" disabled={userPage === 0} onClick={() => setUserPage(p => p - 1)}>Anterior</Button>
+                      <Button size="sm" variant="outline" disabled={(userPage + 1) * USER_PAGE_SIZE >= userTotal} onClick={() => setUserPage(p => p + 1)}>Próxima</Button>
+                    </div>
+                  </div>
+                )}
                 </div>
               )}
             </div>
