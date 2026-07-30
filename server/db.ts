@@ -784,8 +784,8 @@ export async function getRepresentativePreview(filters?: { region?: string; segm
 
 /**
  * Masks sensitive contact data for non-admin, non-unlocked views.
- * Admin master always sees full data.
- * Company sees full data only for unlocked contacts.
+ * Before unlock: show full name, segment, experience years, CORE status only.
+ * After unlock: show everything (phone, email, linkedin, bio, city, CNPJ).
  */
 export function maskRepresentativeData<T extends {
   fullName?: string | null;
@@ -793,21 +793,27 @@ export function maskRepresentativeData<T extends {
   email?: string | null;
   linkedinUrl?: string | null;
   bio?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cnpj?: string | null;
+  nomeFantasia?: string | null;
+  region?: string | null;
 }>(rep: T, isUnlocked: boolean, isAdmin: boolean): T {
-  if (isAdmin || isUnlocked) return rep; // Full data
+  if (isAdmin || isUnlocked) return rep; // Full data after unlock/admin
 
-  // Mask: show only first name + last initial, hide phone/email/linkedin
-  const firstName = rep.fullName?.split(" ")[0] ?? "Rep";
-  const lastInitial = rep.fullName?.split(" ").slice(-1)[0]?.[0] ?? "●";
-  const maskedName = `${firstName} ${lastInitial}.`;
-
+  // Before unlock: only segment, experience and CORE status visible
+  // Hide all contact details, bio, city, CNPJ
   return {
     ...rep,
-    fullName: maskedName,
-    phone: rep.phone ? `(${rep.phone.replace(/\D/g, "").slice(0, 2)}) ●●●●●-${rep.phone.replace(/\D/g, "").slice(-4)}` : null,
-    email: rep.email ? `${rep.email.split("@")[0].slice(0, 2)}●●●@${rep.email.split("@")[1] ?? "●●●"}` : null,
-    linkedinUrl: rep.linkedinUrl ? "[Desbloqueie para ver]" : null,
-    bio: rep.bio ? rep.bio.slice(0, 80) + (rep.bio.length > 80 ? "..." : "") : null,
+    phone: null,
+    email: null,
+    linkedinUrl: null,
+    bio: null,
+    cidade: null,
+    estado: null,
+    cnpj: null,
+    nomeFantasia: null,
+    region: null,
   };
 }
 
