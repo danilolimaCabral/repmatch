@@ -295,35 +295,36 @@ export default function CompanyDashboard() {
   };
   const removeFromCart = (repId: number) => setCart(prev => prev.filter(c => c.id !== repId));
 
-  const handleCheckoutCart = async (method: "pix" | "stripe") => {
+  const handleCheckoutCart = async () => {
     if (cart.length === 0) return;
-    if (method === "stripe") {
-      // Stripe: create request then redirect to checkout
-      const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "stripe" });
-      if (res) {
-        user && startCheckout("UNLOCK_BATCH", user.id, user.email ?? "", user.name ?? "", { repId: res.requestId });
-        setCartOpen(false);
-        setCart([]);
-      }
-      return;
-    }
-    // Pix: create request and show QR Code step
-    const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "pix" });
-    if (res) {
-      setCurrentRequestId(res.requestId);
-      setPixCountdown(30);
-      setCartStep("qrcode");
-      // Start countdown: after 30s go to upload step
-      if (pixCountdownRef.current) clearInterval(pixCountdownRef.current);
-      let count = 30;
-      pixCountdownRef.current = setInterval(() => {
-        count -= 1;
-        setPixCountdown(count);
-        if (count <= 0) {
-          if (pixCountdownRef.current) clearInterval(pixCountdownRef.current);
-          setCartStep("upload");
-        }
-      }, 1000);
+    try {
+      // 1. Create the unlock request in DB
+      const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "pix" });
+      if (!res) return;
+
+      // 2. Create MP Checkout Pro preference
+      const prefRes = await fetch("/api/mp/unlock-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Origin": window.location.origin },
+        body: JSON.stringify({
+          requestId: res.requestId,
+          repIds: cart.map(c => c.id),
+          userId: user?.id,
+          userEmail: user?.email ?? "",
+          userName: user?.name ?? "",
+        }),
+      });
+      const prefData = await prefRes.json();
+      if (!prefRes.ok) throw new Error(prefData.error ?? "Erro ao criar pagamento");
+
+      // 3. Redirect to MP Checkout
+      const checkoutUrl = prefData.initPoint;
+      toast.success("Redirecionando para o pagamento...");
+      setCartOpen(false);
+      setCart([]);
+      window.open(checkoutUrl, "_blank");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao processar pagamento");
     }
   };
 
@@ -1221,24 +1222,16 @@ export default function CompanyDashboard() {
                       <span className="text-lg font-bold text-emerald-700">R${cart.length * 29}</span>
                     </div>
                     <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-3">
-                      Após o pagamento, o admin irá aprovar e os contatos serão liberados automaticamente.
+                      Após o pagamento aprovado, os contatos serão liberados automaticamente.
                     </p>
                     <div className="grid grid-cols-1 gap-2">
                       <Button
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                        onClick={() => handleCheckoutCart("pix")}
+                        onClick={() => handleCheckoutCart()}
                         disabled={createUnlockRequest.isPending}
                       >
-                        {createUnlockRequest.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
-                        Pagar via Pix
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-slate-200 text-slate-600"
-                        onClick={() => handleCheckoutCart("stripe")}
-                        disabled={createUnlockRequest.isPending}
-                      >
-                        💳 Pagar com Cartão (Stripe)
+                        {createUnlockRequest.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <span className="mr-2 text-base">💳</span>}
+                        Pagar com Mercado Pago
                       </Button>
                     </div>
                   </>
