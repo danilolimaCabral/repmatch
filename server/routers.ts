@@ -873,10 +873,10 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }),
     promoteUser: protectedProcedure
       .input(z.object({ userId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        await promoteToAdmin(input.userId);
-        return { success: true };
+      .mutation(async ({ ctx }) => {
+        // Promoção a admin desabilitada via painel — apenas via banco de dados diretamente
+        void ctx;
+        throw new TRPCError({ code: "FORBIDDEN", message: "Promoção a admin não permitida via painel." });
       }),
     toggleUserActive: protectedProcedure
       .input(z.object({ userId: z.number(), isActive: z.boolean() }))
