@@ -1453,83 +1453,82 @@ export default function CompanyDashboard() {
                     const isUnlocked = searchData?.unlockedIds.includes(rep.id);
                     const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : rep.subscriptionTier === "bronze" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200";
                     const tierLabel = rep.subscriptionTier === "ouro" ? "Ouro" : rep.subscriptionTier === "prata" ? "Prata" : rep.subscriptionTier === "bronze" ? "Bronze" : "Pendente";
-                    // Backend already masks data for non-unlocked; we just show what we receive
-                    const isMasked = !isUnlocked;
+                    // Before unlock: name, segment, experience, CORE status only
+                    // After unlock: full contact (phone, email, linkedin, bio, city, CNPJ)
+                    const coreActive = (rep as any).coreStatus === 'active';
                     return (
                       <div key={rep.id} className={`rounded-xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow ${isUnlocked ? "border-emerald-200" : "border-slate-200"}`}>
                         <div className="flex justify-between items-start mb-1">
                           {isUnlocked ? (
-                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs"><CheckCircle className="w-3 h-3 mr-1" />Desbloqueado</Badge>
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs"><CheckCircle className="w-3 h-3 mr-1" />Contato Desbloqueado</Badge>
                           ) : (
-                            <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-xs">🔒 Dados protegidos</Badge>
+                            <Badge className="bg-amber-50 text-amber-600 border-amber-200 text-xs">🔒 Contato bloqueado</Badge>
                           )}
                           <Badge className={`text-xs border ${tierBadge}`}>{tierLabel}</Badge>
                         </div>
                         <div className="flex items-center gap-3 mb-3 mt-2">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0 ${isUnlocked ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
-                            {isMasked ? "🔒" : (rep.fullName?.charAt(0) ?? "R")}
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0 bg-emerald-100 text-emerald-700">
+                            {rep.fullName?.charAt(0) ?? "R"}
                           </div>
                           <div className="min-w-0">
-                            {/* Backend already returns masked name for non-unlocked */}
-                            <div className={`font-bold text-sm truncate ${isUnlocked ? "text-slate-800" : "text-slate-500"}`}>{rep.fullName ?? "Rep. Comercial"}</div>
+                            <div className="font-bold text-sm truncate text-slate-800">{rep.fullName ?? "Rep. Comercial"}</div>
                             {rep.availability === "imediata" && (
                               <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs mt-0.5">🟢 Disponível agora</Badge>
                             )}
                           </div>
                         </div>
+                        {/* Always visible: segment, experience, CORE status */}
                         <div className="space-y-1.5 text-xs text-slate-500 mb-4">
-                          <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{(rep as any).cidade && (rep as any).estado ? `${(rep as any).cidade} - ${(rep as any).estado}` : (rep.region ?? "Brasil")}</div>
                           <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3" />{rep.segment ?? "Geral"}</div>
                           <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears ?? 0} anos de experiência</div>
                           <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{Number(rep.averageRating ?? 0).toFixed(1)} avaliação</div>
+                          <div className="flex items-center gap-1.5">
+                            {coreActive
+                              ? <><BadgeCheck className="w-3 h-3 text-emerald-600" /><span className="text-emerald-600 font-medium">CORE Ativo</span></>
+                              : <><Shield className="w-3 h-3 text-slate-300" /><span className="text-slate-400">Sem CORE</span></>}
+                          </div>
                         </div>
-                        {/* Contact info — completely hidden when not unlocked */}
+                        {/* Contact info — only visible after unlock */}
                         <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
                           {isUnlocked ? (
                             <>
                               {(rep as any).nomeFantasia && (
                                 <div className="flex items-center gap-1.5 font-medium text-emerald-700">
-                                  <span className="text-xs">🏢</span>
-                                  {(rep as any).nomeFantasia}
+                                  <span>🏢</span>{(rep as any).nomeFantasia}
                                 </div>
                               )}
                               {(rep as any).cnpj && (
                                 <div className="flex items-center gap-1.5 text-slate-500">
-                                  <span className="text-xs">💼</span>
-                                  CNPJ: {(rep as any).cnpj}
+                                  <span>💼</span>CNPJ: {(rep as any).cnpj}
+                                </div>
+                              )}
+                              {((rep as any).cidade || (rep as any).estado) && (
+                                <div className="flex items-center gap-1.5 text-slate-500">
+                                  <MapPin className="w-3 h-3" />{(rep as any).cidade && (rep as any).estado ? `${(rep as any).cidade} - ${(rep as any).estado}` : ((rep as any).cidade ?? (rep as any).estado)}
                                 </div>
                               )}
                               {rep.phone && (
                                 <div className="flex items-center gap-1.5 font-medium text-slate-700">
-                                  <span className="text-xs">📞</span>
-                                  {rep.phone}
+                                  <span>📞</span>{rep.phone}
                                 </div>
                               )}
                               {rep.email && (
                                 <div className="flex items-center gap-1.5 font-medium text-slate-700">
-                                  <span className="text-xs">📧</span>
-                                  {rep.email}
+                                  <span>📧</span>{rep.email}
                                 </div>
                               )}
+                              {rep.linkedinUrl && (
+                                <a href={rep.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:underline">
+                                  <Linkedin className="w-3 h-3" />LinkedIn
+                                </a>
+                              )}
                               {rep.bio && (
-                                <div className="text-xs mt-1 text-slate-600">
-                                  {rep.bio}
-                                </div>
+                                <div className="text-xs mt-1 text-slate-600 border-t border-slate-100 pt-2">{rep.bio}</div>
                               )}
                             </>
                           ) : (
-                            <div className="rounded-lg bg-slate-50 border border-dashed border-slate-200 p-3 flex flex-col gap-2">
-                              <div className="flex items-center gap-2 text-slate-400">
-                                <span>🔒</span>
-                                <div className="h-2.5 w-28 bg-slate-200 rounded-full" />
-                              </div>
-                              <div className="flex items-center gap-2 text-slate-400">
-                                <span>🔒</span>
-                                <div className="h-2.5 w-36 bg-slate-200 rounded-full" />
-                              </div>
-                              <div className="h-2 w-full bg-slate-100 rounded-full mt-1" />
-                              <div className="h-2 w-4/5 bg-slate-100 rounded-full" />
-                              <p className="text-[10px] text-slate-400 text-center mt-1">Desbloqueie para ver contato e bio completos</p>
+                            <div className="rounded-lg bg-slate-50 border border-dashed border-slate-200 p-3 text-center">
+                              <p className="text-[11px] text-slate-400">🔒 Desbloqueie para ver telefone, e-mail, cidade e bio</p>
                             </div>
                           )}
                         </div>

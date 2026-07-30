@@ -581,3 +581,41 @@
 - [x] Verificar cadastros reais em produção: Tambasa (Matheus), LC Brownies (Lucas), Maria Eduarda
 - [x] Confirmar fluxo Pix funcionando: QR Code gerado com sucesso via Mercado Pago API
 - [x] Confirmar 9.680 representantes carregando corretamente no dev server
+
+## Novas Funcionalidades — Plataforma Completa (30/07/2026)
+
+### E-mail Transacional (Resend)
+- [ ] Instalar Resend e configurar RESEND_API_KEY
+- [ ] Criar server/email.ts com helper sendEmail() e templates HTML profissionais
+- [ ] Template: boas-vindas para representante
+- [ ] Template: boas-vindas para empresa
+- [ ] Template: nova candidatura (para empresa)
+- [ ] Template: candidatura aceita/match (para representante)
+- [ ] Template: reset de senha com link seguro
+- [ ] Template: desbloqueio aprovado (para empresa)
+- [ ] Integrar envio no onboarding, candidatura, aceite e reset de senha
+
+### Paywall Inteligente
+- [ ] Limitar visualizações de contatos completos por plano (Free: 3, Starter: 20, Pro: ilimitado)
+- [ ] Exibir contador "X visualizações restantes" no painel da empresa
+- [ ] Bloquear busca avançada para Free após limite atingido com CTA de upgrade
+
+### Vagas Públicas com SEO
+- [ ] Criar páginas de vaga individuais (/vagas/[id]) com meta tags OpenGraph + JSON-LD
+- [ ] Gerar sitemap dinâmico de vagas abertas
+- [ ] Adicionar breadcrumbs e schema.org JobPosting
+
+### Métricas do Representante
+- [ ] Backend: procedure representatives.myStats (visualizações de perfil, desbloqueios, candidaturas, taxa de resposta)
+- [ ] Frontend RepDashboard: aba/seção "Minhas Métricas" com cards de KPIs e gráficos
+- [ ] Registrar visualizações de perfil quando empresa abre card do rep
+
+### Notificações WhatsApp (Gratuito)
+- [ ] Integrar Evolution API (self-hosted) ou Baileys para WhatsApp gratuito
+- [ ] Notificar representante no WhatsApp quando empresa desbloqueia seu contato
+- [ ] Notificar empresa no WhatsApp quando rep se candidata à vaga
+
+### Histórico de Contratos e Parcerias
+- [ ] Schema: tabela partnerships (companyId, repId, startDate, endDate, status, notes)
+- [ ] Backend: procedures para criar, listar e encerrar parcerias
+- [ ] Frontend: aba "Parcerias" no CompanyDashboard e RepDashboard
