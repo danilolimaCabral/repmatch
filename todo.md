@@ -528,9 +528,9 @@
 
 ## Autenticação Própria — Revisão e Admin
 
-- [ ] Verificar se o sistema de auth próprio (email/senha) está funcionando em produção
-- [ ] Criar usuário admin padrão (admin@repmatch.com.br)
-- [ ] Testar fluxo de login/cadastro/logout em produção
+- [x] Verificar se o sistema de auth próprio (email/senha) está funcionando em produção
+- [x] Criar usuário admin padrão (admin@repmatch.com.br)
+- [x] Testar fluxo de login/cadastro/logout em produção
 
 ## Carrinho de Desbloqueio (Pix + Admin)
 
@@ -570,3 +570,14 @@
 - [x] Barra de progresso visual durante countdown
 - [x] Corrigir filtro "pending_proof" → "pending_payment" no AdminDashboard
 - [x] Adicionar status "Cancelado" no badge do AdminDashboard
+
+## Auditoria Banco de Produção (Railway) — 30/07/2026
+
+- [x] Verificar tabelas existentes no banco de produção (Railway)
+- [x] Criar tabelas faltantes: unlock_requests, unlock_request_items, mp_payments
+- [x] Adicionar colunas CNPJA no banco de produção (email, nomeFantasia, cidade, estado, etc.)
+- [x] Adicionar coluna cnpjaRawJson no banco de desenvolvimento (TiDB) — estava como cnpjaRawData
+- [x] Criar usuário admin@repmatch.com.br no banco de produção (Railway)
+- [x] Verificar cadastros reais em produção: Tambasa (Matheus), LC Brownies (Lucas), Maria Eduarda
+- [x] Confirmar fluxo Pix funcionando: QR Code gerado com sucesso via Mercado Pago API
+- [x] Confirmar 9.680 representantes carregando corretamente no dev server
