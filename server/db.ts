@@ -1,5 +1,6 @@
 import { and, desc, eq, gte, or, sql, SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql2Promise from "mysql2/promise";
 import {
   Application,
   Company,
@@ -40,6 +41,15 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+// Raw mysql2/promise connection for complex UNION queries
+let _rawConn: mysql2Promise.Connection | null = null;
+async function getRawConn(): Promise<mysql2Promise.Connection> {
+  if (!_rawConn || (_rawConn as any).connection?.stream?.destroyed) {
+    _rawConn = await mysql2Promise.createConnection(process.env.DATABASE_URL!);
+  }
+  return _rawConn;
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -838,84 +848,210 @@ export async function listRepresentativesForCompany(
   const limit = filters?.limit ?? 20;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(representatives.isActive, true)];
-  if (filters?.region) conditions.push(eq(representatives.region, filters.region));
-  if (filters?.segment) conditions.push(eq(representatives.segment, filters.segment));
-  if (filters?.tier) conditions.push(eq(representatives.subscriptionTier, filters.tier as "free" | "bronze" | "prata" | "ouro"));
-  if (filters?.kycApproved) conditions.push(eq(representatives.kycStatus, 'approved'));
-  if (filters?.coreActive) conditions.push(eq(representatives.coreStatus, 'active'));
-  if (filters?.availability) conditions.push(eq(representatives.availability, filters.availability as "imediata" | "30dias" | "60dias" | "negociavel"));
+  // Map UF to region name for cnpj_representatives
+  const ufToRegion: Record<string, string> = {
+    SP: 'São Paulo - Capital', RJ: 'Rio de Janeiro', MG: 'Minas Gerais', RS: 'Rio Grande do Sul',
+    PR: 'Paraná', SC: 'Santa Catarina', BA: 'Bahia', GO: 'Goiás', PE: 'Pernambuco',
+    CE: 'Ceará', PA: 'Pará', MT: 'Mato Grosso', MS: 'Mato Grosso do Sul', ES: 'Espírito Santo',
+    AM: 'Amazonas', RN: 'Rio Grande do Norte', PB: 'Paraíba', AL: 'Alagoas', PI: 'Piauí',
+    MA: 'Maranhão', SE: 'Sergipe', TO: 'Tocantins', RO: 'Rondônia', AC: 'Acre',
+    AP: 'Amapá', RR: 'Roraima', DF: 'Distrito Federal',
+  };
 
-  // Get total count
-  const countResult = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(representatives)
-    .where(and(...conditions));
-  const total = Number(countResult[0]?.count ?? 0);
+  // Build WHERE clauses for the UNION query
+  // For representatives table (manual)
+  const repWhereParts: string[] = ['r.isActive = 1'];
+  const repParams: any[] = [];
+  if (filters?.region) { repWhereParts.push('r.region = ?'); repParams.push(filters.region); }
+  if (filters?.segment) { repWhereParts.push('r.segment = ?'); repParams.push(filters.segment); }
+  if (filters?.tier) { repWhereParts.push('r.subscriptionTier = ?'); repParams.push(filters.tier); }
+  if (filters?.kycApproved) repWhereParts.push("r.kycStatus = 'approved'");
+  if (filters?.coreActive) repWhereParts.push("r.coreStatus = 'active'");
+  if (filters?.availability) { repWhereParts.push('r.availability = ?'); repParams.push(filters.availability); }
 
-  // Sort expressions
-  const tierOrder = sql<number>`CASE ${representatives.subscriptionTier}
-    WHEN 'ouro' THEN 1
-    WHEN 'prata' THEN 2
-    WHEN 'bronze' THEN 3
-    ELSE 4
-  END`;
-  // Availability order: imediata=1, 30dias=2, 60dias=3, negociavel=4, null=5
-  const availabilityOrder = sql<number>`CASE ${representatives.availability}
-    WHEN 'imediata' THEN 1
-    WHEN '30dias' THEN 2
-    WHEN '60dias' THEN 3
-    WHEN 'negociavel' THEN 4
-    ELSE 5
-  END`;
-
-  const sortBy = filters?.sortBy ?? "tier";
-  let orderClauses;
-  if (sortBy === "availability") {
-    orderClauses = [availabilityOrder, tierOrder, desc(representatives.averageRating)];
-  } else if (sortBy === "rating") {
-    orderClauses = [desc(representatives.averageRating), tierOrder, availabilityOrder];
-  } else if (sortBy === "recent") {
-    orderClauses = [desc(representatives.createdAt), tierOrder];
-  } else {
-    // default: tier
-    orderClauses = [tierOrder, desc(representatives.averageRating), desc(representatives.highlightedAt)];
+  // For cnpj_representatives table (imported base) — only show if no tier/kyc/core/availability filter
+  // since those fields don't exist in cnpj_representatives
+  const includeCnpj = !filters?.tier && !filters?.kycApproved && !filters?.coreActive && !filters?.availability;
+  const cnpjWhereParts: string[] = [];
+  const cnpjParams: any[] = [];
+  if (filters?.region) {
+    // Find UFs that map to this region
+    const ufs = Object.entries(ufToRegion).filter(([, v]) => v === filters.region).map(([k]) => k);
+    if (ufs.length > 0) {
+      cnpjWhereParts.push(`c.uf IN (${ufs.map(() => '?').join(',')})`);
+      cnpjParams.push(...ufs);
+    } else {
+      // No matching UF for this region — skip cnpj table
+      cnpjWhereParts.push('1=0');
+    }
+  }
+  if (filters?.segment) {
+    // Map segment to CNAE keywords
+    const segmentToCnae: Record<string, string> = {
+      'Alimentos e Bebidas': '%aliment%',
+      'Farmacêutico': '%farmac%',
+      'Cosméticos e Higiene': '%cosmet%',
+      'Tecnologia': '%tecnolog%',
+      'Construção Civil': '%constru%',
+      'Têxtil e Moda': '%textil%',
+      'Automotivo': '%autom%',
+      'Agronegócio': '%agro%',
+      'Saúde e Médico': '%saude%',
+      'Eletroeletrônicos': '%eletro%',
+      'Móveis e Decoração': '%moveis%',
+    };
+    const cnaePattern = segmentToCnae[filters.segment];
+    if (cnaePattern) {
+      cnpjWhereParts.push('c.cnae_descricao LIKE ?');
+      cnpjParams.push(cnaePattern);
+    } else {
+      cnpjWhereParts.push('1=0'); // Unknown segment — skip cnpj
+    }
   }
 
-  // Get reps with user email join
-  const reps = await db
-    .select({
-      id: representatives.id,
-      fullName: representatives.fullName,
-      phone: representatives.phone,
-      region: representatives.region,
-      segment: representatives.segment,
-      experienceYears: representatives.experienceYears,
-      bio: representatives.bio,
-      subscriptionTier: representatives.subscriptionTier,
-      averageRating: representatives.averageRating,
-      responseRate: representatives.responseRate,
-      availability: representatives.availability,
-      workModel: representatives.workModel,
-      portfolioSize: representatives.portfolioSize,
-      linkedinUrl: representatives.linkedinUrl,
-      avatarUrl: representatives.avatarUrl,
-      cities: representatives.cities,
-      additionalSegments: representatives.additionalSegments,
-      highlightedAt: representatives.highlightedAt,
-      createdAt: representatives.createdAt,
-      email: representatives.email,
-      cidade: representatives.cidade,
-      estado: representatives.estado,
-      situacaoCadastral: representatives.situacaoCadastral,
-      cnpj: representatives.cnpj,
-      nomeFantasia: representatives.nomeFantasia,
-    })
-    .from(representatives)
-    .where(and(...conditions))
-    .orderBy(...orderClauses)
-    .limit(limit)
-    .offset(offset);
+  const repWhere = repWhereParts.join(' AND ');
+  const cnpjWhere = cnpjWhereParts.length > 0 ? cnpjWhereParts.join(' AND ') : '1=1';
+
+  // Sort order
+  const sortBy = filters?.sortBy ?? 'tier';
+  let orderSql = 'ORDER BY source_priority ASC, tier_order ASC, avg_rating DESC';
+  if (sortBy === 'availability') orderSql = 'ORDER BY avail_order ASC, source_priority ASC, tier_order ASC';
+  else if (sortBy === 'rating') orderSql = 'ORDER BY avg_rating DESC, source_priority ASC, tier_order ASC';
+  else if (sortBy === 'recent') orderSql = 'ORDER BY created_at DESC, source_priority ASC';
+
+  // Build UNION query
+  const repQuery = `
+    SELECT
+      r.id AS id,
+      'rep' AS source,
+      0 AS source_priority,
+      r.fullName AS fullName,
+      r.phone AS phone,
+      r.region AS region,
+      r.segment AS segment,
+      r.experienceYears AS experienceYears,
+      r.bio AS bio,
+      r.subscriptionTier AS subscriptionTier,
+      CAST(r.averageRating AS DECIMAL(3,2)) AS avg_rating,
+      CAST(r.responseRate AS DECIMAL(5,2)) AS responseRate,
+      r.availability AS availability,
+      r.workModel AS workModel,
+      r.portfolioSize AS portfolioSize,
+      r.linkedinUrl AS linkedinUrl,
+      r.avatarUrl AS avatarUrl,
+      r.cities AS cities,
+      r.additionalSegments AS additionalSegments,
+      r.highlightedAt AS highlightedAt,
+      r.createdAt AS created_at,
+      r.email AS email,
+      r.cidade AS cidade,
+      r.estado AS estado,
+      r.situacaoCadastral AS situacaoCadastral,
+      r.cnpj AS cnpj,
+      r.nomeFantasia AS nomeFantasia,
+      r.kycStatus AS kycStatus,
+      r.coreStatus AS coreStatus,
+      CASE r.subscriptionTier WHEN 'ouro' THEN 1 WHEN 'prata' THEN 2 WHEN 'bronze' THEN 3 ELSE 4 END AS tier_order,
+      CASE r.availability WHEN 'imediata' THEN 1 WHEN '30dias' THEN 2 WHEN '60dias' THEN 3 WHEN 'negociavel' THEN 4 ELSE 5 END AS avail_order
+    FROM representatives r
+    WHERE ${repWhere}
+  `;
+
+  const cnpjQueryBase = `
+    SELECT
+      (c.id + 100000) AS id,
+      'cnpj' AS source,
+      1 AS source_priority,
+      COALESCE(c.nome_fantasia, c.razao_social) AS fullName,
+      c.telefone AS phone,
+      CASE c.uf
+        WHEN 'SP' THEN 'São Paulo - Capital'
+        WHEN 'RJ' THEN 'Rio de Janeiro'
+        WHEN 'MG' THEN 'Minas Gerais'
+        WHEN 'RS' THEN 'Rio Grande do Sul'
+        WHEN 'PR' THEN 'Paraná'
+        WHEN 'SC' THEN 'Santa Catarina'
+        WHEN 'BA' THEN 'Bahia'
+        WHEN 'GO' THEN 'Goiás'
+        WHEN 'PE' THEN 'Pernambuco'
+        WHEN 'CE' THEN 'Ceará'
+        WHEN 'PA' THEN 'Pará'
+        WHEN 'MT' THEN 'Mato Grosso'
+        WHEN 'MS' THEN 'Mato Grosso do Sul'
+        WHEN 'ES' THEN 'Espírito Santo'
+        WHEN 'AM' THEN 'Amazonas'
+        WHEN 'RN' THEN 'Rio Grande do Norte'
+        WHEN 'PB' THEN 'Paraíba'
+        WHEN 'AL' THEN 'Alagoas'
+        WHEN 'PI' THEN 'Piauí'
+        WHEN 'MA' THEN 'Maranhão'
+        WHEN 'SE' THEN 'Sergipe'
+        WHEN 'TO' THEN 'Tocantins'
+        WHEN 'RO' THEN 'Rondônia'
+        WHEN 'AC' THEN 'Acre'
+        WHEN 'AP' THEN 'Amapá'
+        WHEN 'RR' THEN 'Roraima'
+        WHEN 'DF' THEN 'Distrito Federal'
+        ELSE c.uf
+      END AS region,
+      CASE
+        WHEN c.cnae_descricao LIKE '%aliment%' OR c.cnae_descricao LIKE '%bebid%' THEN 'Alimentos e Bebidas'
+        WHEN c.cnae_descricao LIKE '%farmac%' OR c.cnae_descricao LIKE '%medicam%' THEN 'Farmacêutico'
+        WHEN c.cnae_descricao LIKE '%cosmet%' OR c.cnae_descricao LIKE '%higiene%' OR c.cnae_descricao LIKE '%perfum%' THEN 'Cosméticos e Higiene'
+        WHEN c.cnae_descricao LIKE '%tecnolog%' OR c.cnae_descricao LIKE '%software%' OR c.cnae_descricao LIKE '%inform%' THEN 'Tecnologia'
+        WHEN c.cnae_descricao LIKE '%constru%' OR c.cnae_descricao LIKE '%material%' THEN 'Construção Civil'
+        WHEN c.cnae_descricao LIKE '%textil%' OR c.cnae_descricao LIKE '%vestu%' OR c.cnae_descricao LIKE '%confec%' THEN 'Têxtil e Moda'
+        WHEN c.cnae_descricao LIKE '%autom%' OR c.cnae_descricao LIKE '%veicul%' OR c.cnae_descricao LIKE '%auto%' THEN 'Automotivo'
+        WHEN c.cnae_descricao LIKE '%agro%' OR c.cnae_descricao LIKE '%agricul%' OR c.cnae_descricao LIKE '%pecuar%' THEN 'Agronegócio'
+        WHEN c.cnae_descricao LIKE '%saude%' OR c.cnae_descricao LIKE '%medic%' OR c.cnae_descricao LIKE '%hospital%' THEN 'Saúde e Médico'
+        WHEN c.cnae_descricao LIKE '%eletro%' OR c.cnae_descricao LIKE '%eletr%' THEN 'Eletroeletrônicos'
+        WHEN c.cnae_descricao LIKE '%movel%' OR c.cnae_descricao LIKE '%decor%' THEN 'Móveis e Decoração'
+        ELSE 'Outros'
+      END AS segment,
+      5 AS experienceYears,
+      NULL AS bio,
+      'free' AS subscriptionTier,
+      0.00 AS avg_rating,
+      0.00 AS responseRate,
+      'negociavel' AS availability,
+      'multiplas' AS workModel,
+      NULL AS portfolioSize,
+      NULL AS linkedinUrl,
+      NULL AS avatarUrl,
+      NULL AS cities,
+      NULL AS additionalSegments,
+      NULL AS highlightedAt,
+      c.created_at AS created_at,
+      c.email AS email,
+      c.municipio AS cidade,
+      c.uf AS estado,
+      'Ativa' AS situacaoCadastral,
+      c.cnpj AS cnpj,
+      COALESCE(c.nome_fantasia, c.razao_social) AS nomeFantasia,
+      'not_started' AS kycStatus,
+      'not_checked' AS coreStatus,
+      4 AS tier_order,
+      5 AS avail_order
+    FROM cnpj_representatives c
+    WHERE ${cnpjWhere}
+  `;
+
+  const allParams = [...repParams, ...(includeCnpj ? cnpjParams : [])];
+  const unionQuery = includeCnpj
+    ? `(${repQuery}) UNION ALL (${cnpjQueryBase})`
+    : repQuery;
+
+  // Use raw mysql2/promise connection for complex UNION queries
+  const conn = await getRawConn();
+
+  // Count total
+  const countSql = `SELECT COUNT(*) as total FROM (${unionQuery}) AS combined`;
+  const [countRows] = await conn.execute(countSql, allParams) as any;
+  const total = Number((countRows as any[])?.[0]?.total ?? 0);
+
+  // Fetch page
+  const pageSql = `SELECT * FROM (${unionQuery}) AS combined ${orderSql} LIMIT ? OFFSET ?`;
+  const [rows] = await conn.execute(pageSql, [...allParams, Number(limit), Number(offset)]) as any;
 
   // Get unlocked contact IDs for this company
   const unlocked = await db
@@ -924,9 +1060,38 @@ export async function listRepresentativesForCompany(
     .where(eq(unlockedContacts.companyId, companyId));
   const unlockedIds = unlocked.map((u) => u.representativeId);
 
-  // Apply masking: non-unlocked contacts get masked data (admin flag passed via filters)
+  // Normalize rows to expected shape
   const isAdmin = (filters as any)?._isAdmin === true;
-  const maskedReps = reps.map((rep) => {
+  const maskedReps = (rows as any[]).map((row: any) => {
+    const rep = {
+      id: Number(row.id),
+      fullName: row.fullName ?? '',
+      phone: row.phone ?? null,
+      region: row.region ?? null,
+      segment: row.segment ?? 'Outros',
+      experienceYears: Number(row.experienceYears ?? 0),
+      bio: row.bio ?? null,
+      subscriptionTier: row.subscriptionTier ?? 'free',
+      averageRating: String(row.avg_rating ?? '0.00'),
+      responseRate: String(row.responseRate ?? '0.00'),
+      availability: row.availability ?? 'negociavel',
+      workModel: row.workModel ?? 'multiplas',
+      portfolioSize: row.portfolioSize ?? null,
+      linkedinUrl: row.linkedinUrl ?? null,
+      avatarUrl: row.avatarUrl ?? null,
+      cities: row.cities ?? null,
+      additionalSegments: row.additionalSegments ?? null,
+      highlightedAt: row.highlightedAt ?? null,
+      createdAt: row.created_at ?? null,
+      email: row.email ?? null,
+      cidade: row.cidade ?? null,
+      estado: row.estado ?? null,
+      situacaoCadastral: row.situacaoCadastral ?? null,
+      cnpj: row.cnpj ?? null,
+      nomeFantasia: row.nomeFantasia ?? null,
+      kycStatus: row.kycStatus ?? 'not_started',
+      coreStatus: row.coreStatus ?? 'not_checked',
+    };
     const isUnlocked = unlockedIds.includes(rep.id);
     return maskRepresentativeData(rep, isUnlocked, isAdmin);
   });
