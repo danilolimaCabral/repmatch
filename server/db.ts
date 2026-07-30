@@ -801,8 +801,8 @@ export function maskRepresentativeData<T extends {
 }>(rep: T, isUnlocked: boolean, isAdmin: boolean): T {
   if (isAdmin || isUnlocked) return rep; // Full data after unlock/admin
 
-  // Before unlock: only segment, experience and CORE status visible
-  // Hide all contact details, bio, city, CNPJ
+  // Before unlock: only name, segment, experience years, availability, CORE status visible
+  // Hide region, city, contact details, bio, CNPJ
   return {
     ...rep,
     phone: null,

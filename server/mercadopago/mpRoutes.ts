@@ -1,8 +1,8 @@
 import { Router, Request, Response } from "express";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
-import { representatives, companies, users } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { representatives, companies, users, unlockRequests, unlockedContacts } from "../../drizzle/schema";
+import { eq, and } from "drizzle-orm";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -32,6 +32,62 @@ export const MP_PLANS = {
 } as const;
 
 export type MPPlanKey = keyof typeof MP_PLANS;
+
+// ─── Criar preferência para desbloqueio em lote (Checkout Pro) ───────────────
+mpRouter.post("/unlock-preference", async (req: Request, res: Response) => {
+  try {
+    const { requestId, repIds, userId, userEmail, userName } = req.body as {
+      requestId: number;
+      repIds: number[];
+      userId: number;
+      userEmail: string;
+      userName: string;
+    };
+
+    if (!requestId || !repIds?.length) return res.status(400).json({ error: "Dados inválidos" });
+
+    const PRICE_PER_REP = 29;
+    const totalAmount = repIds.length * PRICE_PER_REP;
+    const origin = req.headers.origin ?? "http://localhost:3000";
+
+    const preference = new Preference(mp);
+    const pref = await preference.create({
+      body: {
+        items: [{
+          id: `UNLOCK_BATCH_${requestId}`,
+          title: `Desbloqueio de ${repIds.length} representante${repIds.length > 1 ? "s" : ""} — RepMatch`,
+          quantity: 1,
+          unit_price: totalAmount,
+          currency_id: "BRL",
+        }],
+        payer: { email: userEmail, name: userName },
+        metadata: {
+          type: "unlock_batch",
+          request_id: requestId,
+          user_id: userId,
+          rep_ids: repIds,
+        },
+        back_urls: {
+          success: `${origin}/dashboard/company?unlock=success&requestId=${requestId}`,
+          failure: `${origin}/dashboard/company?unlock=failed`,
+          pending: `${origin}/dashboard/company?unlock=pending`,
+        },
+        auto_return: "approved",
+        payment_methods: { installments: 1 },
+        statement_descriptor: "REPMATCH",
+      },
+    });
+
+    return res.json({
+      preferenceId: pref.id,
+      initPoint: pref.init_point,
+      sandboxInitPoint: pref.sandbox_init_point,
+    });
+  } catch (e: any) {
+    console.error("[MP] unlock-preference error:", e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
 
 // ─── Criar preferência de pagamento (Checkout Pro — cartão + Pix) ─────────────
 mpRouter.post("/preference", async (req: Request, res: Response) => {
@@ -185,25 +241,61 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
 
       if (result.status === "approved") {
         const meta = result.metadata as Record<string, unknown>;
-        const userId = meta?.user_id as number;
-        const planKey = meta?.plan_key as MPPlanKey;
-        const annual = meta?.annual as boolean;
+        const db = await getDb();
+        if (!db) return res.json({ received: true });
 
-        if (userId && planKey) {
-          const plan = MP_PLANS[planKey];
-          const db = await getDb();
+        // ── Desbloqueio em lote ──────────────────────────────────────────────
+        if (meta?.type === "unlock_batch") {
+          const requestId = Number(meta.request_id);
+          const repIds = meta.rep_ids as number[];
 
-          if (plan.userType === "rep") {
-            await db!.update(representatives)
-              .set({ subscriptionTier: plan.tier as any })
-              .where(eq(representatives.userId, userId));
-          } else if (plan.userType === "company") {
-            await db!.update(companies)
-              .set({ subscriptionTier: plan.tier as any })
-              .where(eq(companies.userId, userId));
+          if (requestId && repIds?.length) {
+            const [req] = await db.select({ companyId: unlockRequests.companyId })
+              .from(unlockRequests).where(eq(unlockRequests.id, requestId)).limit(1);
+
+            if (req) {
+              for (const repId of repIds) {
+                const [existing] = await db.select({ id: unlockedContacts.id })
+                  .from(unlockedContacts)
+                  .where(and(
+                    eq(unlockedContacts.companyId, req.companyId),
+                    eq(unlockedContacts.representativeId, repId),
+                  )).limit(1);
+                if (!existing) {
+                  await db.insert(unlockedContacts).values({
+                    companyId: req.companyId,
+                    representativeId: repId,
+                    pricePaid: "29",
+                  });
+                }
+              }
+              await db.update(unlockRequests)
+                .set({ status: "approved", reviewedAt: new Date() })
+                .where(eq(unlockRequests.id, requestId));
+
+              console.log(`[MP Webhook] Auto-unlocked ${repIds.length} reps for company ${req.companyId} (request #${requestId})`);
+            }
           }
+        } else {
+          // ── Planos de assinatura ─────────────────────────────────────────────
+          const userId = meta?.user_id as number;
+          const planKey = meta?.plan_key as MPPlanKey;
 
-          console.log(`[MP Webhook] Activated plan ${planKey} for user ${userId}`);
+          if (userId && planKey) {
+            const plan = MP_PLANS[planKey];
+
+            if (plan.userType === "rep") {
+              await db.update(representatives)
+                .set({ subscriptionTier: plan.tier as any })
+                .where(eq(representatives.userId, userId));
+            } else if (plan.userType === "company") {
+              await db.update(companies)
+                .set({ subscriptionTier: plan.tier as any })
+                .where(eq(companies.userId, userId));
+            }
+
+            console.log(`[MP Webhook] Activated plan ${planKey} for user ${userId}`);
+          }
         }
       }
     }
