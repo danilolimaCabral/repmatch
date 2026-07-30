@@ -1422,9 +1422,15 @@ export default function CompanyDashboard() {
               </div>
             ) : (
               <>
+                {(searchData as any)?.isFallback && searchSegment && (
+                  <div className="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
+                    <span className="text-base">⚠️</span>
+                    <span>Não encontramos representantes em <strong>{searchSegment}</strong>. Exibindo representantes de outros segmentos que podem te atender.</span>
+                  </div>
+                )}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {(searchData?.reps ?? []).map((rep) => {
-                    const isUnlocked = searchData?.unlockedIds.includes(rep.id);
+                    const isUnlocked = searchData?.unlockedIds.includes(rep.id as never);
                     const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : rep.subscriptionTier === "bronze" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200";
                     const tierLabel = rep.subscriptionTier === "ouro" ? "Ouro" : rep.subscriptionTier === "prata" ? "Prata" : rep.subscriptionTier === "bronze" ? "Bronze" : "Pendente";
                     // Before unlock: name, segment, experience, CORE status only

@@ -1047,11 +1047,40 @@ export async function listRepresentativesForCompany(
   // Count total
   const countSql = `SELECT COUNT(*) as total FROM (${unionQuery}) AS combined`;
   const [countRows] = await conn.execute(countSql, allParams) as any;
-  const total = Number((countRows as any[])?.[0]?.total ?? 0);
+  let total = Number((countRows as any[])?.[0]?.total ?? 0);
+  let isFallback = false;
+
+  // Fallback: if segment filter returns 0 results, show all segments with a fallback flag
+  let finalUnionQuery = unionQuery;
+  let finalAllParams = allParams;
+  if (total === 0 && filters?.segment) {
+    isFallback = true;
+    // Rebuild WHERE without segment filter
+    const repWhereNoSeg: string[] = ['r.isActive = 1'];
+    const repParamsNoSeg: any[] = [];
+    if (filters?.region) { repWhereNoSeg.push('r.region = ?'); repParamsNoSeg.push(filters.region); }
+    if (filters?.tier) { repWhereNoSeg.push('r.subscriptionTier = ?'); repParamsNoSeg.push(filters.tier); }
+    if (filters?.kycApproved) repWhereNoSeg.push("r.kycStatus = 'approved'");
+    if (filters?.coreActive) repWhereNoSeg.push("r.coreStatus = 'active'");
+    if (filters?.availability) { repWhereNoSeg.push('r.availability = ?'); repParamsNoSeg.push(filters.availability); }
+    const repQueryNoSeg = repQuery.replace(`WHERE ${repWhere}`, `WHERE ${repWhereNoSeg.join(' AND ')}`);
+    // For cnpj table fallback: keep region filter but drop segment
+    const cnpjWhereNoSeg = cnpjWhereParts.filter(p => !p.includes('cnae_descricao')).join(' AND ') || '1=1';
+    const cnpjParamsNoSeg = filters?.region
+      ? cnpjParams.filter((_: any, i: number) => i < Object.entries(ufToRegion).filter(([,v]) => v === filters.region).length)
+      : [];
+    const cnpjQueryNoSeg = cnpjQueryBase.replace(`WHERE ${cnpjWhere}`, `WHERE ${cnpjWhereNoSeg}`);
+    finalUnionQuery = includeCnpj
+      ? `(${repQueryNoSeg}) UNION ALL (${cnpjQueryNoSeg})`
+      : repQueryNoSeg;
+    finalAllParams = includeCnpj ? [...repParamsNoSeg, ...cnpjParamsNoSeg] : repParamsNoSeg;
+    const [countFallback] = await conn.execute(`SELECT COUNT(*) as total FROM (${finalUnionQuery}) AS combined`, finalAllParams) as any;
+    total = Number((countFallback as any[])?.[0]?.total ?? 0);
+  }
 
   // Fetch page
-  const pageSql = `SELECT * FROM (${unionQuery}) AS combined ${orderSql} LIMIT ? OFFSET ?`;
-  const [rows] = await conn.execute(pageSql, [...allParams, Number(limit), Number(offset)]) as any;
+  const pageSql = `SELECT * FROM (${finalUnionQuery}) AS combined ${orderSql} LIMIT ? OFFSET ?`;
+  const [rows] = await conn.execute(pageSql, [...finalAllParams, Number(limit), Number(offset)]) as any;
 
   // Get unlocked contact IDs for this company
   const unlocked = await db
@@ -1096,7 +1125,7 @@ export async function listRepresentativesForCompany(
     return maskRepresentativeData(rep, isUnlocked, isAdmin);
   });
 
-  return { reps: maskedReps, total, unlockedIds };
+  return { reps: maskedReps, total, unlockedIds, isFallback };
 }
 
 // ─── Direct Chat (Company ↔ Representative) ───────────────────────────────────
