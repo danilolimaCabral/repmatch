@@ -1375,15 +1375,6 @@ export default function CompanyDashboard() {
                   {SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={searchTier ?? "all"} onValueChange={v => { setSearchTier(v === "all" ? undefined : v as "bronze" | "prata" | "ouro"); setSearchPage(1); }}>
-                <SelectTrigger className="w-44 border-slate-200 bg-white"><SelectValue placeholder="Todos os planos" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os planos</SelectItem>
-                  <SelectItem value="bronze">Bronze</SelectItem>
-                  <SelectItem value="prata">Prata</SelectItem>
-                  <SelectItem value="ouro">Ouro</SelectItem>
-                </SelectContent>
-              </Select>
               <Select value={searchAvailability ?? "all"} onValueChange={v => { setSearchAvailability(v === "all" ? undefined : v); setSearchPage(1); }}>
                 <SelectTrigger className="w-52 border-slate-200 bg-white"><SelectValue placeholder="Qualquer disponibilidade" /></SelectTrigger>
                 <SelectContent>
@@ -1423,17 +1414,7 @@ export default function CompanyDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              {!searchLoading && searchData && (
-                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                  <span><span className="font-bold text-slate-800">{searchData.total}</span> representantes encontrados</span>
-                  {searchData.unlockedIds.length > 0 && (
-                    <span className="text-emerald-600 font-medium">· {searchData.unlockedIds.length} contato{searchData.unlockedIds.length > 1 ? "s" : ""} desbloqueado{searchData.unlockedIds.length > 1 ? "s" : ""}</span>
-                  )}
-                  {availableNowData && availableNowData.count > 0 && (
-                    <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">🟢 {availableNowData.count} disponíveis agora</span>
-                  )}
-                </div>
-              )}
+
             </div>
             {searchLoading ? (
               <div className="flex items-center gap-2 text-slate-400 py-12 justify-center">
