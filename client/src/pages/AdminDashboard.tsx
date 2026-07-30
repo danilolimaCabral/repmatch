@@ -866,18 +866,7 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
-                              {u.role !== "admin" && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-xs border-primary/30 text-primary hover:bg-primary/10"
-                                  onClick={() => setConfirmAction({ type: "promote", userId: u.id, userName: u.name ?? `#${u.id}` })}
-                                  disabled={promoteMutation.isPending}
-                                >
-                                  <ShieldCheck className="w-3 h-3 mr-1" />
-                                  Admin
-                                </Button>
-                              )}
+                              {/* Promoção a admin desabilitada — apenas via banco de dados */}
                               {u.id !== user?.id && (
                                 <Button
                                   size="sm"
