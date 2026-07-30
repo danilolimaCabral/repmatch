@@ -296,7 +296,7 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
               }
 
               await db.update(unlockRequests)
-                .set({ status: "approved", reviewedAt: new Date() })
+                .set({ status: "approved", reviewedAt: new Date(), inactiveCount })
                 .where(eq(unlockRequests.id, requestId));
 
               console.log(`[MP Webhook] Unlocked ${unlockedCount} reps (${inactiveCount} inactive/skipped) for company ${unlockReq.companyId} (request #${requestId})`);

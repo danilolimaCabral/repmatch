@@ -385,6 +385,8 @@ export const unlockRequests = mysqlTable("unlock_requests", {
   adminNotes: text("adminNotes"),
   reviewedBy: int("reviewedBy"),
   reviewedAt: timestamp("reviewedAt"),
+  // Quantidade de CNPJs inativos que foram pulados na validação CNPJA
+  inactiveCount: int("inactiveCount").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

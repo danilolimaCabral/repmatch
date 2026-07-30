@@ -457,7 +457,38 @@ export default function CompanyDashboard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get("payment");
-    if (paymentStatus === "success") {
+    const unlockStatus = params.get("unlock");
+
+    if (unlockStatus === "success") {
+      // Retorno do Checkout Pro de desbloqueio em lote
+      const requestIdParam = params.get("requestId");
+      setActiveTab("search");
+      utils.representatives.listForCompany.invalidate();
+      utils.unlockRequests.myRequests.invalidate();
+      if (requestIdParam) {
+        const reqId = Number(requestIdParam);
+        setTimeout(async () => {
+          try {
+            const reqs = await utils.unlockRequests.myRequests.fetch();
+            const req = (reqs as any[])?.find((r: any) => r.id === reqId);
+            if (req && req.inactiveCount && req.inactiveCount > 0) {
+              const n = req.inactiveCount;
+              toast.warning(
+                `${n} representante${n > 1 ? "s" : ""} não ${n > 1 ? "foram desbloqueados" : "foi desbloqueado"} pois o CNPJ está inativo na Receita Federal. Os demais foram liberados normalmente.`,
+                { duration: 8000 }
+              );
+            } else {
+              toast.success("Pagamento confirmado! Contatos desbloqueados com sucesso.");
+            }
+          } catch {
+            toast.success("Pagamento confirmado! Contatos desbloqueados com sucesso.");
+          }
+        }, 2000);
+      } else {
+        toast.success("Pagamento confirmado! Contatos desbloqueados com sucesso.");
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (paymentStatus === "success") {
       const repId = params.get("rep_id");
       const jobId = params.get("job_id");
       if (repId) {
@@ -472,7 +503,7 @@ export default function CompanyDashboard() {
         utils.companies.myProfile.invalidate();
       }
       window.history.replaceState({}, "", window.location.pathname);
-    } else if (paymentStatus === "cancelled") {
+    } else if (paymentStatus === "cancelled" || unlockStatus === "failed") {
       toast.info("Pagamento cancelado.");
       window.history.replaceState({}, "", window.location.pathname);
     }

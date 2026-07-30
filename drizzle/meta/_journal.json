@@ -134,6 +134,13 @@
       "when": 1779052638675,
       "tag": "0018_cultured_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1785448751755,
+      "tag": "0019_regular_yellow_claw",
+      "breakpoints": true
     }
   ]
 }
