@@ -1,8 +1,9 @@
 import { Router, Request, Response } from "express";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
-import { representatives, companies, users, unlockRequests, unlockedContacts } from "../../drizzle/schema";
+import { representatives, companies, users, unlockRequests, unlockedContacts, cnpjRepresentatives } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
+import { consultarCnpj, isRepresentanteComercial } from "../cnpja";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -250,30 +251,55 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
           const repIds = meta.rep_ids as number[];
 
           if (requestId && repIds?.length) {
-            const [req] = await db.select({ companyId: unlockRequests.companyId })
+            const [unlockReq] = await db.select({ companyId: unlockRequests.companyId })
               .from(unlockRequests).where(eq(unlockRequests.id, requestId)).limit(1);
 
-            if (req) {
+            if (unlockReq) {
+              let unlockedCount = 0;
+              let inactiveCount = 0;
+
               for (const repId of repIds) {
-                const [existing] = await db.select({ id: unlockedContacts.id })
-                  .from(unlockedContacts)
-                  .where(and(
-                    eq(unlockedContacts.companyId, req.companyId),
-                    eq(unlockedContacts.representativeId, repId),
-                  )).limit(1);
-                if (!existing) {
-                  await db.insert(unlockedContacts).values({
-                    companyId: req.companyId,
-                    representativeId: repId,
-                    pricePaid: "29",
-                  });
+                // Validate CNPJ status via CNPJA API for cnpj_representatives
+                // (negative IDs are from cnpj_representatives table)
+                let cnpjAtivo = true;
+                if (repId < 0) {
+                  const cnpjRep = await db.select({ cnpj: cnpjRepresentatives.cnpj })
+                    .from(cnpjRepresentatives)
+                    .where(eq(cnpjRepresentatives.id, Math.abs(repId)))
+                    .limit(1);
+                  if (cnpjRep[0]?.cnpj) {
+                    const status = await consultarCnpj(cnpjRep[0].cnpj);
+                    if (status && !status.isAtivo) {
+                      console.warn(`[MP Webhook] CNPJ ${cnpjRep[0].cnpj} inativo (${status.situacao}), skipping unlock`);
+                      cnpjAtivo = false;
+                      inactiveCount++;
+                    }
+                  }
+                }
+
+                if (cnpjAtivo) {
+                  const [existing] = await db.select({ id: unlockedContacts.id })
+                    .from(unlockedContacts)
+                    .where(and(
+                      eq(unlockedContacts.companyId, unlockReq.companyId),
+                      eq(unlockedContacts.representativeId, repId),
+                    )).limit(1);
+                  if (!existing) {
+                    await db.insert(unlockedContacts).values({
+                      companyId: unlockReq.companyId,
+                      representativeId: repId,
+                      pricePaid: "29",
+                    });
+                    unlockedCount++;
+                  }
                 }
               }
+
               await db.update(unlockRequests)
                 .set({ status: "approved", reviewedAt: new Date() })
                 .where(eq(unlockRequests.id, requestId));
 
-              console.log(`[MP Webhook] Auto-unlocked ${repIds.length} reps for company ${req.companyId} (request #${requestId})`);
+              console.log(`[MP Webhook] Unlocked ${unlockedCount} reps (${inactiveCount} inactive/skipped) for company ${unlockReq.companyId} (request #${requestId})`);
             }
           }
         } else {
