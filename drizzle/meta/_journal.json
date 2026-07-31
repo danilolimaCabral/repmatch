@@ -141,6 +141,13 @@
       "when": 1785448751755,
       "tag": "0019_regular_yellow_claw",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1785500452286,
+      "tag": "0020_silky_payback",
+      "breakpoints": true
     }
   ]
 }

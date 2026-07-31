@@ -749,6 +749,50 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
 
         return { success: true, alreadyUnlocked: false };
       }),
+
+    // Promoção: 1 contato grátis por empresa
+    freeUnlock: protectedProcedure
+      .input(z.object({ representativeId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const company = await getCompanyByUserId(ctx.user.id);
+        if (!company) throw new TRPCError({ code: "NOT_FOUND" });
+
+        // Verificar se já usou o free unlock
+        if (company.freeUnlockUsed) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Você já usou seu desbloqueio gratuito. Desbloqueie mais contatos por R$29 cada." });
+        }
+
+        // Verificar se já está desbloqueado
+        const alreadyUnlocked = await isContactUnlocked(company.id, input.representativeId);
+        if (alreadyUnlocked) return { success: true, alreadyUnlocked: true };
+
+        // Desbloquear gratuitamente
+        await unlockContact({ companyId: company.id, representativeId: input.representativeId, pricePaid: "0.00" });
+
+        // Marcar que a promoção foi usada
+        const db = await getDb();
+        if (db) {
+          await db.update(companies).set({ freeUnlockUsed: true }).where(eq(companies.id, company.id));
+        }
+
+        // Notificar owner
+        try {
+          const rep = db ? (await db.select({ fullName: representatives.fullName }).from(representatives).where(eq(representatives.id, input.representativeId)).limit(1))[0] : null;
+          await notifyOwner({
+            title: "🎁 Desbloqueio Gratuito Usado",
+            content: `${company.companyName} usou o desbloqueio gratuito para ver o contato de ${rep?.fullName ?? "representante #" + input.representativeId}`,
+          });
+        } catch (e) { /* notificação não crítica */ }
+
+        return { success: true, alreadyUnlocked: false, wasFree: true };
+      }),
+
+    // Verificar status da promoção para a empresa logada
+    freeUnlockStatus: protectedProcedure.query(async ({ ctx }) => {
+      const company = await getCompanyByUserId(ctx.user.id);
+      if (!company) return { available: false, used: false };
+      return { available: !company.freeUnlockUsed, used: company.freeUnlockUsed };
+    }),
   }),
 
   // ─── Admin ───────────────────────────────────────────────────────────────────

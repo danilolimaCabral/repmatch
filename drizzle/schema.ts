@@ -125,6 +125,7 @@ export const companies = mysqlTable("companies", {
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 100 }),
   cnpjValidated: boolean("cnpjValidated").default(false),
   cnpjStatus: varchar("cnpjStatus", { length: 50 }),
+  freeUnlockUsed: boolean("freeUnlockUsed").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (t) => ({

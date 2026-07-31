@@ -1,0 +1,1 @@
+ALTER TABLE `companies` ADD `freeUnlockUsed` boolean DEFAULT false NOT NULL;

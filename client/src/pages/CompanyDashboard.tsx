@@ -380,6 +380,23 @@ export default function CompanyDashboard() {
 
   const { data: profile, isLoading: profileLoading } = trpc.companies.myProfile.useQuery();
   const { data: myJobs, isLoading: jobsLoading } = trpc.jobs.myJobs.useQuery();
+
+  // ─── Promoção: 1 contato grátis ──────────────────────────────────────────────
+  const { data: freeUnlockStatus, refetch: refetchFreeUnlockStatus } = trpc.contacts.freeUnlockStatus.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const freeUnlockMutation = trpc.contacts.freeUnlock.useMutation({
+    onSuccess: (result: { success: boolean; alreadyUnlocked?: boolean; wasFree?: boolean }) => {
+      if (result.wasFree) {
+        toast.success("🎁 Contato desbloqueado gratuitamente! Aproveite.");
+      } else {
+        toast.success("Contato desbloqueado!");
+      }
+      refetchFreeUnlockStatus();
+      utils.representatives.listForCompany.invalidate();
+    },
+    onError: (e: { message: string }) => toast.error(e.message),
+  });
   const { data: jobApplications, isLoading: appsLoading } = trpc.candidaturas.byJob.useQuery(
     { jobId: selectedJobId! },
     { enabled: !!selectedJobId }
@@ -667,31 +684,17 @@ export default function CompanyDashboard() {
               <p className="text-slate-500 text-sm mt-1">Acompanhe o desempenho das suas vagas e candidaturas</p>
             </div>
 
-            {/* ─── Aviso de pagamento pendente ─── */}
-            {pendingUnlockRequests.length > 0 && (
-              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            {/* ─── Aviso de pagamento pendente (aprovação) ─── */}
+            {pendingUnlockRequests.some(r => r.status === "pending_approval") && (
+              <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <Clock className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-amber-800">
-                    {pendingUnlockRequests.some(r => r.status === "pending_approval")
-                      ? "⏳ Pagamento aguardando aprovação do administrador"
-                      : "📋 Comprovante de pagamento aguardando envio"}
+                  <p className="text-sm font-bold text-blue-800">⏳ Pagamento em análise</p>
+                  <p className="text-xs text-blue-700 mt-0.5">
+                    Seu pagamento está sendo processado. Os contatos serão liberados automaticamente em instantes.
                   </p>
-                  <p className="text-xs text-amber-700 mt-0.5">
-                    {pendingUnlockRequests.some(r => r.status === "pending_approval")
-                      ? `Você tem ${pendingUnlockRequests.filter(r => r.status === "pending_approval").length} pedido(s) de desbloqueio com comprovante enviado. O administrador irá revisar e liberar os contatos em até 24h.`
-                      : `Você tem ${pendingUnlockRequests.filter(r => r.status === "pending_payment").length} pedido(s) de desbloqueio aguardando envio do comprovante Pix.`}
-                  </p>
-                  {pendingUnlockRequests.some(r => r.status === "pending_payment") && (
-                    <button
-                      className="mt-2 text-xs font-semibold text-amber-700 underline hover:text-amber-900"
-                      onClick={() => { setCartOpen(true); }}
-                    >
-                      Ir para o carrinho →
-                    </button>
-                  )}
                 </div>
               </div>
             )}
@@ -1496,6 +1499,24 @@ export default function CompanyDashboard() {
                 )}
               </button>
             </div>
+            {/* Banner de promoção: 1 contato grátis */}
+            {freeUnlockStatus?.available && (
+              <div className="mb-5 flex items-center gap-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl px-5 py-4 shadow-md">
+                <div className="text-3xl">🎁</div>
+                <div className="flex-1">
+                  <p className="font-bold text-base leading-tight">Você tem 1 desbloqueio gratuito!</p>
+                  <p className="text-emerald-100 text-sm mt-0.5">Escolha qualquer representante e clique em <strong>"Desbloquear grátis"</strong> para ver o contato completo sem pagar nada.</p>
+                </div>
+                <div className="shrink-0 bg-white/20 rounded-xl px-3 py-1.5 text-sm font-semibold">Grátis</div>
+              </div>
+            )}
+            {freeUnlockStatus?.used && (
+              <div className="mb-5 flex items-center gap-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl px-5 py-3">
+                <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+                <p className="text-sm">Você já usou seu desbloqueio gratuito. Para ver mais contatos, desbloqueie por <strong>R$29 cada</strong>.</p>
+              </div>
+            )}
+
             {/* Filters */}
             <div className="flex flex-wrap gap-3 mb-4">
               <Select value={searchRegion ?? "all"} onValueChange={v => { setSearchRegion(v === "all" ? undefined : v); setSearchPage(1); }}>
@@ -1692,6 +1713,19 @@ export default function CompanyDashboard() {
                               onClick={() => removeFromCart(rep.id)}>
                               <ShoppingCart className="w-3 h-3 mr-1" /> No carrinho — remover
                             </Button>
+                          ) : freeUnlockStatus?.available ? (
+                            <div className="mt-4 flex flex-col gap-2">
+                              <Button size="sm" className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-bold shadow-sm"
+                                disabled={freeUnlockMutation.isPending}
+                                onClick={() => freeUnlockMutation.mutate({ representativeId: rep.id })}>
+                                {freeUnlockMutation.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <span className="mr-1">🎁</span>}
+                                Desbloquear grátis
+                              </Button>
+                              <Button size="sm" variant="outline" className="w-full text-xs border-slate-200 text-slate-500"
+                                onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
+                                <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — R$29
+                              </Button>
+                            </div>
                           ) : (
                             <Button size="sm" className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
                               onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
