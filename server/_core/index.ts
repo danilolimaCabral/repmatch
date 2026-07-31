@@ -1,5 +1,7 @@
 import "dotenv/config";
 import { webcrypto } from "crypto";
+import fs from "fs";
+import path from "path";
 // Polyfill globalThis.crypto for jose@6 (Web Crypto API) on older Node.js versions
 if (!globalThis.crypto) {
   (globalThis as any).crypto = webcrypto;
@@ -183,98 +185,83 @@ async function startServer() {
   });
 
   // ─── Rota de vídeo — serve arquivos do volume Railway montado em /video ────
-  // O volume Railway está montado em /video (configurado no painel Railway)
-  // Acesso via: /api/video/nome-do-arquivo.mp4
-  app.get("/api/video/:filename", (req, res) => {
-    import("fs").then(fs => {
-      import("path").then(pathMod => {
-        const filename = req.params.filename;
-        const safeName = pathMod.basename(filename);
-        const filePath = pathMod.join("/video", safeName);
-
-        if (!fs.existsSync(filePath)) {
-          res.status(404).send("Video not found");
-          return;
-        }
-
-        const stat = fs.statSync(filePath);
-        const fileSize = stat.size;
-        const range = req.headers.range;
-
-        if (range) {
-          const parts = range.replace(/bytes=/, "").split("-");
-          const start = parseInt(parts[0], 10);
-          const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-          const chunkSize = end - start + 1;
-          const stream = fs.createReadStream(filePath, { start, end });
-          res.writeHead(206, {
-            "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-            "Accept-Ranges": "bytes",
-            "Content-Length": chunkSize,
-            "Content-Type": "video/mp4",
-            "Cache-Control": "public, max-age=86400",
-          });
-          stream.pipe(res);
-        } else {
-          res.writeHead(200, {
-            "Content-Length": fileSize,
-            "Content-Type": "video/mp4",
-            "Accept-Ranges": "bytes",
-            "Cache-Control": "public, max-age=86400",
-          });
-          fs.createReadStream(filePath).pipe(res);
-        }
-      });
-    }).catch(() => res.status(500).send("Server error"));
+  app.get("/api/video/:filename", async (req, res) => {
+    try {
+      const safeName = path.basename(req.params.filename);
+      const filePath = path.join("/video", safeName);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send("Video not found");
+      }
+      const stat = fs.statSync(filePath);
+      const fileSize = stat.size;
+      const range = req.headers.range;
+      if (range) {
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = end - start + 1;
+        res.writeHead(206, {
+          "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+          "Accept-Ranges": "bytes",
+          "Content-Length": chunkSize,
+          "Content-Type": "video/mp4",
+          "Cache-Control": "public, max-age=86400",
+        });
+        fs.createReadStream(filePath, { start, end }).pipe(res);
+      } else {
+        res.writeHead(200, {
+          "Content-Length": fileSize,
+          "Content-Type": "video/mp4",
+          "Accept-Ranges": "bytes",
+          "Cache-Control": "public, max-age=86400",
+        });
+        fs.createReadStream(filePath).pipe(res);
+      }
+    } catch (err) {
+      res.status(500).send("Server error");
+    }
   });
 
-  // ─── Servir vídeo hero do volume Railway /video/ ────────────────────────────────
-  // Volume Railway montado em /video (configurado no painel Railway)
-  app.get("/hero-bg.mp4", (req, res) => {
-    import("fs").then(fs => {
-      import("path").then(pathMod => {
-        // Tenta volume Railway primeiro, depois fallback para env var VIDEO_PATH
-        const candidates = [
-          "/video/repmatch-hero-bg.mp4",
-          "/video/hero-bg.mp4",
-          process.env.VIDEO_PATH || "",
-        ].filter(Boolean);
-
-        const videoPath = candidates.find(p => fs.existsSync(p));
-
-        if (!videoPath) {
-          res.status(404).send("Video not found — coloque o arquivo em /video/repmatch-hero-bg.mp4 no volume Railway");
-          return;
-        }
-
-        const stat = fs.statSync(videoPath);
-        const fileSize = stat.size;
-        const range = req.headers.range;
-
-        if (range) {
-          const parts = range.replace(/bytes=/, "").split("-");
-          const start = parseInt(parts[0], 10);
-          const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-          const chunkSize = end - start + 1;
-          res.writeHead(206, {
-            "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-            "Accept-Ranges": "bytes",
-            "Content-Length": chunkSize,
-            "Content-Type": "video/mp4",
-            "Cache-Control": "public, max-age=604800",
-          });
-          fs.createReadStream(videoPath, { start, end }).pipe(res);
-        } else {
-          res.writeHead(200, {
-            "Content-Length": fileSize,
-            "Content-Type": "video/mp4",
-            "Accept-Ranges": "bytes",
-            "Cache-Control": "public, max-age=604800",
-          });
-          fs.createReadStream(videoPath).pipe(res);
-        }
-      });
-    }).catch(() => res.status(500).send("Error"));
+  // ─── Servir vídeo hero — tenta volume Railway /video/ ────────────────────────
+  app.get("/hero-bg.mp4", async (req, res) => {
+    try {
+      const candidates = [
+        "/video/repmatch-hero-bg.mp4",
+        "/video/hero-bg.mp4",
+        process.env.VIDEO_PATH || "",
+      ].filter(Boolean);
+      const videoPath = candidates.find(p => fs.existsSync(p));
+      if (!videoPath) {
+        return res.status(404).send("Video not found — coloque o arquivo em /video/repmatch-hero-bg.mp4 no volume Railway");
+      }
+      const stat = fs.statSync(videoPath);
+      const fileSize = stat.size;
+      const range = req.headers.range;
+      if (range) {
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = end - start + 1;
+        res.writeHead(206, {
+          "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+          "Accept-Ranges": "bytes",
+          "Content-Length": chunkSize,
+          "Content-Type": "video/mp4",
+          "Cache-Control": "public, max-age=604800",
+        });
+        fs.createReadStream(videoPath, { start, end }).pipe(res);
+      } else {
+        res.writeHead(200, {
+          "Content-Length": fileSize,
+          "Content-Type": "video/mp4",
+          "Accept-Ranges": "bytes",
+          "Cache-Control": "public, max-age=604800",
+        });
+        fs.createReadStream(videoPath).pipe(res);
+      }
+    } catch (err) {
+      res.status(500).send("Error");
+    }
   });
 
   // Health check endpoint for Railway
