@@ -1,5 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import SEO from "@/components/SEO";
+import ROICalculator from "@/components/ROICalculator";
+import BrazilMapSection from "@/components/BrazilMapSection";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight, CheckCircle, Star, Users, Building2, Zap, TrendingUp,
@@ -965,6 +967,12 @@ export default function Home() {
 
       {/* ─── Antes x Depois ─────────────────────────────────────────────────── */}
       <AntesDepois />
+
+      {/* ─── Calculadora de ROI ───────────────────────────────────────── */}
+      <ROICalculator />
+
+      {/* ─── Mapa do Brasil ─────────────────────────────────────────────── */}
+      <BrazilMapSection />
 
       {/* ─── Vagas em Destaque ─────────────────────────────────────────── */}
       <VagasDestaque />
