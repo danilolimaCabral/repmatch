@@ -39,7 +39,7 @@ const AVAILABILITY_COLOR: Record<string, string> = {
   imediata: "bg-emerald-50 text-emerald-700 border-emerald-200",
   "30dias": "bg-blue-50 text-blue-700 border-blue-200",
   "60dias": "bg-amber-50 text-amber-700 border-amber-200",
-  negociavel: "bg-slate-50 text-slate-600 border-slate-200",
+  negociavel: "bg-background text-muted-foreground border-border",
 };
 
 function timeAgo(date: Date | string): string {
@@ -92,7 +92,7 @@ export default function OportunidadesReps() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <SEO
         title="Representantes Comerciais Disponíveis"
         description="Encontre representantes comerciais disponíveis para representação no Brasil. Profissionais verificados publicando disponibilidade por região e segmento."
@@ -100,12 +100,12 @@ export default function OportunidadesReps() {
         canonical="/oportunidades-reps"
       />
       {/* ── Header ────────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+      <header className="sticky top-0 z-40 bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <button onClick={() => navigate("/")} className="flex items-center gap-2">
             <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
           </button>
-          <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
+          <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
             <Target className="w-4 h-4 text-emerald-600" />
             <span>Representantes publicando disponibilidade</span>
           </div>
@@ -116,7 +116,7 @@ export default function OportunidadesReps() {
               </Button>
             ) : (
               <>
-                <Button size="sm" variant="outline" className="border-slate-200 text-slate-700" onClick={() => navigate("/login")}>
+                <Button size="sm" variant="outline" className="border-border text-foreground" onClick={() => navigate("/login")}>
                   Entrar
                 </Button>
                 <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => navigate("/register")}>
@@ -138,11 +138,11 @@ export default function OportunidadesReps() {
           <h1 className="text-3xl md:text-4xl font-black mb-3">
             Encontre Representantes <span className="text-emerald-400">Disponíveis</span>
           </h1>
-          <p className="text-slate-300 text-lg mb-6">
+          <p className="text-muted-foreground/50 text-lg mb-6">
             Representantes comerciais publicando sua disponibilidade para novas parcerias.
             Filtre por região, segmento e disponibilidade.
           </p>
-          <div className="flex items-center justify-center gap-6 text-sm text-slate-400">
+          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground/70">
             <span className="flex items-center gap-1.5"><Shield className="w-4 h-4 text-emerald-400" /> Perfis verificados</span>
             <span className="flex items-center gap-1.5"><Award className="w-4 h-4 text-amber-400" /> CORE validado</span>
             <span className="flex items-center gap-1.5"><Target className="w-4 h-4 text-blue-400" />{total} disponíveis agora</span>
@@ -151,19 +151,19 @@ export default function OportunidadesReps() {
       </div>
 
       {/* ── Filters ───────────────────────────────────────────────── */}
-      <div className="sticky top-[57px] z-30 bg-white border-b border-slate-200 shadow-sm">
+      <div className="sticky top-[57px] z-30 bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
             <Input
-              className="pl-9 h-9 border-slate-200 text-sm"
+              className="pl-9 h-9 border-border text-sm"
               placeholder="Buscar por título, segmento ou nome..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
           <Select value={region} onValueChange={v => { setRegion(v === "all" ? "" : v); setPage(1); }}>
-            <SelectTrigger className="w-48 h-9 border-slate-200 text-sm">
+            <SelectTrigger className="w-48 h-9 border-border text-sm">
               <SelectValue placeholder="Região" />
             </SelectTrigger>
             <SelectContent>
@@ -172,7 +172,7 @@ export default function OportunidadesReps() {
             </SelectContent>
           </Select>
           <Select value={segment} onValueChange={v => { setSegment(v === "all" ? "" : v); setPage(1); }}>
-            <SelectTrigger className="w-48 h-9 border-slate-200 text-sm">
+            <SelectTrigger className="w-48 h-9 border-border text-sm">
               <SelectValue placeholder="Segmento" />
             </SelectTrigger>
             <SelectContent>
@@ -181,7 +181,7 @@ export default function OportunidadesReps() {
             </SelectContent>
           </Select>
           <Select value={availability} onValueChange={v => { setAvailability(v === "all" ? "" : v as typeof availability); setPage(1); }}>
-            <SelectTrigger className="w-44 h-9 border-slate-200 text-sm">
+            <SelectTrigger className="w-44 h-9 border-border text-sm">
               <SelectValue placeholder="Disponibilidade" />
             </SelectTrigger>
             <SelectContent>
@@ -193,7 +193,7 @@ export default function OportunidadesReps() {
             </SelectContent>
           </Select>
           {(region || segment || availability || search) && (
-            <Button size="sm" variant="ghost" className="text-slate-500 hover:text-slate-700 h-9" onClick={resetFilters}>
+            <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground h-9" onClick={resetFilters}>
               Limpar filtros
             </Button>
           )}
@@ -204,7 +204,7 @@ export default function OportunidadesReps() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Count */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             {isLoading ? "Carregando..." : `${total} oportunidade${total !== 1 ? "s" : ""} encontrada${total !== 1 ? "s" : ""}`}
           </p>
         </div>
@@ -214,10 +214,10 @@ export default function OportunidadesReps() {
             <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-24 bg-white rounded-2xl border border-slate-200">
+          <div className="text-center py-24 bg-card rounded-2xl border border-border">
             <Target className="w-14 h-14 text-slate-200 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">Nenhuma oportunidade encontrada</h3>
-            <p className="text-slate-500 text-sm mb-6">Tente ajustar os filtros ou cadastre-se para receber alertas</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Nenhuma oportunidade encontrada</h3>
+            <p className="text-muted-foreground text-sm mb-6">Tente ajustar os filtros ou cadastre-se para receber alertas</p>
             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => navigate("/register")}>
               Cadastrar-se gratuitamente
             </Button>
@@ -225,20 +225,20 @@ export default function OportunidadesReps() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((opp) => (
-              <div key={opp.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all">
+              <div key={opp.id} className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-900 leading-snug line-clamp-2">{opp.title}</h3>
+                    <h3 className="font-semibold text-foreground leading-snug line-clamp-2">{opp.title}</h3>
                     {opp.repName && (
-                      <p className="text-xs text-slate-500 mt-1 truncate">
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
                         {opp.repName.split(" ")[0]} {opp.repName.split(" ").slice(-1)[0]}
                         {(opp.repExperienceYears ?? 0) > 0 && ` · ${opp.repExperienceYears} anos de exp.`}
                       </p>
                     )}
                   </div>
                   {opp.availability && (
-                    <span className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full border ${AVAILABILITY_COLOR[opp.availability] ?? "bg-slate-50 text-slate-600 border-slate-200"}`}>
+                    <span className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full border ${AVAILABILITY_COLOR[opp.availability] ?? "bg-background text-muted-foreground border-border"}`}>
                       {AVAILABILITY_LABEL[opp.availability]}
                     </span>
                   )}
@@ -256,24 +256,24 @@ export default function OportunidadesReps() {
                         }`} />
                       ))}
                     </div>
-                    <span className="text-xs text-slate-400">{Number((opp as any).repAvgRating).toFixed(1)}</span>
+                    <span className="text-xs text-muted-foreground/70">{Number((opp as any).repAvgRating).toFixed(1)}</span>
                   </div>
                 )}
 
                 {/* Description */}
                 {opp.description && (
-                  <p className="text-sm text-slate-500 line-clamp-2 mb-3">{opp.description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{opp.description}</p>
                 )}
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {opp.region && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-2 py-0.5">
+                    <span className="inline-flex items-center gap-1 text-xs bg-background text-muted-foreground border border-border rounded-full px-2 py-0.5">
                       <MapPin className="w-3 h-3" />{opp.region}
                     </span>
                   )}
                   {opp.segment && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-2 py-0.5">
+                    <span className="inline-flex items-center gap-1 text-xs bg-background text-muted-foreground border border-border rounded-full px-2 py-0.5">
                       <Briefcase className="w-3 h-3" />{opp.segment}
                     </span>
                   )}
@@ -291,7 +291,7 @@ export default function OportunidadesReps() {
 
                 {/* Footer */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400 flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
                     <Clock className="w-3 h-3" />{timeAgo(opp.createdAt)}
                   </span>
                   <Button
@@ -313,19 +313,19 @@ export default function OportunidadesReps() {
             <Button
               variant="outline"
               size="sm"
-              className="border-slate-200"
+              className="border-border"
               disabled={page === 1}
               onClick={() => setPage(p => p - 1)}
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="text-sm text-slate-600">
+            <span className="text-sm text-muted-foreground">
               Página {page} de {totalPages}
             </span>
             <Button
               variant="outline"
               size="sm"
-              className="border-slate-200"
+              className="border-border"
               disabled={page === totalPages}
               onClick={() => setPage(p => p + 1)}
             >
@@ -340,10 +340,10 @@ export default function OportunidadesReps() {
             <h2 className="text-2xl font-black mb-2">Encontrou o representante ideal?</h2>
             <p className="text-emerald-100 mb-6">Cadastre-se gratuitamente para ver o contato completo e iniciar a conversa</p>
             <div className="flex items-center justify-center gap-3">
-              <Button size="lg" className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold" onClick={() => navigate("/register")}>
+              <Button size="lg" className="bg-card text-emerald-700 hover:bg-emerald-50 font-bold" onClick={() => navigate("/register")}>
                 Criar conta grátis
               </Button>
-              <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10" onClick={() => navigate("/login")}>
+              <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-card/10" onClick={() => navigate("/login")}>
                 Já tenho conta
               </Button>
             </div>

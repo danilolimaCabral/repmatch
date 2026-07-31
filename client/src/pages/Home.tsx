@@ -495,7 +495,7 @@ export default function Home() {
       />
 
       {/* ─── Navbar ─────────────────────────────────────────────────────────── */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-background/95 backdrop-blur-md border-b border-border shadow-lg" : "bg-transparent"}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-card/97 backdrop-blur-md border-b border-border shadow-md" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between" style={{ height: "72px" }}>
           <img src={LOGO_URL} alt="RepMatch" className="h-8 object-contain" />
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
@@ -588,9 +588,9 @@ export default function Home() {
             </button>
             <button
               onClick={() => handleCTA("manager")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-semibold text-base px-8 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5 dark:bg-blue-500/20 dark:hover:bg-blue-500/30 dark:border-blue-500/40 dark:text-blue-300"
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-card hover:bg-secondary border border-border hover:border-primary/30 text-foreground font-semibold text-base px-8 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
             >
-              <UserCog className="w-5 h-5" />
+              <UserCog className="w-5 h-5 text-muted-foreground" />
               Sou Gerente
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
@@ -623,7 +623,7 @@ export default function Home() {
       <LiveCounterSection />
 
       {/* ─── Selos de Segurança e Certificações ─────────────────────────────────────────────────── */}
-      <section className="py-16 px-6 border-t border-border bg-muted/20">
+      <section className="py-16 px-6 border-t border-border bg-card">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
             <p className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-2">Plataforma segura e confiável</p>
@@ -729,7 +729,7 @@ export default function Home() {
       </section>
 
       {/* ─── Como funciona ──────────────────────────────────────────────────── */}
-      <section id="como-funciona" className="py-28 px-6">
+      <section id="como-funciona" className="py-28 px-6 bg-card">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Como funciona</Badge>
@@ -850,7 +850,7 @@ export default function Home() {
       </section>
 
       {/* ─── Features Grid ──────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-card/30 border-y border-border">
+      <section className="py-24 px-6 bg-background border-y border-border">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Por que o RepMatch</Badge>
@@ -979,7 +979,7 @@ export default function Home() {
 
 
       {/* ─── CTA Banner ─────────────────────────────────────────────────────── */}
-      <section className="py-16 md:py-28 px-6 relative overflow-hidden">
+      <section className="py-16 md:py-28 px-6 relative overflow-hidden bg-background">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full blur-[140px]" style={{ background: "oklch(0.62 0.18 152 / 0.06)" }} />
         </div>
@@ -1006,9 +1006,9 @@ export default function Home() {
             </button>
             <button
               onClick={() => handleCTA("manager")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-semibold text-base px-9 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5 dark:bg-blue-500/20 dark:hover:bg-blue-500/30 dark:border-blue-500/40 dark:text-blue-300"
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-card hover:bg-secondary border border-border hover:border-primary/30 text-foreground font-semibold text-base px-9 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
             >
-              <UserCog className="w-5 h-5" />
+              <UserCog className="w-5 h-5 text-muted-foreground" />
               Sou Gerente
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
@@ -1024,7 +1024,7 @@ export default function Home() {
       </section>
 
       {/* ─── FAQ ────────────────────────────────────────────────────────────── */}
-      <section id="faq" className="py-24 px-6 border-t border-border">
+      <section id="faq" className="py-24 px-6 border-t border-border bg-card">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-14">
             <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">FAQ</Badge>
@@ -1061,7 +1061,7 @@ export default function Home() {
       </section>
 
       {/* ─── Footer ─────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-border py-12 px-6">
+      <footer className="border-t border-border py-12 px-6 bg-card">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">

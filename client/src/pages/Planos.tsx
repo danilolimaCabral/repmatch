@@ -293,7 +293,7 @@ function PaymentModal({
             {/* QR Code Image */}
             {pixData.qrCodeBase64 && (
               <div className="flex justify-center">
-                <div className="bg-white p-3 rounded-xl border border-border">
+                <div className="bg-card p-3 rounded-xl border border-border">
                   <img
                     src={`data:image/png;base64,${pixData.qrCodeBase64}`}
                     alt="QR Code PIX"
@@ -436,7 +436,7 @@ export default function Planos() {
             onClick={() => setBilling(b => b === "monthly" ? "annual" : "monthly")}
             className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none ${billing === "annual" ? "bg-primary" : "bg-secondary border border-border"}`}
           >
-            <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform duration-300 ${billing === "annual" ? "translate-x-7" : ""}`} />
+            <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-card shadow transition-transform duration-300 ${billing === "annual" ? "translate-x-7" : ""}`} />
           </button>
           <span className={`text-sm font-semibold transition-colors ${billing === "annual" ? "text-foreground" : "text-muted-foreground"}`}>
             Anual <span className="text-primary text-xs font-bold">-20%</span>
@@ -448,12 +448,12 @@ export default function Planos() {
           // Color config per plan name
           const planColors: Record<string, { border: string; accent: string; badgeBg: string; checkColor: string; btnClass: string; priceCls: string }> = {
             Free:       { border: "border-border",           accent: "bg-secondary/50",         badgeBg: "",                                     checkColor: "text-muted-foreground", btnClass: "bg-secondary border border-border text-foreground hover:bg-secondary/80",                                     priceCls: "text-foreground" },
-            Bronze:     { border: "border-orange-400/50",    accent: "bg-orange-400/8",         badgeBg: "bg-orange-400/15 text-orange-400",       checkColor: "text-orange-400",       btnClass: "bg-white border border-orange-400/40 text-orange-500 hover:bg-orange-50",                              priceCls: "text-foreground" },
+            Bronze:     { border: "border-orange-400/50",    accent: "bg-orange-400/8",         badgeBg: "bg-orange-400/15 text-orange-400",       checkColor: "text-orange-400",       btnClass: "bg-card border border-orange-400/40 text-orange-500 hover:bg-orange-50",                              priceCls: "text-foreground" },
             Prata:      { border: "border-primary",          accent: "bg-primary/6",            badgeBg: "bg-primary text-primary-foreground",     checkColor: "text-primary",          btnClass: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25",                  priceCls: "text-primary" },
-            Ouro:       { border: "border-yellow-400/50",    accent: "bg-yellow-400/8",         badgeBg: "bg-yellow-400/15 text-yellow-600",       checkColor: "text-yellow-500",       btnClass: "bg-white border border-yellow-400/40 text-yellow-600 hover:bg-yellow-50",                              priceCls: "text-foreground" },
+            Ouro:       { border: "border-yellow-400/50",    accent: "bg-yellow-400/8",         badgeBg: "bg-yellow-400/15 text-yellow-600",       checkColor: "text-yellow-500",       btnClass: "bg-card border border-yellow-400/40 text-yellow-600 hover:bg-yellow-50",                              priceCls: "text-foreground" },
             Starter:    { border: "border-border",           accent: "bg-secondary/50",         badgeBg: "",                                     checkColor: "text-muted-foreground", btnClass: "bg-secondary border border-border text-foreground hover:bg-secondary/80",                                     priceCls: "text-foreground" },
             Pro:        { border: "border-primary",          accent: "bg-primary/6",            badgeBg: "bg-primary text-primary-foreground",     checkColor: "text-primary",          btnClass: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25",                  priceCls: "text-primary" },
-            Enterprise: { border: "border-purple-400/50",   accent: "bg-purple-400/8",         badgeBg: "bg-purple-400/15 text-purple-500",       checkColor: "text-purple-500",       btnClass: "bg-white border border-purple-400/40 text-purple-600 hover:bg-purple-50",                            priceCls: "text-foreground" },
+            Enterprise: { border: "border-purple-400/50",   accent: "bg-purple-400/8",         badgeBg: "bg-purple-400/15 text-purple-500",       checkColor: "text-purple-500",       btnClass: "bg-card border border-purple-400/40 text-purple-600 hover:bg-purple-50",                            priceCls: "text-foreground" },
           };
           const cols = plans.length === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 md:grid-cols-3";
           return (

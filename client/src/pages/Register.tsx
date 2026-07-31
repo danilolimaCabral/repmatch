@@ -113,7 +113,7 @@ export default function Register() {
   // If no type selected, show the type selection screen first
   if (!typeParam) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex flex-col items-center justify-center px-4 py-8">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8">
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] opacity-30" style={{ background: "oklch(0.62 0.18 152 / 0.12)" }} />
         </div>
@@ -126,10 +126,10 @@ export default function Register() {
               <Sparkles className="w-3.5 h-3.5" />
               Cadastro Gratuito · RepMatch
             </div>
-            <h1 className="text-3xl font-black text-slate-900 mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", letterSpacing: "-0.03em" }}>
+            <h1 className="text-3xl font-black text-foreground mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", letterSpacing: "-0.03em" }}>
               Como você vai usar o RepMatch?
             </h1>
-            <p className="text-slate-500 text-sm">Selecione seu perfil para criar sua conta</p>
+            <p className="text-muted-foreground text-sm">Selecione seu perfil para criar sua conta</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full mb-8">
             {(Object.entries(TYPE_CONFIG) as [TypeKey, typeof TYPE_CONFIG[TypeKey]][]).map(([key, cfg]) => {
@@ -162,7 +162,7 @@ export default function Register() {
               );
             })}
           </div>
-          <p className="text-slate-500 text-sm text-center">
+          <p className="text-muted-foreground text-sm text-center">
             Já tem conta?{" "}
             <Link href="/login" className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors">
               Entrar →
@@ -178,7 +178,7 @@ export default function Register() {
   const Icon = cfg.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8">
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] opacity-25" style={{ background: "oklch(0.62 0.18 152 / 0.12)" }} />
       </div>
@@ -194,7 +194,7 @@ export default function Register() {
         {/* Back button */}
         <button
           onClick={() => navigate("/register")}
-          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 text-sm mb-6 transition-colors font-medium"
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm mb-6 transition-colors font-medium"
         >
           <ArrowLeft className="w-4 h-4" /> Trocar perfil
         </button>
@@ -207,19 +207,19 @@ export default function Register() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <Icon className={`w-4 h-4 ${cfg.accentColor}`} />
-              <span className="text-slate-800 font-bold text-sm">{cfg.label}</span>
+              <span className="text-foreground font-bold text-sm">{cfg.label}</span>
               <span className={`${cfg.badgeBg} text-xs font-bold px-2 py-0.5 rounded-full`}>{cfg.badge}</span>
             </div>
-            <p className="text-slate-500 text-xs mt-0.5 truncate">{cfg.subtitle}</p>
+            <p className="text-muted-foreground text-xs mt-0.5 truncate">{cfg.subtitle}</p>
           </div>
         </div>
 
         {/* Registration form card */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl shadow-slate-200/60">
-          <h2 className="text-slate-900 text-lg font-bold mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-xl shadow-black/8">
+          <h2 className="text-foreground text-lg font-bold mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
             Crie sua conta gratuita
           </h2>
-          <p className="text-slate-500 text-xs mb-5">Preencha os dados abaixo para começar</p>
+          <p className="text-muted-foreground text-xs mb-5">Preencha os dados abaixo para começar</p>
 
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-start gap-2">
@@ -230,7 +230,7 @@ export default function Register() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-slate-700 text-sm font-semibold">Nome completo</Label>
+              <Label htmlFor="name" className="text-foreground text-sm font-semibold">Nome completo</Label>
               <Input
                 id="name"
                 type="text"
@@ -239,12 +239,12 @@ export default function Register() {
                 onChange={e => setName(e.target.value)}
                 required
                 autoComplete="name"
-                className="bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white transition-colors"
+                className="bg-slate-50 border-slate-200 text-foreground placeholder:text-muted-foreground/70 focus:bg-white transition-colors"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-slate-700 text-sm font-semibold">E-mail</Label>
+              <Label htmlFor="email" className="text-foreground text-sm font-semibold">E-mail</Label>
               <Input
                 id="email"
                 type="email"
@@ -253,12 +253,12 @@ export default function Register() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white transition-colors"
+                className="bg-slate-50 border-slate-200 text-foreground placeholder:text-muted-foreground/70 focus:bg-white transition-colors"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-slate-700 text-sm font-semibold">Senha</Label>
+              <Label htmlFor="password" className="text-foreground text-sm font-semibold">Senha</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -268,18 +268,18 @@ export default function Register() {
                   onChange={e => setPassword(e.target.value)}
                   required
                   autoComplete="new-password"
-                  className="bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white transition-colors pr-10"
+                  className="bg-slate-50 border-slate-200 text-foreground placeholder:text-muted-foreground/70 focus:bg-white transition-colors pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-xs text-slate-400">Mínimo 8 caracteres</p>
+              <p className="text-xs text-muted-foreground/70">Mínimo 8 caracteres</p>
             </div>
 
             <button
@@ -295,14 +295,14 @@ export default function Register() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-slate-400 mt-4 leading-relaxed">
+          <p className="text-center text-xs text-muted-foreground/70 mt-4 leading-relaxed">
             Ao criar uma conta, você concorda com os{" "}
             <Link href="/termos" className={`${cfg.accentColor} hover:opacity-80 font-semibold`}>Termos de Uso</Link>{" "}
             e a{" "}
             <Link href="/privacidade" className={`${cfg.accentColor} hover:opacity-80 font-semibold`}>Política de Privacidade</Link>.
           </p>
 
-          <div className="mt-4 pt-4 border-t border-slate-100 text-center text-sm text-slate-500">
+          <div className="mt-4 pt-4 border-t border-border text-center text-sm text-muted-foreground">
             Já tem conta?{" "}
             <Link href={`/login?type=${typeParam}`} className={`${cfg.accentColor} hover:opacity-80 font-semibold transition-opacity`}>
               Entrar

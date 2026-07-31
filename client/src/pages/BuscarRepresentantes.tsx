@@ -128,7 +128,7 @@ export default function BuscarRepresentantes() {
             >
               <Shield className="w-4 h-4" />
               Identidade Verificada
-              {kycApproved && <span className="ml-1 text-xs bg-white/20 px-1.5 py-0.5 rounded-full">✓ Ativo</span>}
+              {kycApproved && <span className="ml-1 text-xs bg-card/20 px-1.5 py-0.5 rounded-full">✓ Ativo</span>}
             </button>
             <button
               onClick={() => setCoreActive(!coreActive)}
@@ -140,7 +140,7 @@ export default function BuscarRepresentantes() {
             >
               <Award className="w-4 h-4" />
               CORE Ativo
-              {coreActive && <span className="ml-1 text-xs bg-white/20 px-1.5 py-0.5 rounded-full">✓ Ativo</span>}
+              {coreActive && <span className="ml-1 text-xs bg-card/20 px-1.5 py-0.5 rounded-full">✓ Ativo</span>}
             </button>
             {/* Availability filter */}
             {(["imediata", "30dias", "60dias", "negociavel"] as const).map((av) => (
@@ -155,7 +155,7 @@ export default function BuscarRepresentantes() {
               >
                 {av === "imediata" ? "🟢" : av === "30dias" ? "🟡" : av === "60dias" ? "🟠" : "⚪"}
                 {av === "imediata" ? "Imediata" : av === "30dias" ? "30 dias" : av === "60dias" ? "60 dias" : "Negociável"}
-                {availability === av && <span className="ml-1 text-xs bg-white/20 px-1.5 py-0.5 rounded-full">✓</span>}
+                {availability === av && <span className="ml-1 text-xs bg-card/20 px-1.5 py-0.5 rounded-full">✓</span>}
               </button>
             ))}
             {(kycApproved || coreActive || availability) && (

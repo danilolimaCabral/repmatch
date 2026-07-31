@@ -106,11 +106,11 @@ export default function Login() {
   // ── Step 1: Type selection ────────────────────────────────────────────────
   if (!selectedType) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex flex-col items-center justify-center px-4 py-8">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8">
         {/* Subtle background decoration */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] opacity-30" style={{ background: "oklch(0.62 0.18 152 / 0.12)" }} />
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full blur-[100px] opacity-20" style={{ background: "oklch(0.62 0.18 210 / 0.10)" }} />
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] opacity-30" style={{ background: "oklch(0.52 0.17 152 / 0.10)" }} />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full blur-[100px] opacity-20" style={{ background: "oklch(0.52 0.17 210 / 0.08)" }} />
         </div>
 
         <div className="relative z-10 w-full max-w-3xl flex flex-col items-center">
@@ -121,14 +121,14 @@ export default function Login() {
 
           {/* Header */}
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold px-4 py-2 rounded-full mb-5 tracking-wide">
+            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/25 text-primary text-xs font-semibold px-4 py-2 rounded-full mb-5 tracking-wide">
               <Sparkles className="w-3.5 h-3.5" />
               Marketplace B2B · RepMatch
             </div>
-            <h1 className="text-3xl font-black text-slate-900 mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", letterSpacing: "-0.03em" }}>
+            <h1 className="text-3xl font-black text-foreground mb-2" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", letterSpacing: "-0.03em" }}>
               Bem-vindo ao RepMatch
             </h1>
-            <p className="text-slate-500 text-sm">Selecione seu perfil para entrar na plataforma</p>
+            <p className="text-muted-foreground text-sm">Selecione seu perfil para entrar na plataforma</p>
           </div>
 
           {/* Cards */}
@@ -176,9 +176,9 @@ export default function Login() {
           </div>
 
           {/* Register link */}
-          <p className="text-slate-500 text-sm text-center">
+          <p className="text-muted-foreground text-sm text-center">
             Ainda não tem conta?{" "}
-            <Link href="/register" className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors">
+            <Link href="/register" className="text-primary hover:text-primary/80 font-semibold transition-colors">
               Cadastre-se grátis →
             </Link>
           </p>
@@ -192,10 +192,10 @@ export default function Login() {
   const Icon = cfg.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8">
       {/* Background decoration */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] opacity-25" style={{ background: "oklch(0.62 0.18 152 / 0.12)" }} />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] opacity-25" style={{ background: "oklch(0.52 0.17 152 / 0.10)" }} />
       </div>
 
       <div className="relative z-10 w-full max-w-sm">
@@ -209,7 +209,7 @@ export default function Login() {
         {/* Back button */}
         <button
           onClick={() => { setSelectedType(null); setError(null); }}
-          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 text-sm mb-6 transition-colors font-medium"
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm mb-6 transition-colors font-medium"
         >
           <ArrowLeft className="w-4 h-4" /> Trocar perfil
         </button>
@@ -230,8 +230,8 @@ export default function Login() {
         </div>
 
         {/* Login form card */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl shadow-slate-200/60">
-          <h2 className="text-slate-900 text-lg font-bold mb-5" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-xl shadow-black/8">
+          <h2 className="text-foreground text-lg font-bold mb-5" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
             Entrar como {cfg.label}
           </h2>
 
@@ -244,7 +244,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-slate-700 text-sm font-semibold">E-mail</Label>
+              <Label htmlFor="email" className="text-foreground text-sm font-semibold">E-mail</Label>
               <Input
                 id="email"
                 type="email"
@@ -253,12 +253,12 @@ export default function Login() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white transition-colors"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:bg-card transition-colors"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-slate-700 text-sm font-semibold">Senha</Label>
+              <Label htmlFor="password" className="text-foreground text-sm font-semibold">Senha</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -268,12 +268,12 @@ export default function Login() {
                   onChange={e => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white transition-colors pr-10"
+                  className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:bg-card transition-colors pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -300,7 +300,7 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-5 pt-5 border-t border-slate-100 text-center text-sm text-slate-500">
+          <div className="mt-5 pt-5 border-t border-border text-center text-sm text-muted-foreground">
             Não tem conta?{" "}
             <Link href={`/register?type=${cfg.registerType}`} className={`${cfg.accentColor} hover:opacity-80 font-semibold transition-opacity`}>
               Cadastre-se grátis
