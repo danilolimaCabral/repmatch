@@ -266,12 +266,16 @@ export default function CompanyDashboard() {
   // ─── Cart state (desbloqueio em lote) ─────────────────────────────────────
   const [cart, setCart] = useState<Array<{ id: number; name: string }>>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [cartStep, setCartStep] = useState<"summary" | "qrcode" | "upload" | "done">("summary");
+  const [cartStep, setCartStep] = useState<"summary" | "pix_form" | "pix_qr" | "card_redirect" | "done">("summary");
   const [pixProofFile, setPixProofFile] = useState<File | null>(null);
   const [pixProofUploading, setPixProofUploading] = useState(false);
   const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
-  const [pixCountdown, setPixCountdown] = useState(30);
+  const [pixCountdown, setPixCountdown] = useState(300); // 5 min
   const pixCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [cpfInput, setCpfInput] = useState("");
+  const [pixData, setPixData] = useState<{ paymentId: number; qrCode: string; qrCodeBase64: string } | null>(null);
+  const [pixCopied, setPixCopied] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // Query para pedidos de desbloqueio pendentes
   const { data: myUnlockRequests } = trpc.unlockRequests.myRequests.useQuery(undefined, {
@@ -297,12 +301,14 @@ export default function CompanyDashboard() {
 
   const handleCheckoutCart = async () => {
     if (cart.length === 0) return;
+    setCheckoutLoading(true);
     try {
       // 1. Create the unlock request in DB
       const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "pix" });
       if (!res) return;
+      setCurrentRequestId(res.requestId);
 
-      // 2. Create MP Checkout Pro preference
+      // 2. Create MP Checkout Pro preference (cartão)
       const prefRes = await fetch("/api/mp/unlock-preference", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Origin": window.location.origin },
@@ -317,14 +323,14 @@ export default function CompanyDashboard() {
       const prefData = await prefRes.json();
       if (!prefRes.ok) throw new Error(prefData.error ?? "Erro ao criar pagamento");
 
-      // 3. Redirect to MP Checkout
-      const checkoutUrl = prefData.initPoint;
-      toast.success("Redirecionando para o pagamento...");
-      setCartOpen(false);
-      setCart([]);
-      window.open(checkoutUrl, "_blank");
+      // 3. Open MP Checkout in new tab and show redirect step
+      toast.info("Redirecionando para o Mercado Pago...");
+      window.open(prefData.initPoint, "_blank");
+      setCartStep("card_redirect");
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao processar pagamento");
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -587,36 +593,42 @@ export default function CompanyDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex">
       {/* ─── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm shrink-0">
+      <aside className="w-64 bg-white border-r border-slate-100 flex flex-col shadow-sm shrink-0">
+        {/* Logo + profile */}
         <div className="p-5 border-b border-slate-100">
-          <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-4" />
+          <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-5" />
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-black text-base shadow-sm">
               {profile.companyName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <div className="font-semibold text-sm truncate text-slate-800">{profile.companyName}</div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${tierConfig.color}`}>{tierConfig.label}</span>
-                <span className={`text-xs font-bold ${rankConfig.color}`}>{rankConfig.label}</span>
+              <div className="font-bold text-sm truncate text-slate-800">{profile.companyName}</div>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tierConfig.color}`}>{tierConfig.label}</span>
+                <span className={`text-[10px] font-bold ${rankConfig.color}`}>{rankConfig.label}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-0.5">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as typeof activeTab)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 activeTab === item.id
-                  ? "bg-emerald-50 text-emerald-700 shadow-sm"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
               }`}
             >
-              <item.icon className={`w-4 h-4 ${activeTab === item.id ? "text-emerald-600" : ""}`} />
-              {item.label}
+              <item.icon className={`w-4 h-4 flex-shrink-0 ${activeTab === item.id ? "text-white" : ""}`} />
+              <span className="truncate">{item.label}</span>
+              {item.id === "search" && (
+                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  activeTab === item.id ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"
+                }`}>9k+</span>
+              )}
             </button>
           ))}
         </nav>
@@ -626,7 +638,7 @@ export default function CompanyDashboard() {
           {user?.role === "admin" && (
             <Button
               size="sm" variant="ghost"
-              className="w-full text-red-500 hover:text-red-700 hover:bg-red-50"
+              className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 justify-start"
               onClick={() => navigate("/admin")}
             >
               <span className="mr-2">🔑</span>Painel Admin
@@ -635,7 +647,7 @@ export default function CompanyDashboard() {
           <Button
             size="sm"
             variant="ghost"
-            className="w-full text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+            className="w-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 justify-start"
             onClick={() => { logout(); navigate("/"); }}
           >
             <LogOut className="w-4 h-4 mr-2" />
@@ -675,9 +687,9 @@ export default function CompanyDashboard() {
                   {pendingUnlockRequests.some(r => r.status === "pending_payment") && (
                     <button
                       className="mt-2 text-xs font-semibold text-amber-700 underline hover:text-amber-900"
-                      onClick={() => { setCartOpen(true); setCurrentRequestId(pendingUnlockRequests.find(r => r.status === "pending_payment")?.id ?? null); setCartStep("upload"); }}
+                      onClick={() => { setCartOpen(true); }}
                     >
-                      Enviar comprovante agora →
+                      Ir para o carrinho →
                     </button>
                   )}
                 </div>
@@ -1224,15 +1236,25 @@ export default function CompanyDashboard() {
         )}
 
         {/* ─── Cart Modal ──────────────────────────────────────────────────────────────────────────────────── */}
-        <Dialog open={cartOpen} onOpenChange={(o) => { setCartOpen(o); if (!o) { setCartStep("summary"); setPixProofFile(null); } }}>
-          <DialogContent className="bg-white border-slate-200 max-w-md">
+        <Dialog open={cartOpen} onOpenChange={(o) => {
+          setCartOpen(o);
+          if (!o) {
+            setCartStep("summary");
+            setPixProofFile(null);
+            setPixData(null);
+            setCpfInput("");
+            setPixCountdown(300);
+            if (pixCountdownRef.current) clearInterval(pixCountdownRef.current);
+          }
+        }}>
+          <DialogContent className="bg-white border-slate-200 max-w-md shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-slate-800 flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-emerald-600" />
-                {cartStep === "summary" && "Carrinho de Desbloqueios"}
-                {cartStep === "qrcode" && "Pagar via Pix — QR Code"}
-                {cartStep === "upload" && "Enviar Comprovante"}
-                {cartStep === "done" && "Solicitação Enviada!"}
+              <DialogTitle className="text-slate-800 flex items-center gap-2 text-base font-bold">
+                {cartStep === "summary" && <><ShoppingCart className="w-5 h-5 text-emerald-600" /> Carrinho de Desbloqueios</>}
+                {cartStep === "pix_form" && <><QrCode className="w-5 h-5 text-emerald-600" /> Pagar via PIX</>}
+                {cartStep === "pix_qr" && <><QrCode className="w-5 h-5 text-emerald-600" /> QR Code PIX</>}
+                {cartStep === "card_redirect" && <><ShoppingCart className="w-5 h-5 text-blue-500" /> Pagamento Iniciado</>}
+                {cartStep === "done" && <><CheckCircle className="w-5 h-5 text-emerald-600" /> Pagamento Confirmado!</>}
               </DialogTitle>
             </DialogHeader>
 
@@ -1267,14 +1289,23 @@ export default function CompanyDashboard() {
                     <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-3">
                       Após o pagamento aprovado, os contatos serão liberados automaticamente.
                     </p>
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <Button
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                        onClick={() => handleCheckoutCart()}
-                        disabled={createUnlockRequest.isPending}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2"
+                        onClick={() => setCartStep("pix_form")}
+                        disabled={createUnlockRequest.isPending || checkoutLoading}
                       >
-                        {createUnlockRequest.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <span className="mr-2 text-base">💳</span>}
-                        Pagar com Mercado Pago
+                        <QrCode className="w-4 h-4" />
+                        Pagar via PIX
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-slate-200 text-slate-700 font-semibold flex items-center justify-center gap-2 hover:bg-slate-50"
+                        onClick={() => handleCheckoutCart()}
+                        disabled={createUnlockRequest.isPending || checkoutLoading}
+                      >
+                        {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="text-base">💳</span>}
+                        Cartão
                       </Button>
                     </div>
                   </>
@@ -1282,98 +1313,161 @@ export default function CompanyDashboard() {
               </div>
             )}
 
-            {/* ─── QR Code Step (30s countdown) ─── */}
-            {cartStep === "qrcode" && (
+            {/* ─── PIX Form Step (CPF) ─── */}
+            {cartStep === "pix_form" && (
               <div className="space-y-4">
-                {/* QR Code visual */}
-                <div className="bg-white border-2 border-emerald-200 rounded-xl p-4 text-center">
-                  <div className="w-40 h-40 mx-auto mb-3 bg-white border border-slate-200 rounded-lg flex items-center justify-center">
-                    {/* QR Code SVG gerado via API pública */}
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=00020126580014BR.GOV.BCB.PIX0136${encodeURIComponent("41999499815")}5204000053039865802BR5924RepMatch6009SAO PAULO62070503***6304`}
-                      alt="QR Code Pix"
-                      className="w-36 h-36 rounded"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-                  <p className="text-xs text-slate-500 mb-2">Ou use a chave Pix abaixo:</p>
-                  <div className="flex items-center justify-center gap-2 bg-emerald-50 rounded-lg px-3 py-2">
-                    <span className="text-base font-bold text-emerald-700">41999499815</span>
-                    <button onClick={() => { navigator.clipboard.writeText("41999499815"); toast.success("Chave copiada!"); }} className="text-emerald-500 hover:text-emerald-700 ml-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                    </button>
-                  </div>
-                  <p className="text-sm font-bold text-emerald-700 mt-2">Valor: R${cart.length * 29}</p>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-700">
+                  Para gerar o QR Code PIX, precisamos do seu CPF (exigência do Banco Central para pagamentos instantâneos).
                 </div>
-                {/* Countdown */}
-                <div className="text-center">
-                  <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-2">
-                    <div className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center">{pixCountdown}</div>
-                    <span className="text-sm text-amber-700 font-medium">segundos para ir para o upload do comprovante</span>
-                  </div>
-                </div>
-                {/* Progress bar */}
-                <div className="w-full bg-slate-100 rounded-full h-1.5">
-                  <div
-                    className="bg-emerald-500 h-1.5 rounded-full transition-all duration-1000"
-                    style={{ width: `${((30 - pixCountdown) / 30) * 100}%` }}
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">CPF do pagador</label>
+                  <input
+                    type="text"
+                    value={cpfInput}
+                    onChange={e => {
+                      const d = e.target.value.replace(/\D/g, "").slice(0, 11);
+                      const fmt = d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+                        .replace(/(\d{3})(\d{3})(\d{3})/, "$1.$2.$3")
+                        .replace(/(\d{3})(\d{3})/, "$1.$2")
+                        .replace(/(\d{3})/, "$1");
+                      setCpfInput(fmt);
+                    }}
+                    placeholder="000.000.000-00"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400"
+                    maxLength={14}
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full border-slate-200 text-slate-600"
-                  onClick={() => { if (pixCountdownRef.current) clearInterval(pixCountdownRef.current); setCartStep("upload"); }}
-                >
-                  Já paguei — Enviar comprovante agora
-                </Button>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1 border-slate-200" onClick={() => setCartStep("summary")}>Voltar</Button>
+                  <Button
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={async () => {
+                      const rawCpf = cpfInput.replace(/\D/g, "");
+                      if (rawCpf.length !== 11) { toast.error("Informe um CPF válido com 11 dígitos"); return; }
+                      setCheckoutLoading(true);
+                      try {
+                        const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "pix" });
+                        if (!res) return;
+                        setCurrentRequestId(res.requestId);
+                        const pixRes = await fetch("/api/mp/unlock-pix", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            requestId: res.requestId,
+                            repIds: cart.map(c => c.id),
+                            userId: user?.id,
+                            userEmail: user?.email ?? "",
+                            userName: user?.name ?? "",
+                            cpf: rawCpf,
+                          }),
+                        });
+                        const pixJson = await pixRes.json();
+                        if (!pixRes.ok) throw new Error(pixJson.error ?? "Erro ao gerar PIX");
+                        setPixData({ paymentId: pixJson.paymentId, qrCode: pixJson.qrCode, qrCodeBase64: pixJson.qrCodeBase64 });
+                        setPixCountdown(300);
+                        if (pixCountdownRef.current) clearInterval(pixCountdownRef.current);
+                        pixCountdownRef.current = setInterval(() => {
+                          setPixCountdown(c => {
+                            if (c <= 1) { clearInterval(pixCountdownRef.current!); return 0; }
+                            return c - 1;
+                          });
+                        }, 1000);
+                        setCartStep("pix_qr");
+                      } catch (e: any) {
+                        toast.error(e.message ?? "Erro ao gerar PIX");
+                      } finally {
+                        setCheckoutLoading(false);
+                      }
+                    }}
+                    disabled={checkoutLoading || cpfInput.replace(/\D/g, "").length !== 11}
+                  >
+                    {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <QrCode className="w-4 h-4 mr-2" />}
+                    Gerar QR Code
+                  </Button>
+                </div>
               </div>
             )}
 
-            {/* ─── Upload Comprovante Step ─── */}
-            {cartStep === "upload" && (
+            {/* ─── PIX QR Code Step ─── */}
+            {cartStep === "pix_qr" && pixData && (
               <div className="space-y-4">
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-                  <p className="text-xs text-emerald-700">Pagamento via Pix para <strong>41999499815</strong></p>
-                  <p className="text-sm font-bold text-emerald-800">Valor: R${cart.length * 29}</p>
+                <div className="text-center">
+                  <div className={`text-3xl font-black font-mono ${pixCountdown < 60 ? "text-red-500" : "text-emerald-600"}`}>
+                    {String(Math.floor(pixCountdown / 60)).padStart(2, "0")}:{String(pixCountdown % 60).padStart(2, "0")}
+                  </div>
+                  <div className="text-xs text-slate-400">tempo restante para pagar</div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-slate-700 text-sm font-semibold">Comprovante de Pagamento *</Label>
-                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-300 transition-colors" onClick={() => document.getElementById('pix-proof-input')?.click()}>
-                    {pixProofFile ? (
-                      <div className="flex items-center justify-center gap-2 text-emerald-600">
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="text-sm font-medium">{pixProofFile.name}</span>
-                      </div>
-                    ) : (
-                      <div className="text-slate-400">
-                        <Upload className="w-6 h-6 mx-auto mb-1" />
-                        <p className="text-xs">Clique para selecionar o comprovante (JPG, PNG, PDF)</p>
-                      </div>
-                    )}
-                    <input id="pix-proof-input" type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => setPixProofFile(e.target.files?.[0] ?? null)} />
+                {pixData.qrCodeBase64 && (
+                  <div className="flex justify-center">
+                    <div className="bg-white p-3 rounded-xl border-2 border-emerald-200 shadow-sm">
+                      <img
+                        src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                        alt="QR Code PIX"
+                        className="w-48 h-48 object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">PIX Copia e Cola</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 font-mono text-xs text-slate-600 truncate">{pixData.qrCode?.slice(0, 40)}...</div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(pixData.qrCode);
+                        setPixCopied(true);
+                        toast.success("Código PIX copiado!");
+                        setTimeout(() => setPixCopied(false), 2000);
+                      }}
+                      className="flex items-center gap-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-2 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      {pixCopied ? <CheckCircle className="w-3.5 h-3.5" /> : <QrCode className="w-3.5 h-3.5" />}
+                      {pixCopied ? "Copiado!" : "Copiar"}
+                    </button>
                   </div>
                 </div>
-                <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                  onClick={handlePixProofUpload}
-                  disabled={!pixProofFile || pixProofUploading}
-                >
-                  {pixProofUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                  Enviar Comprovante
-                </Button>
-                <p className="text-xs text-slate-400 text-center">Após o envio, o admin irá revisar e liberar os contatos em até 24h.</p>
+                <div className="text-xs text-center text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                  ⚡ Após o pagamento, seus contatos serão liberados automaticamente em segundos.
+                </div>
+                <Button variant="outline" className="w-full border-slate-200" onClick={() => {
+                  setCartOpen(false);
+                  setCartStep("summary");
+                  setPixData(null);
+                  setCart([]);
+                  if (pixCountdownRef.current) clearInterval(pixCountdownRef.current);
+                }}>Fechar — já paguei</Button>
               </div>
             )}
 
+            {/* ─── Card Redirect Step ─── */}
+            {cartStep === "card_redirect" && (
+              <div className="text-center space-y-4 py-4">
+                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto">
+                  <svg className="w-8 h-8 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Checkout Aberto</h3>
+                  <p className="text-sm text-slate-500 mt-1">Uma nova aba foi aberta com o checkout do Mercado Pago. Complete o pagamento lá e seus contatos serão liberados automaticamente.</p>
+                </div>
+                <Button variant="outline" className="w-full border-slate-200" onClick={() => { setCartOpen(false); setCartStep("summary"); }}>Fechar</Button>
+              </div>
+            )}
+
+            {/* ─── Done Step ─── */}
             {cartStep === "done" && (
               <div className="text-center py-6 space-y-3">
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle className="w-8 h-8 text-emerald-600" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-800">Solicitação Enviada!</h3>
-                <p className="text-sm text-slate-500">Seu comprovante foi recebido. O admin irá revisar e liberar os contatos em até 24h.</p>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setCartOpen(false); setCartStep("summary"); }}>
-                  Fechar
+                <h3 className="text-lg font-bold text-slate-800">Pagamento Confirmado!</h3>
+                <p className="text-sm text-slate-500">Seus contatos foram liberados com sucesso.</p>
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => {
+                  setCartOpen(false);
+                  setCartStep("summary");
+                  setCart([]);
+                  utils.representatives.listForCompany.invalidate();
+                }}>
+                  Ver Representantes
                 </Button>
               </div>
             )}
@@ -1475,101 +1569,136 @@ export default function CompanyDashboard() {
                   {(searchData?.reps ?? []).map((rep) => {
                     const isUnlocked = searchData?.unlockedIds.includes(rep.id as never);
                     const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : rep.subscriptionTier === "bronze" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200";
-                    const tierLabel = rep.subscriptionTier === "ouro" ? "Ouro" : rep.subscriptionTier === "prata" ? "Prata" : rep.subscriptionTier === "bronze" ? "Bronze" : "Pendente";
-                    // Before unlock: name, segment, experience, CORE status only
-                    // After unlock: full contact (phone, email, linkedin, bio, city, CNPJ)
+                    const tierLabel = rep.subscriptionTier === "ouro" ? "🏆 Ouro" : rep.subscriptionTier === "prata" ? "🥈 Prata" : rep.subscriptionTier === "bronze" ? "🥉 Bronze" : "Pendente";
                     const coreActive = (rep as any).coreStatus === 'active';
+                    // Avatar color based on name initial
+                    const avatarColors = [
+                      "from-emerald-400 to-emerald-600",
+                      "from-blue-400 to-blue-600",
+                      "from-violet-400 to-violet-600",
+                      "from-amber-400 to-amber-600",
+                      "from-rose-400 to-rose-600",
+                      "from-cyan-400 to-cyan-600",
+                    ];
+                    const avatarColor = avatarColors[(rep.fullName?.charCodeAt(0) ?? 0) % avatarColors.length];
                     return (
-                      <div key={rep.id} className={`rounded-xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow ${isUnlocked ? "border-emerald-200" : "border-slate-200"}`}>
-                        <div className="flex justify-between items-start mb-1">
-                          {isUnlocked ? (
-                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs"><CheckCircle className="w-3 h-3 mr-1" />Contato Desbloqueado</Badge>
-                          ) : (
-                            <Badge className="bg-amber-50 text-amber-600 border-amber-200 text-xs">🔒 Contato bloqueado</Badge>
-                          )}
-                          <Badge className={`text-xs border ${tierBadge}`}>{tierLabel}</Badge>
-                        </div>
-                        <div className="flex items-center gap-3 mb-3 mt-2">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0 bg-emerald-100 text-emerald-700">
-                            {rep.fullName?.charAt(0) ?? "R"}
+                      <div key={rep.id} className={`rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 ${isUnlocked ? "border-emerald-200 ring-1 ring-emerald-100" : "border-slate-200"}`}>
+                        {/* Card header strip */}
+                        <div className={`h-1.5 w-full ${isUnlocked ? "bg-gradient-to-r from-emerald-400 to-emerald-600" : "bg-gradient-to-r from-slate-200 to-slate-300"}`} />
+                        <div className="p-5">
+                          {/* Top row: avatar + name + status badges */}
+                          <div className="flex items-start gap-3 mb-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-base flex-shrink-0 bg-gradient-to-br ${avatarColor} text-white shadow-sm`}>
+                              {rep.fullName?.charAt(0)?.toUpperCase() ?? "R"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-sm text-slate-800 truncate">{rep.fullName ?? "Rep. Comercial"}</div>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {isUnlocked ? (
+                                  <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                    <CheckCircle className="w-2.5 h-2.5" />Desbloqueado
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                    🔒 Bloqueado
+                                  </span>
+                                )}
+                                {rep.availability === "imediata" && (
+                                  <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
+                                    🟢 Disponível
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border flex-shrink-0 ${tierBadge}`}>{tierLabel}</span>
                           </div>
-                          <div className="min-w-0">
-                            <div className="font-bold text-sm truncate text-slate-800">{rep.fullName ?? "Rep. Comercial"}</div>
-                            {rep.availability === "imediata" && (
-                              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs mt-0.5">🟢 Disponível agora</Badge>
+
+                          {/* Stats row */}
+                          <div className="grid grid-cols-3 gap-2 mb-4">
+                            <div className="bg-slate-50 rounded-xl p-2 text-center">
+                              <div className="text-xs font-bold text-slate-700">{rep.experienceYears ?? 0}</div>
+                              <div className="text-[10px] text-slate-400">anos exp.</div>
+                            </div>
+                            <div className="bg-slate-50 rounded-xl p-2 text-center">
+                              <div className="text-xs font-bold text-amber-600">{Number(rep.averageRating ?? 0).toFixed(1)}</div>
+                              <div className="text-[10px] text-slate-400">avaliação</div>
+                            </div>
+                            <div className={`rounded-xl p-2 text-center ${coreActive ? "bg-emerald-50" : "bg-slate-50"}`}>
+                              <div className={`text-xs font-bold ${coreActive ? "text-emerald-600" : "text-slate-400"}`}>
+                                {coreActive ? "✓" : "–"}
+                              </div>
+                              <div className="text-[10px] text-slate-400">CORE</div>
+                            </div>
+                          </div>
+
+                          {/* Segment */}
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-4">
+                            <Briefcase className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{rep.segment ?? "Geral"}</span>
+                          </div>
+
+                          {/* Contact info — only visible after unlock */}
+                          <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
+                            {isUnlocked ? (
+                              <>
+                                {(rep as any).nomeFantasia && (
+                                  <div className="flex items-center gap-1.5 font-medium text-emerald-700">
+                                    <span>🏢</span><span className="truncate">{(rep as any).nomeFantasia}</span>
+                                  </div>
+                                )}
+                                {(rep as any).cnpj && (
+                                  <div className="flex items-center gap-1.5 text-slate-500">
+                                    <span>💼</span>CNPJ: {(rep as any).cnpj}
+                                  </div>
+                                )}
+                                {((rep as any).cidade || (rep as any).estado) && (
+                                  <div className="flex items-center gap-1.5 text-slate-500">
+                                    <MapPin className="w-3 h-3" />{(rep as any).cidade && (rep as any).estado ? `${(rep as any).cidade} - ${(rep as any).estado}` : ((rep as any).cidade ?? (rep as any).estado)}
+                                  </div>
+                                )}
+                                {rep.phone && (
+                                  <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                                    <span>📞</span>{rep.phone}
+                                  </div>
+                                )}
+                                {rep.email && (
+                                  <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                                    <span>📧</span>{rep.email}
+                                  </div>
+                                )}
+                                {rep.linkedinUrl && (
+                                  <a href={rep.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:underline">
+                                    <Linkedin className="w-3 h-3" />LinkedIn
+                                  </a>
+                                )}
+                                {rep.bio && (
+                                  <div className="text-xs mt-1 text-slate-600 border-t border-slate-100 pt-2 line-clamp-2">{rep.bio}</div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="rounded-lg bg-slate-50 border border-dashed border-slate-200 p-3 text-center">
+                                <p className="text-[11px] text-slate-400">🔒 Desbloqueie para ver telefone, e-mail, cidade e bio</p>
+                              </div>
                             )}
                           </div>
-                        </div>
-                        {/* Always visible: segment, experience, CORE status */}
-                        <div className="space-y-1.5 text-xs text-slate-500 mb-4">
-                          <div className="flex items-center gap-1.5"><Briefcase className="w-3 h-3" />{rep.segment ?? "Geral"}</div>
-                          <div className="flex items-center gap-1.5"><Award className="w-3 h-3" />{rep.experienceYears ?? 0} anos de experiência</div>
-                          <div className="flex items-center gap-1.5"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{Number(rep.averageRating ?? 0).toFixed(1)} avaliação</div>
-                          <div className="flex items-center gap-1.5">
-                            {coreActive
-                              ? <><BadgeCheck className="w-3 h-3 text-emerald-600" /><span className="text-emerald-600 font-medium">CORE Ativo</span></>
-                              : <><Shield className="w-3 h-3 text-slate-300" /><span className="text-slate-400">Sem CORE</span></>}
-                          </div>
-                        </div>
-                        {/* Contact info — only visible after unlock */}
-                        <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
+
+                          {/* Action button */}
                           {isUnlocked ? (
-                            <>
-                              {(rep as any).nomeFantasia && (
-                                <div className="flex items-center gap-1.5 font-medium text-emerald-700">
-                                  <span>🏢</span>{(rep as any).nomeFantasia}
-                                </div>
-                              )}
-                              {(rep as any).cnpj && (
-                                <div className="flex items-center gap-1.5 text-slate-500">
-                                  <span>💼</span>CNPJ: {(rep as any).cnpj}
-                                </div>
-                              )}
-                              {((rep as any).cidade || (rep as any).estado) && (
-                                <div className="flex items-center gap-1.5 text-slate-500">
-                                  <MapPin className="w-3 h-3" />{(rep as any).cidade && (rep as any).estado ? `${(rep as any).cidade} - ${(rep as any).estado}` : ((rep as any).cidade ?? (rep as any).estado)}
-                                </div>
-                              )}
-                              {rep.phone && (
-                                <div className="flex items-center gap-1.5 font-medium text-slate-700">
-                                  <span>📞</span>{rep.phone}
-                                </div>
-                              )}
-                              {rep.email && (
-                                <div className="flex items-center gap-1.5 font-medium text-slate-700">
-                                  <span>📧</span>{rep.email}
-                                </div>
-                              )}
-                              {rep.linkedinUrl && (
-                                <a href={rep.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:underline">
-                                  <Linkedin className="w-3 h-3" />LinkedIn
-                                </a>
-                              )}
-                              {rep.bio && (
-                                <div className="text-xs mt-1 text-slate-600 border-t border-slate-100 pt-2">{rep.bio}</div>
-                              )}
-                            </>
+                            <Button size="sm" variant="outline" className="w-full mt-4 text-xs border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => { setReviewRepId(rep.id); setReviewRepName(rep.fullName ?? ""); setReviewModalOpen(true); }}>
+                              <Star className="w-3 h-3 mr-1 fill-amber-400 text-amber-400" /> Avaliar Representante
+                            </Button>
+                          ) : cart.some(c => c.id === rep.id) ? (
+                            <Button size="sm" variant="outline" className="w-full mt-4 text-xs border-emerald-300 text-emerald-700 bg-emerald-50"
+                              onClick={() => removeFromCart(rep.id)}>
+                              <ShoppingCart className="w-3 h-3 mr-1" /> No carrinho — remover
+                            </Button>
                           ) : (
-                            <div className="rounded-lg bg-slate-50 border border-dashed border-slate-200 p-3 text-center">
-                              <p className="text-[11px] text-slate-400">🔒 Desbloqueie para ver telefone, e-mail, cidade e bio</p>
-                            </div>
+                            <Button size="sm" className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+                              onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
+                              <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — R$29
+                            </Button>
                           )}
                         </div>
-                        {isUnlocked ? (
-                          <Button size="sm" variant="outline" className="w-full mt-3 text-xs border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => { setReviewRepId(rep.id); setReviewRepName(rep.fullName ?? ""); setReviewModalOpen(true); }}>
-                            <Star className="w-3 h-3 mr-1 fill-amber-400 text-amber-400" /> Avaliar Representante
-                          </Button>
-                        ) : cart.some(c => c.id === rep.id) ? (
-                          <Button size="sm" variant="outline" className="w-full mt-3 text-xs border-emerald-300 text-emerald-700 bg-emerald-50"
-                            onClick={() => removeFromCart(rep.id)}>
-                            <ShoppingCart className="w-3 h-3 mr-1" /> No carrinho — remover
-                          </Button>
-                        ) : (
-                          <Button size="sm" className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
-                            onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
-                            <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — R$29
-                          </Button>
-                        )}
                       </div>
                     );
                   })}

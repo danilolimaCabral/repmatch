@@ -90,6 +90,62 @@ mpRouter.post("/unlock-preference", async (req: Request, res: Response) => {
   }
 });
 
+
+// ─── Gerar PIX para desbloqueio em lote ──────────────────────────────────────
+mpRouter.post("/unlock-pix", async (req: Request, res: Response) => {
+  try {
+    const { requestId, repIds, userId, userEmail, userName, cpf } = req.body as {
+      requestId: number;
+      repIds: number[];
+      userId: number;
+      userEmail: string;
+      userName: string;
+      cpf: string;
+    };
+
+    if (!requestId || !repIds?.length) return res.status(400).json({ error: "Dados inválidos" });
+
+    const PRICE_PER_REP = 29;
+    const totalAmount = repIds.length * PRICE_PER_REP;
+
+    const payment = new Payment(mp);
+    const result = await payment.create({
+      body: {
+        transaction_amount: totalAmount,
+        description: `Desbloqueio de ${repIds.length} representante${repIds.length > 1 ? "s" : ""} — RepMatch`,
+        payment_method_id: "pix",
+        payer: {
+          email: userEmail,
+          first_name: userName.split(" ")[0],
+          last_name: userName.split(" ").slice(1).join(" ") || userName.split(" ")[0],
+          identification: {
+            type: "CPF",
+            number: cpf.replace(/\D/g, ""),
+          },
+        },
+        metadata: {
+          type: "unlock_batch",
+          request_id: requestId,
+          user_id: userId,
+          rep_ids: repIds,
+        },
+      },
+    });
+
+    const txInfo = result.point_of_interaction?.transaction_data;
+    return res.json({
+      paymentId: result.id,
+      status: result.status,
+      qrCode: txInfo?.qr_code,
+      qrCodeBase64: txInfo?.qr_code_base64,
+      expiresAt: result.date_of_expiration,
+    });
+  } catch (e: any) {
+    console.error("[MP] unlock-pix error:", e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Criar preferência de pagamento (Checkout Pro — cartão + Pix) ─────────────
 mpRouter.post("/preference", async (req: Request, res: Response) => {
   try {
