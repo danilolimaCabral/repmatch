@@ -2,6 +2,8 @@ import "dotenv/config";
 import { webcrypto } from "crypto";
 import fs from "fs";
 import path from "path";
+import https from "https";
+import http from "http";
 // Polyfill globalThis.crypto for jose@6 (Web Crypto API) on older Node.js versions
 if (!globalThis.crypto) {
   (globalThis as any).crypto = webcrypto;
@@ -222,7 +224,8 @@ async function startServer() {
     }
   });
 
-  // ─── Servir vídeo hero — tenta volume Railway /video/ ────────────────────────
+  // ─── Servir vídeo hero — tenta volume Railway /video/ ou faz proxy do GitHub Release ──
+  const GITHUB_VIDEO_URL = "https://github.com/danilolimaCabral/repmatch/releases/download/v1.0-assets/repmatch-hero-bg.mp4";
   app.get("/hero-bg.mp4", async (req, res) => {
     try {
       const candidates = [
@@ -232,7 +235,31 @@ async function startServer() {
       ].filter(Boolean);
       const videoPath = candidates.find(p => fs.existsSync(p));
       if (!videoPath) {
-        return res.status(404).send("Video not found — coloque o arquivo em /video/repmatch-hero-bg.mp4 no volume Railway");
+        // Fallback: proxy do GitHub Release com content-type correto
+        const ghUrl = new URL(GITHUB_VIDEO_URL);
+        const makeRequest = (url: URL): void => {
+          const mod = url.protocol === "https:" ? https : http;
+          const reqOptions = {
+            hostname: url.hostname,
+            path: url.pathname + url.search,
+            headers: { "User-Agent": "RepMatch/1.0" },
+          };
+          mod.get(reqOptions, (ghRes: any) => {
+            if (ghRes.statusCode === 301 || ghRes.statusCode === 302 || ghRes.statusCode === 307) {
+              makeRequest(new URL(ghRes.headers.location));
+              ghRes.resume();
+              return;
+            }
+            res.writeHead(200, {
+              "Content-Type": "video/mp4",
+              "Accept-Ranges": "none",
+              "Cache-Control": "public, max-age=604800",
+            });
+            ghRes.pipe(res);
+          }).on("error", () => res.status(500).send("Proxy error"));
+        };
+        makeRequest(ghUrl);
+        return;
       }
       const stat = fs.statSync(videoPath);
       const fileSize = stat.size;
