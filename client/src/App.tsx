@@ -16,7 +16,6 @@ import ManagerPlans from "./pages/ManagerPlans";
 import AdminDashboard from "./pages/AdminDashboard";
 import BuscarRepresentantes from "./pages/BuscarRepresentantes";
 import Vagas from "./pages/Vagas";
-import Planos from "./pages/Planos";
 import Privacidade from "./pages/Privacidade";
 import Termos from "./pages/Termos";
 import VerificacaoKYC from "./pages/VerificacaoKYC";
@@ -41,7 +40,7 @@ function Router() {
       <Route path="/oportunidades-reps" component={OportunidadesReps} />
       <Route path="/reps-disponiveis" component={OportunidadesReps} />
       <Route path="/faq">{() => { window.location.replace('/#faq'); return null; }}</Route>
-      <Route path="/planos" component={Planos} />
+      <Route path="/planos">{() => { window.location.replace('/'); return null; }}</Route>
       <Route path="/parcerias" component={Parcerias} />
       <Route path="/privacidade" component={Privacidade} />
       <Route path="/termos" component={Termos} />

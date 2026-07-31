@@ -48,9 +48,10 @@ const RANK_CONFIG = {
 };
 
 const TIER_CONFIG = {
-  starter: { label: "Starter", color: "bg-slate-100 text-slate-600" },
-  pro: { label: "Pro", color: "bg-emerald-100 text-emerald-700" },
-  enterprise: { label: "Enterprise", color: "bg-amber-100 text-amber-700" },
+  starter:    { label: "Empresa",      color: "bg-slate-100 text-slate-600" },
+  pro:        { label: "Empresa",      color: "bg-emerald-100 text-emerald-700" },
+  enterprise: { label: "Empresa",      color: "bg-emerald-100 text-emerald-700" },
+  free:       { label: "Empresa",      color: "bg-slate-100 text-slate-600" },
 };
 
 const STATUS_CONFIG = {
@@ -421,6 +422,18 @@ export default function CompanyDashboard() {
     searchInput,
     { enabled: activeTab === "search", staleTime: 30_000, retry: 1 }
   );
+
+  // ─── Auto-Match: ativa quando não há filtros manuais ativos ───────────────────
+  const hasManualFilters = !!(searchRegion || searchSegment || searchTier || searchKycApproved || searchCoreActive || searchAvailability);
+  const autoMatchInput = useMemo(() => ({ page: searchPage, limit: 20 }), [searchPage]);
+  const { data: autoMatchData, isLoading: autoMatchLoading } = trpc.representatives.autoMatch.useQuery(
+    autoMatchInput,
+    { enabled: activeTab === "search" && !hasManualFilters, staleTime: 60_000, retry: 1 }
+  );
+
+  // Decide qual fonte de dados usar: autoMatch (sem filtros) ou busca manual (com filtros)
+  const activeSearchData = hasManualFilters ? searchData : (autoMatchData ?? searchData);
+  const activeSearchLoading = hasManualFilters ? searchLoading : (autoMatchLoading || searchLoading);
   const { data: availableNowData } = trpc.representatives.countAvailableNow.useQuery(undefined, { staleTime: 60_000 });
 
   const utils = trpc.useUtils();
@@ -1574,21 +1587,46 @@ export default function CompanyDashboard() {
               </div>
 
             </div>
-            {searchLoading ? (
+            {/* Banner de Auto-Match */}
+            {!hasManualFilters && autoMatchData?.autoMatchActive && (
+              <div className="mb-5 flex items-start gap-3 bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-2xl px-5 py-4">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-base flex-shrink-0 shadow-sm">
+                  🤖
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-violet-800">🤖 Match Automático Ativo</p>
+                  <p className="text-xs text-violet-600 mt-0.5">{autoMatchData.matchReason}</p>
+                  {autoMatchData.compatibleSegments && autoMatchData.compatibleSegments.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {autoMatchData.compatibleSegments.slice(0, 4).map((seg: string) => (
+                        <span key={seg} className="text-[10px] bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">{seg}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  className="text-[10px] text-violet-500 hover:text-violet-700 underline flex-shrink-0 mt-1"
+                  onClick={() => { setSearchRegion(profile.region ?? undefined); setSearchPage(1); }}
+                >Filtrar manualmente</button>
+              </div>
+            )}
+
+            {activeSearchLoading ? (
               <div className="flex items-center gap-2 text-slate-400 py-12 justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" /> Carregando representantes...
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" /> {!hasManualFilters ? "Calculando matches..." : "Carregando representantes..."}
               </div>
             ) : (
               <>
-                {(searchData as any)?.isFallback && searchSegment && (
+                {(activeSearchData as any)?.isFallback && searchSegment && (
                   <div className="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
                     <span className="text-base">⚠️</span>
                     <span>Não encontramos representantes em <strong>{searchSegment}</strong>. Exibindo representantes de outros segmentos que podem te atender.</span>
                   </div>
                 )}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(searchData?.reps ?? []).map((rep) => {
-                    const isUnlocked = searchData?.unlockedIds.includes(rep.id as never);
+                  {(activeSearchData?.reps ?? []).map((rep) => {
+                    const isUnlocked = activeSearchData?.unlockedIds.includes(rep.id as never);
+                    const autoMatchScore = (rep as any).autoMatchScore as number | undefined;
                     const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : rep.subscriptionTier === "bronze" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200";
                     const tierLabel = rep.subscriptionTier === "ouro" ? "🏆 Ouro" : rep.subscriptionTier === "prata" ? "🥈 Prata" : rep.subscriptionTier === "bronze" ? "🥉 Bronze" : "Pendente";
                     const coreActive = (rep as any).coreStatus === 'active';
@@ -1627,6 +1665,15 @@ export default function CompanyDashboard() {
                                 {rep.availability === "imediata" && (
                                   <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
                                     🟢 Disponível
+                                  </span>
+                                )}
+                                {autoMatchScore !== undefined && autoMatchScore > 0 && (
+                                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                    autoMatchScore >= 70 ? "bg-violet-100 text-violet-700 border-violet-200" :
+                                    autoMatchScore >= 40 ? "bg-amber-50 text-amber-600 border-amber-200" :
+                                    "bg-slate-50 text-slate-500 border-slate-200"
+                                  }`}>
+                                    🤖 {autoMatchScore}% match
                                   </span>
                                 )}
                               </div>
@@ -1737,11 +1784,11 @@ export default function CompanyDashboard() {
                     );
                   })}
                 </div>
-                {searchData && searchData.total > 20 && (
+                {activeSearchData && activeSearchData.total > 20 && (
                   <div className="flex justify-center gap-3 mt-6">
                     <Button variant="outline" size="sm" className="border-slate-200" disabled={searchPage === 1} onClick={() => setSearchPage(p => Math.max(1, p - 1))}>Anterior</Button>
-                    <span className="text-sm text-slate-500 flex items-center">Página {searchPage} de {Math.ceil(searchData.total / 20)}</span>
-                    <Button variant="outline" size="sm" className="border-slate-200" disabled={searchPage >= Math.ceil(searchData.total / 20)} onClick={() => setSearchPage(p => p + 1)}>Próxima</Button>
+                    <span className="text-sm text-slate-500 flex items-center">Página {searchPage} de {Math.ceil(activeSearchData.total / 20)}</span>
+                    <Button variant="outline" size="sm" className="border-slate-200" disabled={searchPage >= Math.ceil(activeSearchData.total / 20)} onClick={() => setSearchPage(p => p + 1)}>Próxima</Button>
                   </div>
                 )}
               </>

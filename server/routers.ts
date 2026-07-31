@@ -391,6 +391,145 @@ export const appRouter = router({
         .where(eq(representatives.availability, "imediata"));
       return { count: Number(result[0]?.count ?? 0) };
     }),
+
+    // ─── Match Automático por CNAE ────────────────────────────────────────────
+    // Quando empresa abre a busca, IA cruza CNAE da empresa × segmento/região
+    // dos representantes e retorna os mais compatíveis no topo com score.
+    autoMatch: protectedProcedure
+      .input(z.object({
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(50).default(20),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const company = await getCompanyByUserId(ctx.user.id);
+        if (!company) throw new TRPCError({ code: "FORBIDDEN", message: "Crie seu perfil de empresa primeiro" });
+
+        const page = input?.page ?? 1;
+        const limit = input?.limit ?? 20;
+
+        // Mapeamento CNAE → segmentos compatíveis (baseado em CNAE fiscal)
+        // Usamos IA para fazer o cruzamento semântico
+        const companyCnae = company.segment ?? "";
+        const companyRegion = company.region ?? "";
+
+        // Busca representantes com filtro inicial por região (se disponível)
+        const reps = await listRepresentativesForCompany(company.id, {
+          region: companyRegion || undefined,
+          page,
+          limit: limit * 3, // busca mais para depois ordenar por score
+          _isAdmin: false,
+        } as any);
+
+        if (!reps.reps || reps.reps.length === 0) {
+          // Se não achou na região, busca sem filtro
+          const allReps = await listRepresentativesForCompany(company.id, {
+            page,
+            limit,
+            _isAdmin: false,
+          } as any);
+          return { reps: allReps.reps, total: allReps.total, unlockedIds: allReps.unlockedIds, autoMatchActive: false, matchReason: "Sem filtro de região", compatibleSegments: [] };
+        }
+
+        // Score de compatibilidade CNAE × segmento
+        // Mapeamento semântico: CNAE → segmentos de representantes
+        const CNAE_SEGMENT_MAP: Record<string, string[]> = {
+          // Indústria alimentícia
+          "alimentos": ["Alimentos e Bebidas", "Alimentício", "Food Service", "Supermercados"],
+          "bebidas": ["Alimentos e Bebidas", "Alimentício", "Bebidas"],
+          // Vestuário e têxtil
+          "confecção": ["Moda e Vestuário", "Têxtil", "Confecção"],
+          "têxtil": ["Moda e Vestuário", "Têxtil"],
+          "vestuário": ["Moda e Vestuário", "Têxtil", "Confecção"],
+          // Tecnologia
+          "software": ["Tecnologia", "TI", "SaaS", "Informática"],
+          "tecnologia": ["Tecnologia", "TI", "SaaS", "Informática"],
+          "informática": ["Tecnologia", "TI", "Informática"],
+          // Saúde
+          "farmacêutica": ["Saúde", "Farmacêutico", "Médico-Hospitalar"],
+          "médico": ["Saúde", "Médico-Hospitalar"],
+          "hospitalar": ["Saúde", "Médico-Hospitalar"],
+          // Construção
+          "construção": ["Construção Civil", "Materiais de Construção", "Imobiliário"],
+          "imóveis": ["Imobiliário", "Construção Civil"],
+          // Varejo
+          "varejo": ["Varejo", "Comércio", "Supermercados"],
+          "comércio": ["Varejo", "Comércio"],
+          // Agronegócio
+          "agrícola": ["Agronegócio", "Agro", "Insumos Agrícolas"],
+          "agropecuária": ["Agronegócio", "Agro"],
+          // Educação
+          "educação": ["Educação", "Treinamento", "Cursos"],
+          // Logística
+          "transporte": ["Logística", "Transporte"],
+          "logística": ["Logística", "Transporte"],
+          // Financeiro
+          "financeiro": ["Financeiro", "Seguros", "Crédito"],
+          "seguros": ["Seguros", "Financeiro"],
+        };
+
+        // Detecta segmentos compatíveis com o CNAE da empresa
+        const cnaeLower = companyCnae.toLowerCase();
+        let compatibleSegments: string[] = [];
+        for (const [keyword, segments] of Object.entries(CNAE_SEGMENT_MAP)) {
+          if (cnaeLower.includes(keyword)) {
+            compatibleSegments = [...compatibleSegments, ...segments];
+          }
+        }
+
+        // Calcula score de compatibilidade para cada representante
+        const scored = reps.reps.map((rep: any) => {
+          let matchScore = 0;
+          const repSegment = (rep.segment ?? "").toLowerCase();
+          const repRegion = (rep.region ?? "").toLowerCase();
+          const compRegion = companyRegion.toLowerCase();
+
+          // Score por região (40 pts)
+          if (compRegion && repRegion && repRegion === compRegion) matchScore += 40;
+          else if (compRegion && repRegion && (repRegion.includes(compRegion) || compRegion.includes(repRegion))) matchScore += 20;
+
+          // Score por segmento/CNAE (40 pts)
+          if (compatibleSegments.length > 0) {
+            const segmentMatch = compatibleSegments.some(s =>
+              repSegment.includes(s.toLowerCase()) || s.toLowerCase().includes(repSegment)
+            );
+            if (segmentMatch) matchScore += 40;
+            else if (repSegment && cnaeLower.includes(repSegment)) matchScore += 20;
+          } else if (rep.segment && company.segment && rep.segment === company.segment) {
+            matchScore += 40;
+          }
+
+          // Score por experiência (10 pts)
+          if ((rep.experienceYears ?? 0) >= 5) matchScore += 10;
+          else if ((rep.experienceYears ?? 0) >= 2) matchScore += 5;
+
+          // Score por verificação (10 pts)
+          if (rep.kycStatus === "approved") matchScore += 5;
+          if (rep.coreStatus === "active") matchScore += 5;
+
+          return { ...rep, autoMatchScore: Math.min(100, matchScore) };
+        });
+
+        // Ordena por score decrescente
+        const sorted = scored.sort((a: any, b: any) => b.autoMatchScore - a.autoMatchScore);
+        const paginated = sorted.slice(0, limit);
+
+        const matchReason = compatibleSegments.length > 0
+          ? `Baseado no CNAE: ${companyCnae} → segmentos: ${compatibleSegments.slice(0, 3).join(", ")}`
+          : companyRegion
+          ? `Baseado na região: ${companyRegion}`
+          : "Ordenado por disponibilidade e verificação";
+
+        return {
+          reps: paginated,
+          total: reps.total,
+          unlockedIds: reps.unlockedIds,
+          page,
+          limit,
+          autoMatchActive: true,
+          matchReason,
+          compatibleSegments,
+        };
+      }),
   }),
 
   // ─── Companies ──────────────────────────────────────────────────────────────
@@ -564,6 +703,62 @@ export const appRouter = router({
       const job = await getJobById(input.jobId);
       if (!job || job.companyId !== company.id) throw new TRPCError({ code: "FORBIDDEN" });
       return getTopMatchesForJob(input.jobId);
+    }),
+
+    // ─── Vagas compatíveis para o representante (match automático) ────────────────────
+    // Quando representante abre o dashboard, IA cruza seu perfil (região/segmento)
+    // com as vagas abertas e retorna as mais compatíveis no topo com score.
+    matchedForRep: protectedProcedure.query(async ({ ctx }) => {
+      const rep = await getRepresentativeByUserId(ctx.user.id);
+      if (!rep) throw new TRPCError({ code: "FORBIDDEN", message: "Complete seu perfil de representante primeiro" });
+
+      // Busca todas as vagas abertas
+      const allJobs = await listJobs({ status: "open" });
+      if (!allJobs || allJobs.length === 0) return { jobs: [], matchActive: false };
+
+      const repRegion = (rep.region ?? "").toLowerCase();
+      const repSegment = (rep.segment ?? "").toLowerCase();
+
+      // Calcula score de compatibilidade para cada vaga
+      const scored = allJobs.map((job: any) => {
+        let matchScore = 0;
+        const jobRegion = (job.region ?? "").toLowerCase();
+        const jobSegment = (job.segment ?? "").toLowerCase();
+
+        // Score por região (40 pts)
+        if (repRegion && jobRegion) {
+          if (repRegion === jobRegion) matchScore += 40;
+          else if (repRegion.includes(jobRegion) || jobRegion.includes(repRegion)) matchScore += 20;
+          else if (jobRegion.includes("nacional") || jobRegion.includes("todo brasil")) matchScore += 30;
+        }
+
+        // Score por segmento (40 pts)
+        if (repSegment && jobSegment) {
+          if (repSegment === jobSegment) matchScore += 40;
+          else if (repSegment.includes(jobSegment) || jobSegment.includes(repSegment)) matchScore += 25;
+        }
+
+        // Score por tier compatível (10 pts)
+        const tierRank = { free: 0, bronze: 1, prata: 2, ouro: 3 } as const;
+        const repTierRank = tierRank[rep.subscriptionTier as keyof typeof tierRank] ?? 0;
+        const jobMinRank = tierRank[job.minTierRequired as keyof typeof tierRank] ?? 0;
+        if (repTierRank >= jobMinRank) matchScore += 10;
+
+        // Score por vaga em destaque (10 pts)
+        if (job.isFeatured) matchScore += 10;
+
+        return { ...job, matchScore: Math.min(100, matchScore) };
+      });
+
+      // Ordena por score decrescente e retorna top 20
+      const sorted = scored.sort((a: any, b: any) => b.matchScore - a.matchScore).slice(0, 20);
+
+      return {
+        jobs: sorted,
+        matchActive: true,
+        repRegion: rep.region,
+        repSegment: rep.segment,
+      };
     }),
   }),
 

@@ -45,10 +45,10 @@ const STATUS_CONFIG = {
 };
 
 const TIER_CONFIG = {
-  free:   { label: "Gratuito", color: "bg-emerald-100 text-emerald-700",  upgrade: null },
-  bronze: { label: "Bronze",   color: "bg-orange-100 text-orange-700",    upgrade: null },
-  prata:  { label: "Prata",    color: "bg-emerald-100 text-emerald-700",  upgrade: null },
-  ouro:   { label: "Ouro",     color: "bg-amber-100 text-amber-700",      upgrade: null },
+  free:   { label: "Verificado",  color: "bg-emerald-100 text-emerald-700",  upgrade: null },
+  bronze: { label: "Bronze",      color: "bg-orange-100 text-orange-700",    upgrade: null },
+  prata:  { label: "Prata",       color: "bg-blue-100 text-blue-700",        upgrade: null },
+  ouro:   { label: "Ouro",        color: "bg-amber-100 text-amber-700",      upgrade: null },
 };
 
 const RANK_TIER_MAP: Record<string, string[]> = {
@@ -332,6 +332,10 @@ export default function RepDashboard() {
   const jobs = allJobs?.filter(j => !minCommission || Number(j.commissionPercentage ?? 0) >= minCommission);
   const { data: myApplications, isLoading: appsLoading } = trpc.candidaturas.myApplications.useQuery();
   const { data: myOpportunities, isLoading: oppsLoading } = trpc.opportunities.myList.useQuery();
+  const { data: matchedJobsData, isLoading: matchedJobsLoading } = trpc.jobs.matchedForRep.useQuery(undefined, {
+    enabled: activeTab === "jobs",
+    staleTime: 60_000,
+  });
   const { data: myReviews } = trpc.reviews.getByRep.useQuery(
     { representativeId: profile?.id ?? 0 },
     { enabled: !!profile?.id }
@@ -648,6 +652,81 @@ export default function RepDashboard() {
                   />
                 </div>
               </div>
+
+              {/* ─── Seção: Vagas para Você (Match Automático) ─── */}
+              {matchedJobsData?.matchActive && matchedJobsData.jobs.length > 0 && !searchRegion && !searchSegment && !minCommission && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-sm shadow-sm">
+                      🤖
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-slate-800">Vagas para Você</h2>
+                      <p className="text-xs text-slate-500">
+                        {matchedJobsData.repRegion ? `Baseado na sua região (${matchedJobsData.repRegion})` : ""}
+                        {matchedJobsData.repRegion && matchedJobsData.repSegment ? " · " : ""}
+                        {matchedJobsData.repSegment ? `segmento ${matchedJobsData.repSegment}` : ""}
+                        {!matchedJobsData.repRegion && !matchedJobsData.repSegment ? "Vagas mais compatíveis com seu perfil" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {matchedJobsData.jobs.slice(0, 5).map((job: any) => {
+                      const alreadyApplied = myApplications?.some((a: any) => a.job?.id === job.id);
+                      const score = job.matchScore as number;
+                      return (
+                        <div key={job.id} className={`rounded-xl border p-5 bg-white shadow-sm transition-all ${
+                          score >= 70 ? "border-violet-200 hover:border-violet-300" :
+                          score >= 40 ? "border-amber-200 hover:border-amber-300" :
+                          "border-slate-200 hover:border-emerald-300"
+                        } hover:shadow-md`}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                {job.isFeatured && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs"><Star className="w-3 h-3 mr-1" />Destaque</Badge>}
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                  score >= 70 ? "bg-violet-100 text-violet-700 border-violet-200" :
+                                  score >= 40 ? "bg-amber-50 text-amber-600 border-amber-200" :
+                                  "bg-slate-50 text-slate-500 border-slate-200"
+                                }`}>
+                                  🤖 {score}% match
+                                </span>
+                              </div>
+                              <h3 className="font-semibold text-base text-slate-900">{job.title}</h3>
+                              <div className="flex items-center gap-3 text-sm text-slate-500 mt-1 flex-wrap">
+                                {job.region && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.region}</span>}
+                                {job.commissionPercentage && (
+                                  <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                                    <DollarSign className="w-3 h-3" />{job.commissionPercentage}% comissão
+                                  </span>
+                                )}
+                                {job.segment && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{job.segment}</span>}
+                              </div>
+                              {job.description && <p className="text-sm text-slate-500 mt-2 line-clamp-2">{job.description}</p>}
+                            </div>
+                            <div className="shrink-0">
+                              {alreadyApplied ? (
+                                <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs px-3 py-1.5">
+                                  <CheckCircle className="w-3 h-3 mr-1" />Candidatado
+                                </Badge>
+                              ) : (
+                                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                                  disabled={applyMutation.isPending}
+                                  onClick={() => applyMutation.mutate({ jobId: job.id })}>
+                                  <ChevronRight className="w-4 h-4 mr-1" />Candidatar
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <p className="text-xs text-slate-400 text-center">Todas as vagas disponíveis abaixo ↓</p>
+                  </div>
+                </div>
+              )}
 
               {/* Jobs List */}
               {jobsLoading ? (

@@ -168,6 +168,9 @@ export const applications = mysqlTable("applications", {
   totalScore: int("totalScore").default(0),
   llmAnalysis: text("llmAnalysis"),
   status: mysqlEnum("status", ["pending", "viewed", "accepted", "rejected", "hired"]).default("pending").notNull(),
+  contactUnlocked: tinyint("contactUnlocked").default(0).notNull(),
+  mpPaymentId: varchar("mpPaymentId", { length: 100 }),
+  applicationFee: int("applicationFee").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (t) => ({
