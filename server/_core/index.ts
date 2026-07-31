@@ -228,6 +228,55 @@ async function startServer() {
     }).catch(() => res.status(500).send("Server error"));
   });
 
+  // ─── Servir vídeo hero do volume Railway /video/ ────────────────────────────────
+  // Volume Railway montado em /video (configurado no painel Railway)
+  app.get("/hero-bg.mp4", (req, res) => {
+    import("fs").then(fs => {
+      import("path").then(pathMod => {
+        // Tenta volume Railway primeiro, depois fallback para env var VIDEO_PATH
+        const candidates = [
+          "/video/repmatch-hero-bg.mp4",
+          "/video/hero-bg.mp4",
+          process.env.VIDEO_PATH || "",
+        ].filter(Boolean);
+
+        const videoPath = candidates.find(p => fs.existsSync(p));
+
+        if (!videoPath) {
+          res.status(404).send("Video not found — coloque o arquivo em /video/repmatch-hero-bg.mp4 no volume Railway");
+          return;
+        }
+
+        const stat = fs.statSync(videoPath);
+        const fileSize = stat.size;
+        const range = req.headers.range;
+
+        if (range) {
+          const parts = range.replace(/bytes=/, "").split("-");
+          const start = parseInt(parts[0], 10);
+          const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+          const chunkSize = end - start + 1;
+          res.writeHead(206, {
+            "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+            "Accept-Ranges": "bytes",
+            "Content-Length": chunkSize,
+            "Content-Type": "video/mp4",
+            "Cache-Control": "public, max-age=604800",
+          });
+          fs.createReadStream(videoPath, { start, end }).pipe(res);
+        } else {
+          res.writeHead(200, {
+            "Content-Length": fileSize,
+            "Content-Type": "video/mp4",
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=604800",
+          });
+          fs.createReadStream(videoPath).pipe(res);
+        }
+      });
+    }).catch(() => res.status(500).send("Error"));
+  });
+
   // Health check endpoint for Railway
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
