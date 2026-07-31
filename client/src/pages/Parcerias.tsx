@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
-const VIDEO_URL = "/manus-storage/repmatch-hero-bg_5dc5046b.mp4";
+const VIDEO_URL = "/api/video/repmatch-hero-bg.mp4";
 const WHATSAPP_NUMBER = "5541999499815";
 const WHATSAPP_MSG = encodeURIComponent("Olá! Tenho interesse em fazer parceria com o RepMatch. Podemos conversar?");
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MSG}`;

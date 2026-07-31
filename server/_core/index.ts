@@ -182,6 +182,52 @@ async function startServer() {
     }
   });
 
+  // ─── Rota de vídeo — serve arquivos do volume Railway montado em /video ────
+  // O volume Railway está montado em /video (configurado no painel Railway)
+  // Acesso via: /api/video/nome-do-arquivo.mp4
+  app.get("/api/video/:filename", (req, res) => {
+    const { createReadStream, statSync, existsSync } = require("fs");
+    const path = require("path");
+    const filename = req.params.filename;
+    // Sanitizar nome do arquivo (evitar path traversal)
+    const safeName = path.basename(filename);
+    const filePath = path.join("/video", safeName);
+
+    if (!existsSync(filePath)) {
+      res.status(404).send("Video not found");
+      return;
+    }
+
+    const stat = statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range) {
+      // Suporte a Range requests (necessário para vídeo HTML5)
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunkSize = end - start + 1;
+      const stream = createReadStream(filePath, { start, end });
+      res.writeHead(206, {
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": chunkSize,
+        "Content-Type": "video/mp4",
+        "Cache-Control": "public, max-age=86400",
+      });
+      stream.pipe(res);
+    } else {
+      res.writeHead(200, {
+        "Content-Length": fileSize,
+        "Content-Type": "video/mp4",
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=86400",
+      });
+      createReadStream(filePath).pipe(res);
+    }
+  });
+
   // Health check endpoint for Railway
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
