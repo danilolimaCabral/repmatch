@@ -186,46 +186,46 @@ async function startServer() {
   // O volume Railway está montado em /video (configurado no painel Railway)
   // Acesso via: /api/video/nome-do-arquivo.mp4
   app.get("/api/video/:filename", (req, res) => {
-    const { createReadStream, statSync, existsSync } = require("fs");
-    const path = require("path");
-    const filename = req.params.filename;
-    // Sanitizar nome do arquivo (evitar path traversal)
-    const safeName = path.basename(filename);
-    const filePath = path.join("/video", safeName);
+    import("fs").then(fs => {
+      import("path").then(pathMod => {
+        const filename = req.params.filename;
+        const safeName = pathMod.basename(filename);
+        const filePath = pathMod.join("/video", safeName);
 
-    if (!existsSync(filePath)) {
-      res.status(404).send("Video not found");
-      return;
-    }
+        if (!fs.existsSync(filePath)) {
+          res.status(404).send("Video not found");
+          return;
+        }
 
-    const stat = statSync(filePath);
-    const fileSize = stat.size;
-    const range = req.headers.range;
+        const stat = fs.statSync(filePath);
+        const fileSize = stat.size;
+        const range = req.headers.range;
 
-    if (range) {
-      // Suporte a Range requests (necessário para vídeo HTML5)
-      const parts = range.replace(/bytes=/, "").split("-");
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-      const chunkSize = end - start + 1;
-      const stream = createReadStream(filePath, { start, end });
-      res.writeHead(206, {
-        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-        "Accept-Ranges": "bytes",
-        "Content-Length": chunkSize,
-        "Content-Type": "video/mp4",
-        "Cache-Control": "public, max-age=86400",
+        if (range) {
+          const parts = range.replace(/bytes=/, "").split("-");
+          const start = parseInt(parts[0], 10);
+          const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+          const chunkSize = end - start + 1;
+          const stream = fs.createReadStream(filePath, { start, end });
+          res.writeHead(206, {
+            "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+            "Accept-Ranges": "bytes",
+            "Content-Length": chunkSize,
+            "Content-Type": "video/mp4",
+            "Cache-Control": "public, max-age=86400",
+          });
+          stream.pipe(res);
+        } else {
+          res.writeHead(200, {
+            "Content-Length": fileSize,
+            "Content-Type": "video/mp4",
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=86400",
+          });
+          fs.createReadStream(filePath).pipe(res);
+        }
       });
-      stream.pipe(res);
-    } else {
-      res.writeHead(200, {
-        "Content-Length": fileSize,
-        "Content-Type": "video/mp4",
-        "Accept-Ranges": "bytes",
-        "Cache-Control": "public, max-age=86400",
-      });
-      createReadStream(filePath).pipe(res);
-    }
+    }).catch(() => res.status(500).send("Server error"));
   });
 
   // Health check endpoint for Railway
