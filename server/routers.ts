@@ -350,7 +350,13 @@ export const appRouter = router({
           const company = await getCompanyByUserId(ctx.user.id);
           subscriptionTier = company?.subscriptionTier ?? 'starter';
         }
-        return getRepresentativePreview({ ...input, subscriptionTier });
+        // Tratar string vazia como undefined para não quebrar o filtro SQL
+        return getRepresentativePreview({
+          ...input,
+          region: input?.region || undefined,
+          segment: input?.segment || undefined,
+          subscriptionTier,
+        });
       }),
     list: publicProcedure
       .input(z.object({ region: z.string().optional(), segment: z.string().optional() }).optional())

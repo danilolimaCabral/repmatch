@@ -745,6 +745,15 @@ export async function getRepresentativePreview(filters?: { region?: string; segm
   if (filters?.coreActive) conditions.push(eq(representatives.coreStatus, 'active'));
   if (filters?.availability) conditions.push(eq(representatives.availability, filters.availability as "imediata" | "30dias" | "60dias" | "negociavel"));
   
+  // COUNT real com filtros aplicados
+  const [countResult] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(representatives)
+    .where(and(...conditions));
+  const totalCount = Number(countResult?.count ?? 0);
+
+  // Busca apenas os primeiros registros para preview (máx 5)
+  const previewLimit = filters?.subscriptionTier && filters.subscriptionTier !== 'free' ? 5 : 3;
   const allReps = await db
     .select({
       id: representatives.id,
@@ -758,7 +767,7 @@ export async function getRepresentativePreview(filters?: { region?: string; segm
     .from(representatives)
     .where(and(...conditions))
     .orderBy(desc(representatives.averageRating))
-    .limit(100);
+    .limit(previewLimit);
 
   // Get all regions and segments for filter options
   const allActive = await db
@@ -769,10 +778,8 @@ export async function getRepresentativePreview(filters?: { region?: string; segm
   const regions = Array.from(new Set(allActive.map(r => r.region).filter(Boolean))) as string[];
   const segments = Array.from(new Set(allActive.map(r => r.segment).filter(Boolean))) as string[];
 
-  // Mask personal data: show only first name, city (from region), segment, experience
-  // Plan-based gating: free=3, starter/pro/enterprise=5
-  const previewLimit = filters?.subscriptionTier && filters.subscriptionTier !== 'free' ? 5 : 3;
-  const previews = allReps.slice(0, previewLimit).map((rep, i) => {
+  // Mask personal data
+  const previews = allReps.map((rep) => {
     const firstName = rep.fullName?.split(" ")[0] ?? "Rep";
     const maskedName = `${firstName} ${rep.fullName?.split(" ").slice(1).map(() => "●").join("") ?? "●●●"}`;
     return {
@@ -786,7 +793,7 @@ export async function getRepresentativePreview(filters?: { region?: string; segm
     };
   });
 
-  return { count: allReps.length, previews, regions, segments };
+  return { count: totalCount, previews, regions, segments };
 }
 
 // ─── Representatives for Company (full listing with unlock awareness) ─────────
