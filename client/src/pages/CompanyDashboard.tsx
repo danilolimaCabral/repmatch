@@ -13,7 +13,7 @@ import {
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
   ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil, Shield,
   BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight, MessageSquare, Send,
-  ShoppingCart, Trash2, Upload, X as XIcon, QrCode
+  ShoppingCart, Trash2, Upload, X as XIcon, QrCode, BookUser, Phone, Mail, ExternalLink
 } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
@@ -245,7 +245,7 @@ function ThemeToggleCompact() {
 export default function CompanyDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search" | "messages">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search" | "messages" | "contacts">("overview");
   const [activeChatRepId, setActiveChatRepId] = useState<number | null>(null);
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
   const [directChatInput, setDirectChatInput] = useState("");
@@ -422,6 +422,12 @@ export default function CompanyDashboard() {
     searchInput,
     { enabled: activeTab === "search", staleTime: 30_000, retry: 1 }
   );
+
+  // ─── Meus Contatos (desbloqueados) ─────────────────────────────────────────────
+  const { data: myContacts, isLoading: contactsLoading } = trpc.contacts.myUnlockedContacts.useQuery(undefined, {
+    enabled: activeTab === "contacts",
+    staleTime: 60_000,
+  });
 
   // ─── Auto-Match: ativa quando não há filtros manuais ativos ───────────────────
   const hasManualFilters = !!(searchRegion || searchSegment || searchTier || searchKycApproved || searchCoreActive || searchAvailability);
@@ -616,6 +622,7 @@ export default function CompanyDashboard() {
     { id: "jobs", label: "Minhas Vagas", icon: Briefcase },
     { id: "applications", label: "Candidaturas", icon: Users },
     { id: "search", label: "Buscar Representantes", icon: Eye },
+    { id: "contacts", label: "Meus Contatos", icon: BookUser },
     { id: "messages", label: "Mensagens", icon: MessageSquare },
     { id: "profile", label: "Perfil da Empresa", icon: Building2 },
   ];
@@ -1808,6 +1815,52 @@ export default function CompanyDashboard() {
             directChatInput={directChatInput}
             setDirectChatInput={setDirectChatInput}
           />
+        )}
+
+        {/* ─── Meus Contatos Tab ─────────────────────────────────────────────── */}
+        {activeTab === "contacts" && (
+          <div className="p-8">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-slate-800">Meus Contatos</h1>
+              <p className="text-slate-500 text-sm mt-1">Representantes cujos dados de contato você desbloqueou</p>
+            </div>
+            {contactsLoading ? (
+              <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>
+            ) : !myContacts || myContacts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4"><BookUser className="w-8 h-8 text-emerald-400" /></div>
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">Nenhum contato desbloqueado ainda</h3>
+                <p className="text-slate-500 text-sm max-w-sm mb-5">Acesse a aba <strong>Buscar Representantes</strong> e desbloqueie os contatos dos representantes que te interessam.</p>
+                <Button onClick={() => setActiveTab("search")} className="bg-emerald-600 hover:bg-emerald-700 text-white"><Search className="w-4 h-4 mr-2" />Buscar Representantes</Button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-4"><span className="text-sm text-slate-500">{myContacts.length} contato{myContacts.length !== 1 ? "s" : ""} desbloqueado{myContacts.length !== 1 ? "s" : ""}</span></div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myContacts.map((c) => (
+                    <div key={c.representativeId} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                          {c.avatarUrl ? <img src={c.avatarUrl} alt={c.fullName ?? ""} className="w-full h-full object-cover" /> : <span className="text-white font-black text-lg">{(c.fullName ?? "?").charAt(0).toUpperCase()}</span>}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-800 truncate">{c.fullName ?? "Nome não informado"}</div>
+                          <div className="text-xs text-slate-500 truncate">{c.segment ?? "Segmento não informado"}</div>
+                          {c.region && <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{c.region}</div>}
+                        </div>
+                      </div>
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        {c.phone && <a href={`tel:${c.phone}`} className="flex items-center gap-2 text-sm text-slate-700 hover:text-emerald-600"><Phone className="w-4 h-4 text-emerald-500 flex-shrink-0" /><span className="truncate">{c.phone}</span></a>}
+                        {c.email && <a href={`mailto:${c.email}`} className="flex items-center gap-2 text-sm text-slate-700 hover:text-emerald-600"><Mail className="w-4 h-4 text-emerald-500 flex-shrink-0" /><span className="truncate">{c.email}</span></a>}
+                        {c.linkedinUrl && <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600"><Linkedin className="w-4 h-4 text-blue-500 flex-shrink-0" /><span>LinkedIn</span><ExternalLink className="w-3 h-3 ml-auto text-slate-400" /></a>}
+                      </div>
+                      <div className="text-xs text-slate-400 pt-1">Desbloqueado em {new Date(c.unlockedAt!).toLocaleDateString("pt-BR")}{c.pricePaid && Number(c.pricePaid) > 0 && <span className="ml-2">· R$ {Number(c.pricePaid).toFixed(2)}</span>}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* ─── Profile Tab ─────────────────────────────────────────────── */}

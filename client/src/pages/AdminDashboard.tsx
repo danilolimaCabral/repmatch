@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw } from "lucide-react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw, Mail, AlertCircle } from "lucide-react";
 import { useState, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -103,6 +103,11 @@ export default function AdminDashboard() {
   const toggleActiveMutation = trpc.admin.toggleUserActive.useMutation({
     onSuccess: (_, vars) => { toast.success(vars.isActive ? "Usuário reativado!" : "Usuário desativado!"); refetchUsers(); },
     onError: () => toast.error("Erro ao alterar status do usuário"),
+  });
+  const [sendingEmailId, setSendingEmailId] = useState<number | null>(null);
+  const sendCadastroEmailMutation = trpc.admin.sendCadastroEmail.useMutation({
+    onSuccess: (data) => { toast.success(`Email enviado para ${data.email}!`); setSendingEmailId(null); },
+    onError: (e) => { toast.error(`Erro ao enviar email: ${e.message}`); setSendingEmailId(null); },
   });
   // Unlock requests queries
   const { data: unlockRequestsRaw, refetch: refetchUnlockRequests, isLoading: unlockLoading } = trpc.unlockRequests.adminList.useQuery();
@@ -464,9 +469,9 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                       {[
                         { label: "Pageviews", value: (siteAnalytics?.pageviews ?? 0).toLocaleString("pt-BR"), color: "text-blue-400", bg: "bg-blue-400/10" },
-                        { label: "Visitantes", value: (siteAnalytics?.visitors ?? 0).toLocaleString("pt-BR"), color: "text-emerald-400", bg: "bg-emerald-400/10" },
-                        { label: "Sessões", value: (siteAnalytics?.visits ?? 0).toLocaleString("pt-BR"), color: "text-amber-400", bg: "bg-amber-400/10" },
-                        { label: "Taxa de Rejeição", value: `${siteAnalytics?.bounceRate ?? 0}%`, color: "text-red-400", bg: "bg-red-400/10" },
+                        { label: "Visitantes Únicos", value: (siteAnalytics?.visitors ?? 0).toLocaleString("pt-BR"), color: "text-emerald-400", bg: "bg-emerald-400/10" },
+                        { label: "Novos Cadastros", value: (siteAnalytics?.newUsers ?? 0).toLocaleString("pt-BR"), color: "text-amber-400", bg: "bg-amber-400/10" },
+                        { label: "Conversão", value: siteAnalytics && siteAnalytics.visitors > 0 ? `${Math.round((siteAnalytics.newUsers / siteAnalytics.visitors) * 100)}%` : "0%", color: "text-purple-400", bg: "bg-purple-400/10" },
                       ].map(kpi => (
                         <div key={kpi.label} className={`rounded-lg border border-border p-4 ${kpi.bg}`}>
                           <div className={`text-2xl font-black ${kpi.color}`}>{kpi.value}</div>
@@ -487,13 +492,14 @@ export default function AdminDashboard() {
                           />
                           <Legend wrapperStyle={{ fontSize: 11 }} />
                           <Line type="monotone" dataKey="pageviews" name="Pageviews" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                          <Line type="monotone" dataKey="visitors" name="Visitantes" stroke="#10b981" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="visitors" name="Visitantes Únicos" stroke="#10b981" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="newUsers" name="Novos Cadastros" stroke="#a855f7" strokeWidth={2} dot={false} />
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <BarChart2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                        <p className="text-sm">Dados de visitas aparecerão após o site estar em produção</p>
+                        <p className="text-sm">Nenhuma visita registrada neste período. Os dados aparecerão conforme usuários acessarem o site.</p>
                       </div>
                     )}
                   </>
@@ -835,6 +841,7 @@ export default function AdminDashboard() {
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Email</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Tipo</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Papel</th>
+                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Perfil</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cadastro</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ações</th>
@@ -856,6 +863,15 @@ export default function AdminDashboard() {
                               <Badge variant="outline" className="text-xs">User</Badge>
                             )}
                           </td>
+                          <td className="px-4 py-3">
+                            {(() => {
+                              const uTyped = u as Record<string, unknown> & { profileStatus?: string; userType?: string };
+                              const ps = uTyped.profileStatus ?? "incomplete";
+                              if (ps === "complete") return <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs">Completo</Badge>;
+                              if (ps === "partial") return <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 text-xs">Parcial</Badge>;
+                              return <Badge className="bg-zinc-700 text-zinc-300 text-xs">Incompleto</Badge>;
+                            })()}
+                          </td>
                           <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
                           <td className="px-4 py-3">
                             {(u as Record<string, unknown> & { isActive?: boolean }).isActive !== false ? (
@@ -866,6 +882,23 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
+                              {/* Botão Enviar Email de Cadastro */}
+                              {u.email && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs border-blue-700/40 text-blue-400 hover:bg-blue-900/20"
+                                  onClick={() => { setSendingEmailId(u.id); sendCadastroEmailMutation.mutate({ userId: u.id }); }}
+                                  disabled={sendingEmailId === u.id && sendCadastroEmailMutation.isPending}
+                                  title="Enviar email para finalizar cadastro"
+                                >
+                                  {sendingEmailId === u.id && sendCadastroEmailMutation.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <><Mail className="w-3 h-3 mr-1" />Email</>
+                                  )}
+                                </Button>
+                              )}
                               {/* Promoção a admin desabilitada — apenas via banco de dados */}
                               {u.id !== user?.id && (
                                 <Button

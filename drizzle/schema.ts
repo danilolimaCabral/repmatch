@@ -421,3 +421,19 @@ export const repReviews = mysqlTable("rep_reviews", {
 });
 export type RepReview = typeof repReviews.$inferSelect;
 export type InsertRepReview = typeof repReviews.$inferInsert;
+
+// ─── Page Views (rastreamento de visitas ao site) ─────────────────────────────
+export const pageViews = mysqlTable("page_views", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: varchar("sessionId", { length: 64 }).notNull(),
+  path: varchar("path", { length: 500 }).notNull(),
+  referrer: varchar("referrer", { length: 500 }),
+  userAgent: varchar("userAgent", { length: 500 }),
+  country: varchar("country", { length: 2 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  sessionIdx: index("pv_session_idx").on(t.sessionId),
+  createdAtIdx: index("pv_createdAt_idx").on(t.createdAt),
+}));
+export type PageView = typeof pageViews.$inferSelect;
+export type InsertPageView = typeof pageViews.$inferInsert;

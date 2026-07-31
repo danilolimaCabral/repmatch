@@ -27,7 +27,42 @@ import RedefinirSenha from "./pages/RedefinirSenha";
 import VerificarEmail from "./pages/VerificarEmail";
 import OportunidadesReps from "./pages/OportunidadesReps";
 import Parcerias from "./pages/Parcerias";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
+import { useEffect, useRef } from "react";
+
+// Gera ou recupera um sessionId anônimo para rastreamento de visitas
+function getSessionId(): string {
+  const key = "_rm_sid";
+  let sid = sessionStorage.getItem(key);
+  if (!sid) {
+    sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    sessionStorage.setItem(key, sid);
+  }
+  return sid;
+}
+
+// Componente que dispara um page view a cada mudança de rota
+function PageViewTracker() {
+  const [location] = useLocation();
+  const lastPath = useRef("");
+  useEffect(() => {
+    if (location === lastPath.current) return;
+    lastPath.current = location;
+    try {
+      fetch("/api/track-pv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: getSessionId(),
+          path: location,
+          referrer: document.referrer || null,
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {}
+  }, [location]);
+  return null;
+}
 
 function Router() {
   return (
@@ -88,6 +123,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
+          <PageViewTracker />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

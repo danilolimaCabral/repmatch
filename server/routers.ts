@@ -45,7 +45,7 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages } from "../drizzle/schema";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users } from "../drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
@@ -994,6 +994,46 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (!company) return { available: false, used: false };
       return { available: !company.freeUnlockUsed, used: company.freeUnlockUsed };
     }),
+
+    // Listar todos os contatos já desbloqueados pela empresa
+    myUnlockedContacts: protectedProcedure.query(async ({ ctx }) => {
+      const company = await getCompanyByUserId(ctx.user.id);
+      if (!company) return [];
+      const db = await getDb();
+      if (!db) return [];
+      const { eq, inArray } = await import("drizzle-orm");
+      // Buscar todos os desbloqueios da empresa
+      const unlocks = await db
+        .select()
+        .from(unlockedContacts)
+        .where(eq(unlockedContacts.companyId, company.id))
+        .orderBy(unlockedContacts.unlockedAt);
+      if (unlocks.length === 0) return [];
+      const repIds = unlocks.map((u) => u.representativeId);
+      const reps = await db
+        .select()
+        .from(representatives)
+        .where(inArray(representatives.id, repIds));
+      const repMap: Record<number, typeof reps[0]> = {};
+      for (const r of reps) repMap[r.id] = r;
+      return unlocks.map((u) => {
+        const rep = repMap[u.representativeId];
+        return {
+          unlockedAt: u.unlockedAt,
+          pricePaid: u.pricePaid,
+          representativeId: u.representativeId,
+          fullName: rep?.fullName ?? null,
+          segment: rep?.segment ?? null,
+          region: rep?.region ?? null,
+          phone: rep?.phone ?? null,
+          email: rep?.email ?? null,
+          experienceYears: rep?.experienceYears ?? null,
+          subscriptionTier: rep?.subscriptionTier ?? "free",
+          avatarUrl: rep?.avatarUrl ?? null,
+          linkedinUrl: rep?.linkedinUrl ?? null,
+        };
+      });
+    }),
   }),
 
   // ─── Admin ───────────────────────────────────────────────────────────────────
@@ -1279,44 +1319,90 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }).from(representatives).limit(20);
       return rows;
     }),
-    // Admin: analytics de visitas (Umami)
+    // Admin: analytics de visitas (dados reais do banco)
     siteAnalytics: protectedProcedure
       .input(z.object({ days: z.number().min(1).max(90).default(30) }))
       .query(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        const endpoint = process.env.VITE_ANALYTICS_ENDPOINT;
-        const websiteId = process.env.VITE_ANALYTICS_WEBSITE_ID;
-        const apiKey = process.env.BUILT_IN_FORGE_API_KEY;
-        if (!endpoint || !websiteId) return { pageviews: 0, visitors: 0, visits: 0, bounceRate: 0, avgDuration: 0, dailyViews: [] as { date: string; pageviews: number; visitors: number }[] };
-        const endAt = Date.now();
-        const startAt = endAt - input.days * 24 * 3600 * 1000;
+        const db = await getDb();
+        if (!db) return { pageviews: 0, visitors: 0, newUsers: 0, dailyViews: [] as { date: string; pageviews: number; visitors: number; newUsers: number }[] };
+        const { sql } = await import("drizzle-orm");
+        const { pageViews } = await import("../drizzle/schema");
+        const since = new Date(Date.now() - input.days * 24 * 3600 * 1000);
         try {
-          const [statsRes, pvRes] = await Promise.all([
-            fetch(`${endpoint}/api/websites/${websiteId}/stats?startAt=${startAt}&endAt=${endAt}`, {
-              headers: { Authorization: `Bearer ${apiKey}` },
-            }),
-            fetch(`${endpoint}/api/websites/${websiteId}/pageviews?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=America%2FSao_Paulo`, {
-              headers: { Authorization: `Bearer ${apiKey}` },
-            }),
-          ]);
-          const stats = statsRes.ok ? await statsRes.json() : {};
-          const pvData = pvRes.ok ? await pvRes.json() : { pageviews: [], sessions: [] };
-          const dailyViews = (pvData.pageviews ?? []).map((p: { x: string; y: number }, i: number) => ({
-            date: p.x,
-            pageviews: p.y,
-            visitors: pvData.sessions?.[i]?.y ?? 0,
+          // Total pageviews e visitantes únicos no período
+          const [totals] = await db.select({
+            pageviews: sql<number>`count(*)`,
+            visitors: sql<number>`count(distinct sessionId)`,
+          }).from(pageViews).where(sql`created_at >= ${since}`);
+
+          // Novos cadastros no período
+          const [newUsersRow] = await db.select({
+            count: sql<number>`count(*)`,
+          }).from(users).where(sql`created_at >= ${since}`);
+
+          // Pageviews por dia
+          const dailyRows = await db.select({
+            date: sql<string>`DATE_FORMAT(created_at, '%Y-%m-%d')`,
+            pageviews: sql<number>`count(*)`,
+            visitors: sql<number>`count(distinct sessionId)`,
+          }).from(pageViews)
+            .where(sql`created_at >= ${since}`)
+            .groupBy(sql`DATE_FORMAT(created_at, '%Y-%m-%d')`)
+            .orderBy(sql`1 ASC`);
+
+          // Novos usuários por dia
+          const dailyNewUsers = await db.select({
+            date: sql<string>`DATE_FORMAT(created_at, '%Y-%m-%d')`,
+            count: sql<number>`count(*)`,
+          }).from(users)
+            .where(sql`created_at >= ${since}`)
+            .groupBy(sql`DATE_FORMAT(created_at, '%Y-%m-%d')`)
+            .orderBy(sql`1 ASC`);
+
+          const newUsersMap: Record<string, number> = {};
+          for (const r of dailyNewUsers) newUsersMap[r.date] = Number(r.count);
+
+          const dailyViews = dailyRows.map(r => ({
+            date: r.date,
+            pageviews: Number(r.pageviews),
+            visitors: Number(r.visitors),
+            newUsers: newUsersMap[r.date] ?? 0,
           }));
+
           return {
-            pageviews: stats.pageviews?.value ?? 0,
-            visitors: stats.visitors?.value ?? 0,
-            visits: stats.visits?.value ?? 0,
-            bounceRate: stats.bounces?.value ? Math.round((stats.bounces.value / (stats.visits?.value || 1)) * 100) : 0,
-            avgDuration: stats.totaltime?.value ? Math.round(stats.totaltime.value / (stats.visits?.value || 1)) : 0,
+            pageviews: Number(totals?.pageviews ?? 0),
+            visitors: Number(totals?.visitors ?? 0),
+            newUsers: Number(newUsersRow?.count ?? 0),
             dailyViews,
           };
         } catch {
-          return { pageviews: 0, visitors: 0, visits: 0, bounceRate: 0, avgDuration: 0, dailyViews: [] as { date: string; pageviews: number; visitors: number }[] };
+          return { pageviews: 0, visitors: 0, newUsers: 0, dailyViews: [] as { date: string; pageviews: number; visitors: number; newUsers: number }[] };
         }
+      }),
+
+    // Admin: enviar email para usuário finalizar cadastro
+    sendCadastroEmail: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { eq } = await import("drizzle-orm");
+        const { users } = await import("../drizzle/schema");
+        const [user] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado" });
+        if (!user.email) throw new TRPCError({ code: "BAD_REQUEST", message: "Usuário sem email cadastrado" });
+        const { sendFinalizarCadastroEmail } = await import("./email");
+        const result = await sendFinalizarCadastroEmail({
+          to: user.email,
+          name: user.name ?? "usuário",
+          userType: user.userType ?? undefined,
+        });
+        if (!result.success) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error ?? "Falha ao enviar email" });
+        }
+        return { success: true, email: user.email };
       }),
 
     // Admin: corrigir dados dos representantes de teste

@@ -619,3 +619,25 @@
 - [ ] Schema: tabela partnerships (companyId, repId, startDate, endDate, status, notes)
 - [ ] Backend: procedures para criar, listar e encerrar parcerias
 - [ ] Frontend: aba "Parcerias" no CompanyDashboard e RepDashboard
+
+## Correções e Melhorias — Analytics + Contatos (31/07/2026)
+
+### Analytics Real (page_views)
+- [x] Criar tabela page_views no banco (path, sessionId, ip, userAgent, createdAt)
+- [x] Endpoint /api/track-pv no servidor Express para rastrear visitas anonimamente
+- [x] PageViewTracker no App.tsx — rastreia cada mudança de rota automaticamente
+- [x] Atualizar siteAnalytics no routers.ts para usar dados reais da tabela page_views + users
+- [x] Corrigir AdminDashboard: métricas Pageviews, Visitantes Únicos, Novos Cadastros, Conversão
+- [x] Gráfico de linha com 3 séries: Pageviews, Visitantes Únicos, Novos Cadastros
+
+### Admin — Tabela de Usuários
+- [x] Coluna "Perfil" com badge Completo/Parcial/Incompleto baseado em profileStatus
+- [x] Botão "Email" para enviar email de boas-vindas/cadastro via Resend
+
+### CompanyDashboard — Aba Meus Contatos
+- [x] Nova aba "Meus Contatos" no sidebar com ícone BookUser
+- [x] Query trpc.contacts.myUnlockedContacts carregada ao acessar a aba
+- [x] Cards com avatar, nome, segmento, região, telefone, email, LinkedIn
+- [x] Badge de experiência e plano do representante
+- [x] Data de desbloqueio e valor pago em cada card
+- [x] Estado vazio com CTA para buscar representantes

@@ -152,7 +152,46 @@ export async function listAllUsers(
     .orderBy(desc(users.createdAt))
     .limit(limit)
     .offset(offset);
-  return { users: rows, total: Number(totalResult?.count ?? 0) };
+
+  // Enrich with profileStatus by checking representatives/companies tables
+  const userIds = rows.map((u) => u.id);
+  let repMap: Record<number, Representative | null> = {};
+  let compMap: Record<number, Company | null> = {};
+  if (userIds.length > 0) {
+    const { inArray } = await import("drizzle-orm");
+    const repRows = await db.select().from(representatives).where(inArray(representatives.userId, userIds));
+    const compRows = await db.select().from(companies).where(inArray(companies.userId, userIds));
+    for (const r of repRows) repMap[r.userId] = r;
+    for (const c of compRows) compMap[c.userId] = c;
+  }
+
+  const enriched = rows.map((u) => {
+    let profileStatus: "pending" | "incomplete" | "complete" = "pending";
+    if (u.userType === "representative") {
+      const rep = repMap[u.id];
+      if (!rep) {
+        profileStatus = "pending";
+      } else if (!rep.fullName || !rep.segment || !rep.region) {
+        profileStatus = "incomplete";
+      } else {
+        profileStatus = "complete";
+      }
+    } else if (u.userType === "company") {
+      const comp = compMap[u.id];
+      if (!comp) {
+        profileStatus = "pending";
+      } else if (!comp.companyName || !comp.segment || !comp.region) {
+        profileStatus = "incomplete";
+      } else {
+        profileStatus = "complete";
+      }
+    } else if (u.userType === "manager") {
+      profileStatus = "complete";
+    }
+    return { ...u, profileStatus };
+  });
+
+  return { users: enriched, total: Number(totalResult?.count ?? 0) };
 }
 
 export async function listRepresentativesWithFiscalId(limit = 100, offset = 0, search = "", estado = "", situacao = "") {

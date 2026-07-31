@@ -320,6 +320,32 @@ async function startServer() {
     }
   });
 
+  // ─── Rastreamento de visitas (page views) ─────────────────────────────────
+  // Endpoint leve e anônimo — sem autenticação, sem rate limit pesado
+  app.post("/api/track-pv", async (req, res) => {
+    try {
+      const { path: pagePath, sessionId, referrer } = req.body ?? {};
+      if (!pagePath || !sessionId) return res.json({ ok: false });
+      const ua = req.headers["user-agent"]?.substring(0, 500) ?? null;
+      const ref = (referrer ?? req.headers["referer"] ?? null)?.toString().substring(0, 500);
+      const { getDb } = await import("../db");
+      const { pageViews } = await import("../../drizzle/schema");
+      const db = await getDb();
+      if (db) {
+        await db.insert(pageViews).values({
+          sessionId: String(sessionId).substring(0, 64),
+          path: String(pagePath).substring(0, 500),
+          referrer: ref ?? null,
+          userAgent: ua,
+          createdAt: new Date(),
+        } as any);
+      }
+      res.json({ ok: true });
+    } catch {
+      res.json({ ok: false });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",
