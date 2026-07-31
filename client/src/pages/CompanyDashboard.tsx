@@ -382,9 +382,21 @@ export default function CompanyDashboard() {
     { jobId: selectedJobId! },
     { enabled: !!selectedJobId }
   );
+  const searchInput = useMemo(() => ({
+    region: searchRegion,
+    segment: searchSegment,
+    tier: searchTier,
+    page: searchPage,
+    limit: 20,
+    kycApproved: searchKycApproved || undefined,
+    coreActive: searchCoreActive || undefined,
+    availability: searchAvailability,
+    sortBy: searchSortBy,
+  }), [searchRegion, searchSegment, searchTier, searchPage, searchKycApproved, searchCoreActive, searchAvailability, searchSortBy]);
+
   const { data: searchData, isLoading: searchLoading } = trpc.representatives.listForCompany.useQuery(
-    { region: searchRegion, segment: searchSegment, tier: searchTier, page: searchPage, limit: 20, kycApproved: searchKycApproved || undefined, coreActive: searchCoreActive || undefined, availability: searchAvailability, sortBy: searchSortBy },
-    { enabled: activeTab === "search" }
+    searchInput,
+    { enabled: activeTab === "search", staleTime: 30_000, retry: 1 }
   );
   const { data: availableNowData } = trpc.representatives.countAvailableNow.useQuery(undefined, { staleTime: 60_000 });
 

@@ -844,8 +844,8 @@ export async function listRepresentativesForCompany(
   const db = await getDb();
   if (!db) return { reps: [], total: 0, unlockedIds: [] };
 
-  const page = filters?.page ?? 1;
-  const limit = filters?.limit ?? 20;
+  const page = Number(filters?.page ?? 1) || 1;
+  const limit = Number(filters?.limit ?? 20) || 20;
   const offset = (page - 1) * limit;
 
   // Map UF to region name for cnpj_representatives
@@ -1079,8 +1079,11 @@ export async function listRepresentativesForCompany(
   }
 
   // Fetch page
-  const pageSql = `SELECT * FROM (${finalUnionQuery}) AS combined ${orderSql} LIMIT ? OFFSET ?`;
-  const [rows] = await conn.execute(pageSql, [...finalAllParams, Number(limit), Number(offset)]) as any;
+  const safeLimitVal = Math.max(1, Math.min(50, parseInt(String(limit), 10) || 20));
+  const safeOffsetVal = Math.max(0, parseInt(String(offset), 10) || 0);
+  console.log('[listRepresentativesForCompany] page:', page, 'limit:', limit, 'offset:', offset, 'safeLimit:', safeLimitVal, 'safeOffset:', safeOffsetVal, 'params count:', finalAllParams.length);
+  const pageSql = `SELECT * FROM (${finalUnionQuery}) AS combined ${orderSql} LIMIT ${safeLimitVal} OFFSET ${safeOffsetVal}`;
+  const [rows] = await conn.execute(pageSql, finalAllParams) as any;
 
   // Get unlocked contact IDs for this company
   const unlocked = await db
