@@ -320,7 +320,7 @@ function AntesDepois() {
   const after_items = [
     { text: "Representantes qualificados em menos de 48 horas" },
     { text: "Score de compatibilidade por região, segmento e experiência" },
-    { text: "A partir de R$49/mês para acesso ilimitado à base" },
+    { text: "Desbloqueio de contato por R$29 — sem mensalidade" },
     { text: "Filtros automáticos — você vê apenas quem faz sentido" },
     { text: "Chat integrado e histórico de candidaturas na plataforma" },
   ];
@@ -391,7 +391,7 @@ function AntesDepois() {
             </ul>
             <div className="mt-6 pt-5 border-t border-primary/20 relative">
               <div className="text-xs text-primary/70 font-semibold uppercase tracking-widest">Custo médio por contratação</div>
-              <div className="text-2xl font-black text-primary mt-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>A partir de R$49/mês</div>
+              <div className="text-2xl font-black text-primary mt-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$29 por contato</div>
             </div>
           </div>
         </div>
@@ -486,8 +486,10 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <SEO
+        title="Contratar Representante Comercial — Marketplace #1 do Brasil"
+        description="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e experiência. Base com +173 mil representantes verificados. Desbloqueie contatos a partir de R$29."
         canonical="/"
-        keywords="representante comercial, marketplace representantes, vagas representante comercial, buscar representante, representação comercial, vendas externas, agente comercial, plataforma representantes"
+        keywords="contratar representante comercial, representante comercial, marketplace representantes, vagas representante comercial, buscar representante, representação comercial, vendas externas, agente comercial, plataforma representantes, encontrar representante brasil"
       />
 
       {/* ─── Navbar ─────────────────────────────────────────────────────────── */}
@@ -561,16 +563,16 @@ export default function Home() {
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black leading-[0.92] tracking-tight mb-8" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-            <span className="text-foreground">Sua empresa</span>
+            <span className="text-foreground">Contrate o representante</span>
             <br />
-            <span className="text-gradient-green">merece os melhores</span>
+            <span className="text-gradient-green">certo para a sua região</span>
             <br />
-            <span className="text-foreground">representantes.</span>
+            <span className="text-foreground">em menos de 48h.</span>
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-            Chega de garimpar representante em grupo de WhatsApp ou pagar headhunter caro.
-            O RepMatch conecta sua empresa com os representantes certos — por região, segmento e histórico real.
+            Mais de 173 mil representantes comerciais verificados, filtráveis por estado, segmento e anos de experiência.
+            Desbloqueie o contato direto por R$29 — sem mensalidade, sem contrato, sem burocracia.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14 flex-wrap">
@@ -601,7 +603,7 @@ export default function Home() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-            {["Sem taxa de contratação", "Cancele quando quiser", "Conexão em menos de 48h"].map((item) => (
+            {["Sem taxa de contratação", "Contato desbloqueado por R$29", "Conexão em menos de 48h"].map((item) => (
               <div key={item} className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-primary" />
                 {item}
@@ -624,7 +626,7 @@ export default function Home() {
           <div className="text-center mb-10">
             <p className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-2">Plataforma segura e confiável</p>
             <h2 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-              Sua segurança é nossa prioridade
+              Plataforma segura, dados protegidos
             </h2>
           </div>
           {/* Grid de selos */}
@@ -863,7 +865,7 @@ export default function Home() {
               { icon: Shield, title: "Acesso por plano", desc: "Representantes Free acessam vagas Bronze e Silver. Premium acessa Gold. Elite acessa Platinum.", highlight: false },
               { icon: MessageSquare, title: "Chat dentro da plataforma", desc: "Negocie direto com o candidato sem sair do RepMatch. Contatos só revelados quando ambas as partes concordam.", highlight: false },
               { icon: BarChart3, title: "Painel de controle", desc: "Dashboard separado para empresas e representantes com histórico de candidaturas, vagas e performance.", highlight: false },
-              { icon: TrendingUp, title: "Base de 400 mil", desc: "A maior base de fornecedores e representantes do Brasil, com dados validados e segmentados por região.", highlight: false },
+              { icon: TrendingUp, title: "Base de 173 mil+", desc: "A maior base de representantes comerciais do Brasil, com dados validados e segmentados por estado, segmento e experiência.", highlight: false },
             ].map(({ icon: Icon, title, desc, highlight }) => (
               <div
                 key={title}
@@ -979,11 +981,11 @@ export default function Home() {
             Comece hoje mesmo
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-foreground mb-6 leading-tight" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-            Pare de perder tempo<br />
-            <span className="text-gradient-green">com o representante errado.</span>
+            Pare de garimpar representante<br />
+            <span className="text-gradient-green">em grupo de WhatsApp.</span>
           </h2>
           <p className="text-muted-foreground text-lg mb-12 max-w-xl mx-auto">
-            Mais de 10 mil representantes qualificados esperando pela sua vaga. Pare de garimpar — comece a conectar.
+            Mais de 173 mil representantes qualificados, filtráveis por região e segmento. Desbloqueie o contato direto por R$29 — sem mensalidade.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap">
             <button
