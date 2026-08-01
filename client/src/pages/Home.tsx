@@ -543,15 +543,28 @@ export default function Home() {
 
       {/* ─── Hero ───────────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 overflow-hidden">
+        {/* Vídeo de fundo */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ opacity: 0.13, zIndex: 0 }}
+        >
+          <source src="/hero-bg.mp4" type="video/mp4" />
+        </video>
+        {/* Overlay escuro sobre o vídeo */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, var(--background) 0%, transparent 30%, transparent 70%, var(--background) 100%)", zIndex: 1 }} />
         {/* Subtle radial glow */}
-        <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full blur-[140px]" style={{ background: "oklch(0.62 0.18 152 / 0.10)" }} />
           <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] rounded-full blur-[100px]" style={{ background: "oklch(0.62 0.18 152 / 0.06)" }} />
           <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] rounded-full blur-[120px]" style={{ background: "oklch(0.58 0.16 210 / 0.04)" }} />
         </div>
         {/* Subtle grid */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.035]"
-          style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px)", backgroundSize: "72px 72px" }} />
+          style={{ zIndex: 2, backgroundImage: "linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px)", backgroundSize: "72px 72px" }} />
 
         <div className="relative z-10 max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/25 text-primary text-xs font-semibold px-4 py-2 rounded-full mb-10 tracking-wide uppercase">

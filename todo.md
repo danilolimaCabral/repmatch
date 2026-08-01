@@ -641,3 +641,4 @@
 - [x] Badge de experiência e plano do representante
 - [x] Data de desbloqueio e valor pago em cada card
 - [x] Estado vazio com CTA para buscar representantes
+- [ ] Adicionar vídeo de fundo na seção hero da landing page (Home.tsx) usando /hero-bg.mp4
