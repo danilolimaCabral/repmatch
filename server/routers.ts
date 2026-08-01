@@ -1196,14 +1196,14 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       const { gte } = await import("drizzle-orm");
       const eightWeeksAgo = new Date(Date.now() - 8 * 7 * 24 * 3600 * 1000);
       const rows = await db.select({
-        week: sql<string>`DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-%m-%d')`,
+        week: sql<string>`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`,
         total: sql<number>`count(*)`,
-        reps: sql<number>`SUM(CASE WHEN userType = 'representative' THEN 1 ELSE 0 END)`,
-        companies: sql<number>`SUM(CASE WHEN userType = 'company' THEN 1 ELSE 0 END)`,
+        reps: sql<number>`SUM(CASE WHEN ${users.userType} = 'representative' THEN 1 ELSE 0 END)`,
+        companies: sql<number>`SUM(CASE WHEN ${users.userType} = 'company' THEN 1 ELSE 0 END)`,
       })
         .from(users)
         .where(gte(users.createdAt, eightWeeksAgo))
-        .groupBy(sql`DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-%m-%d')`)
+        .groupBy(sql`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`)
         .orderBy(sql`1 ASC`);
       return rows.map(r => ({
         week: r.week,
@@ -1813,15 +1813,18 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const { sql } = await import("drizzle-orm");
       const { users } = await import("../drizzle/schema");
+      const { gte: gteWg } = await import("drizzle-orm");
+      const eightWeeksAgoWg = new Date();
+      eightWeeksAgoWg.setDate(eightWeeksAgoWg.getDate() - 56);
       const rows = await db.select({
-        week: sql<string>`DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')`,
+        week: sql<string>`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`,
         total: sql<number>`count(*)`,
-        reps: sql<number>`SUM(CASE WHEN user_type = 'representative' THEN 1 ELSE 0 END)`,
-        companies: sql<number>`SUM(CASE WHEN user_type = 'company' THEN 1 ELSE 0 END)`,
+        reps: sql<number>`SUM(CASE WHEN ${users.userType} = 'representative' THEN 1 ELSE 0 END)`,
+        companies: sql<number>`SUM(CASE WHEN ${users.userType} = 'company' THEN 1 ELSE 0 END)`,
       })
         .from(users)
-        .where(sql`created_at >= DATE_SUB(NOW(), INTERVAL 8 WEEK)`)
-        .groupBy(sql`DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')`)
+        .where(gteWg(users.createdAt, eightWeeksAgoWg))
+        .groupBy(sql`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`)
         .orderBy(sql`1 ASC`);
       return rows.map(r => ({
         week: r.week,
