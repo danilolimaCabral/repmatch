@@ -1,3 +1,4 @@
+// Build: 2026-08-01 v2 - static imports fix
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
