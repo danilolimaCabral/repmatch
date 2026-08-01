@@ -1347,21 +1347,21 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
 
           // Pageviews por dia
           const dailyRows = await db.select({
-            date: sql<string>`DATE_FORMAT(createdAt, '%Y-%m-%d')`,
+            date: sql<string>`DATE_FORMAT(${pageViews.createdAt}, '%Y-%m-%d')`,
             pageviews: sql<number>`count(*)`,
-            visitors: sql<number>`count(distinct sessionId)`,
+            visitors: sql<number>`count(distinct ${pageViews.sessionId})`,
           }).from(pageViews)
             .where(gteOp(pageViews.createdAt, since))
-            .groupBy(sql`DATE_FORMAT(createdAt, '%Y-%m-%d')`)
+            .groupBy(sql`DATE_FORMAT(${pageViews.createdAt}, '%Y-%m-%d')`)
             .orderBy(sql`1 ASC`);
 
           // Novos usuários por dia
           const dailyNewUsers = await db.select({
-            date: sql<string>`DATE_FORMAT(createdAt, '%Y-%m-%d')`,
+            date: sql<string>`DATE_FORMAT(${users.createdAt}, '%Y-%m-%d')`,
             count: sql<number>`count(*)`,
           }).from(users)
             .where(gteOp(users.createdAt, since))
-            .groupBy(sql`DATE_FORMAT(createdAt, '%Y-%m-%d')`)
+            .groupBy(sql`DATE_FORMAT(${users.createdAt}, '%Y-%m-%d')`)
             .orderBy(sql`1 ASC`);
 
           const newUsersMap: Record<string, number> = {};
