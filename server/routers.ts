@@ -47,7 +47,7 @@ import {
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
 import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews } from "../drizzle/schema";
-import { eq, and, inArray, sql, gte, lte, ne, desc, asc } from "drizzle-orm";
+import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -1190,23 +1190,41 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const eightWeeksAgo = new Date(Date.now() - 8 * 7 * 24 * 3600 * 1000);
-      const rows = await db.select({
-        week: sql<string>`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`,
-        total: sql<number>`count(*)`,
-        reps: sql<number>`SUM(CASE WHEN ${users.userType} = 'representative' THEN 1 ELSE 0 END)`,
-        companies: sql<number>`SUM(CASE WHEN ${users.userType} = 'company' THEN 1 ELSE 0 END)`,
-      })
-        .from(users)
-        .where(gte(users.createdAt, eightWeeksAgo))
-        .groupBy(sql`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`)
-        .orderBy(sql`1 ASC`);
-      return rows.map(r => ({
-        week: r.week,
-        total: Number(r.total),
-        reps: Number(r.reps),
-        companies: Number(r.companies),
+
+      // Build 8 week buckets in JS — no SQL template literals needed
+      const weeks: { start: Date; end: Date; label: string }[] = [];
+      for (let i = 7; i >= 0; i--) {
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0=Sun
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + daysToMonday - i * 7);
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        const label = monday.toISOString().slice(0, 10);
+        weeks.push({ start: monday, end: sunday, label });
+      }
+
+      const result = await Promise.all(weeks.map(async (w) => {
+        const [allRows] = await db.select({ count: count() })
+          .from(users)
+          .where(and(gte(users.createdAt, w.start), lte(users.createdAt, w.end)));
+        const [repRows] = await db.select({ count: count() })
+          .from(users)
+          .where(and(gte(users.createdAt, w.start), lte(users.createdAt, w.end), eq(users.userType, 'representative')));
+        const [compRows] = await db.select({ count: count() })
+          .from(users)
+          .where(and(gte(users.createdAt, w.start), lte(users.createdAt, w.end), eq(users.userType, 'company')));
+        return {
+          week: w.label,
+          total: Number(allRows?.count ?? 0),
+          reps: Number(repRows?.count ?? 0),
+          companies: Number(compRows?.count ?? 0),
+        };
       }));
+      return result;
     }),
 
     // Admin: funil de conversão (visitante → cadastro → plano pago)
@@ -1797,24 +1815,30 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const eightWeeksAgoWg = new Date();
-      eightWeeksAgoWg.setDate(eightWeeksAgoWg.getDate() - 56);
-      const rows = await db.select({
-        week: sql<string>`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`,
-        total: sql<number>`count(*)`,
-        reps: sql<number>`SUM(CASE WHEN ${users.userType} = 'representative' THEN 1 ELSE 0 END)`,
-        companies: sql<number>`SUM(CASE WHEN ${users.userType} = 'company' THEN 1 ELSE 0 END)`,
-      })
-        .from(users)
-        .where(gte(users.createdAt, eightWeeksAgoWg))
-        .groupBy(sql`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`)
-        .orderBy(sql`1 ASC`);
-      return rows.map(r => ({
-        week: r.week,
-        total: Number(r.total),
-        reps: Number(r.reps),
-        companies: Number(r.companies),
+      // Build 8 week buckets in JS — no SQL template literals needed
+      const weeksWg: { start: Date; end: Date; label: string }[] = [];
+      for (let i = 7; i >= 0; i--) {
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + daysToMonday - i * 7);
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        weeksWg.push({ start: monday, end: sunday, label: monday.toISOString().slice(0, 10) });
+      }
+      const resultWg = await Promise.all(weeksWg.map(async (w) => {
+        const [allRows] = await db.select({ count: count() }).from(users)
+          .where(and(gte(users.createdAt, w.start), lte(users.createdAt, w.end)));
+        const [repRows] = await db.select({ count: count() }).from(users)
+          .where(and(gte(users.createdAt, w.start), lte(users.createdAt, w.end), eq(users.userType, 'representative')));
+        const [compRows] = await db.select({ count: count() }).from(users)
+          .where(and(gte(users.createdAt, w.start), lte(users.createdAt, w.end), eq(users.userType, 'company')));
+        return { week: w.label, total: Number(allRows?.count ?? 0), reps: Number(repRows?.count ?? 0), companies: Number(compRows?.count ?? 0) };
       }));
+      return resultWg;
     }),
 
     // Admin: funil de conversão (visitante → cadastro → plano pago)
