@@ -550,7 +550,7 @@ export default function Home() {
           loop
           playsInline
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ opacity: 0.13, zIndex: 0 }}
+          style={{ opacity: 0.35, zIndex: 0 }}
         >
           <source src="/hero-bg.mp4" type="video/mp4" />
         </video>
