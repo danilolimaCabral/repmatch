@@ -1227,24 +1227,25 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       return result;
     }),
 
-    // Admin: funil de conversão (visitante → cadastro → plano pago)
+        // Admin: funil de conversão (visitante → cadastro → plano pago)
     conversionFunnel: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
-      const [totalReps] = await db.select({ count: sql<number>`count(*)` }).from(representatives);
-      const [paidReps] = await db.select({ count: sql<number>`count(*)` })
-        .from(representatives)
-        .where(ne(representatives.subscriptionTier, 'free'));
-      const [totalCompanies] = await db.select({ count: sql<number>`count(*)` }).from(companies);
-      const [paidCompanies] = await db.select({ count: sql<number>`count(*)` })
-        .from(companies)
-        .where(ne(companies.subscriptionTier, 'starter'));
-      const total = Number(totalUsers?.count ?? 0);
-      const reps = Number(totalReps?.count ?? 0);
-      const paid = Number(paidReps?.count ?? 0) + Number(paidCompanies?.count ?? 0);
-      const comps = Number(totalCompanies?.count ?? 0);
+      // Use count() from Drizzle to avoid ne() snake_case conversion issue
+      const [totalUsersRow] = await db.select({ c: count() }).from(users);
+      const [totalRepsRow] = await db.select({ c: count() }).from(representatives);
+      const [totalCompaniesRow] = await db.select({ c: count() }).from(companies);
+      // Count paid reps: subscriptionTier != 'free'
+      const allReps = await db.select({ tier: representatives.subscriptionTier }).from(representatives);
+      const paidRepsCount = allReps.filter(r => r.tier !== 'free').length;
+      // Count paid companies: subscriptionTier != 'starter'
+      const allComps = await db.select({ tier: companies.subscriptionTier }).from(companies);
+      const paidCompsCount = allComps.filter(c => c.tier !== 'starter').length;
+      const total = Number(totalUsersRow?.c ?? 0);
+      const reps = Number(totalRepsRow?.c ?? 0);
+      const comps = Number(totalCompaniesRow?.c ?? 0);
+      const paid = paidRepsCount + paidCompsCount;
       return [
         { stage: "Cadastros", value: total, pct: 100 },
         { stage: "Reps Ativos", value: reps, pct: total > 0 ? Math.round(reps / total * 100) : 0 },
@@ -1252,7 +1253,6 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         { stage: "Plano Pago", value: paid, pct: total > 0 ? Math.round(paid / total * 100) : 0 },
       ];
     }),
-
     // Admin: receita semanal via Stripe (últimas 8 semanas)
     weeklyRevenue: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
@@ -1846,24 +1846,22 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
-      const [totalReps] = await db.select({ count: sql<number>`count(*)` }).from(representatives);
-      const [paidReps] = await db.select({ count: sql<number>`count(*)` })
-        .from(representatives)
-        .where(ne(representatives.subscriptionTier, 'free'));
-      const [totalCompanies] = await db.select({ count: sql<number>`count(*)` }).from(companies);
-      const [paidCompanies] = await db.select({ count: sql<number>`count(*)` })
-        .from(companies)
-        .where(ne(companies.subscriptionTier, 'starter'));
-      const total = Number(totalUsers?.count ?? 0);
-      const reps = Number(totalReps?.count ?? 0);
-      const paid = Number(paidReps?.count ?? 0) + Number(paidCompanies?.count ?? 0);
-      const comps = Number(totalCompanies?.count ?? 0);
+      const [totalUsersRow2] = await db.select({ c: count() }).from(users);
+      const [totalRepsRow2] = await db.select({ c: count() }).from(representatives);
+      const [totalCompaniesRow2] = await db.select({ c: count() }).from(companies);
+      const allReps2 = await db.select({ tier: representatives.subscriptionTier }).from(representatives);
+      const paidRepsCount2 = allReps2.filter(r => r.tier !== 'free').length;
+      const allComps2 = await db.select({ tier: companies.subscriptionTier }).from(companies);
+      const paidCompsCount2 = allComps2.filter(c => c.tier !== 'starter').length;
+      const total2 = Number(totalUsersRow2?.c ?? 0);
+      const reps2 = Number(totalRepsRow2?.c ?? 0);
+      const comps2 = Number(totalCompaniesRow2?.c ?? 0);
+      const paid2 = paidRepsCount2 + paidCompsCount2;
       return [
-        { stage: "Cadastros", value: total, pct: 100 },
-        { stage: "Reps Ativos", value: reps, pct: total > 0 ? Math.round(reps / total * 100) : 0 },
-        { stage: "Empresas", value: comps, pct: total > 0 ? Math.round(comps / total * 100) : 0 },
-        { stage: "Plano Pago", value: paid, pct: total > 0 ? Math.round(paid / total * 100) : 0 },
+        { stage: "Cadastros", value: total2, pct: 100 },
+        { stage: "Reps Ativos", value: reps2, pct: total2 > 0 ? Math.round(reps2 / total2 * 100) : 0 },
+        { stage: "Empresas", value: comps2, pct: total2 > 0 ? Math.round(comps2 / total2 * 100) : 0 },
+        { stage: "Plano Pago", value: paid2, pct: total2 > 0 ? Math.round(paid2 / total2 * 100) : 0 },
       ];
     }),
 
