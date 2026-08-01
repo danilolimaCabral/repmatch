@@ -45,8 +45,8 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users } from "../drizzle/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews } from "../drizzle/schema";
+import { eq, and, inArray, sql, gte, lte, ne, desc, asc } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -116,7 +116,6 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        const { users } = await import("../drizzle/schema");
         await db!.update(users)
           .set({ name: input.name, email: input.email, updatedAt: new Date() })
           .where(eq(users.id, ctx.user.id));
@@ -131,7 +130,6 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const bcrypt = await import("bcryptjs");
         const db = await getDb();
-        const { users } = await import("../drizzle/schema");
         const [user] = await db!.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
         if (!user?.passwordHash) {
           throw new Error("Conta sem senha cadastrada. Use a opção de cadastrar senha.");
@@ -1191,9 +1189,6 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const { sql } = await import("drizzle-orm");
-      const { users } = await import("../drizzle/schema");
-      const { gte } = await import("drizzle-orm");
       const eightWeeksAgo = new Date(Date.now() - 8 * 7 * 24 * 3600 * 1000);
       const rows = await db.select({
         week: sql<string>`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`,
@@ -1218,18 +1213,15 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const { sql } = await import("drizzle-orm");
-      const { users } = await import("../drizzle/schema");
       const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
       const [totalReps] = await db.select({ count: sql<number>`count(*)` }).from(representatives);
-      const { ne: neOp } = await import("drizzle-orm");
       const [paidReps] = await db.select({ count: sql<number>`count(*)` })
         .from(representatives)
-        .where(neOp(representatives.subscriptionTier, 'free'));
+        .where(ne(representatives.subscriptionTier, 'free'));
       const [totalCompanies] = await db.select({ count: sql<number>`count(*)` }).from(companies);
       const [paidCompanies] = await db.select({ count: sql<number>`count(*)` })
         .from(companies)
-        .where(neOp(companies.subscriptionTier, 'starter'));
+        .where(ne(companies.subscriptionTier, 'starter'));
       const total = Number(totalUsers?.count ?? 0);
       const reps = Number(totalReps?.count ?? 0);
       const paid = Number(paidReps?.count ?? 0) + Number(paidCompanies?.count ?? 0);
@@ -1329,21 +1321,18 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         const db = await getDb();
         if (!db) return { pageviews: 0, visitors: 0, newUsers: 0, dailyViews: [] as { date: string; pageviews: number; visitors: number; newUsers: number }[] };
-        const { sql } = await import("drizzle-orm");
-        const { pageViews } = await import("../drizzle/schema");
         const since = new Date(Date.now() - input.days * 24 * 3600 * 1000);
         try {
-          const { gte: gteOp } = await import("drizzle-orm");
           // Total pageviews e visitantes únicos no período
           const [totals] = await db.select({
             pageviews: sql<number>`count(*)`,
             visitors: sql<number>`count(distinct sessionId)`,
-          }).from(pageViews).where(gteOp(pageViews.createdAt, since));
+          }).from(pageViews).where(gte(pageViews.createdAt, since));
 
           // Novos cadastros no período
           const [newUsersRow] = await db.select({
             count: sql<number>`count(*)`,
-          }).from(users).where(gteOp(users.createdAt, since));
+          }).from(users).where(gte(users.createdAt, since));
 
           // Pageviews por dia
           const dailyRows = await db.select({
@@ -1351,7 +1340,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
             pageviews: sql<number>`count(*)`,
             visitors: sql<number>`count(distinct ${pageViews.sessionId})`,
           }).from(pageViews)
-            .where(gteOp(pageViews.createdAt, since))
+            .where(gte(pageViews.createdAt, since))
             .groupBy(sql`DATE_FORMAT(${pageViews.createdAt}, '%Y-%m-%d')`)
             .orderBy(sql`1 ASC`);
 
@@ -1360,7 +1349,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
             date: sql<string>`DATE_FORMAT(${users.createdAt}, '%Y-%m-%d')`,
             count: sql<number>`count(*)`,
           }).from(users)
-            .where(gteOp(users.createdAt, since))
+            .where(gte(users.createdAt, since))
             .groupBy(sql`DATE_FORMAT(${users.createdAt}, '%Y-%m-%d')`)
             .orderBy(sql`1 ASC`);
 
@@ -1392,8 +1381,6 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const { eq } = await import("drizzle-orm");
-        const { users } = await import("../drizzle/schema");
         const [user] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
         if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado" });
         if (!user.email) throw new TRPCError({ code: "BAD_REQUEST", message: "Usuário sem email cadastrado" });
@@ -1414,7 +1401,6 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const { sql } = await import("drizzle-orm");
       await db.execute(sql`UPDATE representatives SET isActive = 1 WHERE userId = 0`);
       await db.execute(sql`UPDATE representatives SET region = 'Nacional (Todo Brasil)', segment = 'Tecnologia', experienceYears = 5 WHERE userId = 0 AND fullName = 'Carlos Silva'`);
       return { success: true };
@@ -1781,7 +1767,6 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const { sql } = await import("drizzle-orm");
       const [kycStats, coreStats] = await Promise.all([
         db.select({ status: representatives.kycStatus, count: sql<number>`count(*)` })
           .from(representatives).groupBy(representatives.kycStatus),
@@ -1811,9 +1796,6 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const { sql } = await import("drizzle-orm");
-      const { users } = await import("../drizzle/schema");
-      const { gte: gteWg } = await import("drizzle-orm");
       const eightWeeksAgoWg = new Date();
       eightWeeksAgoWg.setDate(eightWeeksAgoWg.getDate() - 56);
       const rows = await db.select({
@@ -1823,7 +1805,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         companies: sql<number>`SUM(CASE WHEN ${users.userType} = 'company' THEN 1 ELSE 0 END)`,
       })
         .from(users)
-        .where(gteWg(users.createdAt, eightWeeksAgoWg))
+        .where(gte(users.createdAt, eightWeeksAgoWg))
         .groupBy(sql`DATE_FORMAT(DATE_SUB(${users.createdAt}, INTERVAL WEEKDAY(${users.createdAt}) DAY), '%Y-%m-%d')`)
         .orderBy(sql`1 ASC`);
       return rows.map(r => ({
@@ -1839,18 +1821,15 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const { sql } = await import("drizzle-orm");
-      const { users } = await import("../drizzle/schema");
       const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
       const [totalReps] = await db.select({ count: sql<number>`count(*)` }).from(representatives);
-      const { ne: neOp } = await import("drizzle-orm");
       const [paidReps] = await db.select({ count: sql<number>`count(*)` })
         .from(representatives)
-        .where(neOp(representatives.subscriptionTier, 'free'));
+        .where(ne(representatives.subscriptionTier, 'free'));
       const [totalCompanies] = await db.select({ count: sql<number>`count(*)` }).from(companies);
       const [paidCompanies] = await db.select({ count: sql<number>`count(*)` })
         .from(companies)
-        .where(neOp(companies.subscriptionTier, 'starter'));
+        .where(ne(companies.subscriptionTier, 'starter'));
       const total = Number(totalUsers?.count ?? 0);
       const reps = Number(totalReps?.count ?? 0);
       const paid = Number(paidReps?.count ?? 0) + Number(paidCompanies?.count ?? 0);
@@ -1933,7 +1912,6 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
     stats: publicProcedure.query(async () => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-      const { sql } = await import("drizzle-orm");
       const [totalRows, byUf, byCnae, byPorte] = await Promise.all([
         db.select({ count: sql<number>`count(*)` }).from(cnpjRepresentatives),
         db.select({ uf: cnpjRepresentatives.uf, count: sql<number>`count(*)` }).from(cnpjRepresentatives).groupBy(cnpjRepresentatives.uf).orderBy(sql`count(*) desc`).limit(30),
