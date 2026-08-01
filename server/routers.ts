@@ -1193,15 +1193,17 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const { sql } = await import("drizzle-orm");
       const { users } = await import("../drizzle/schema");
+      const { gte } = await import("drizzle-orm");
+      const eightWeeksAgo = new Date(Date.now() - 8 * 7 * 24 * 3600 * 1000);
       const rows = await db.select({
-        week: sql<string>`DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')`,
+        week: sql<string>`DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-%m-%d')`,
         total: sql<number>`count(*)`,
-        reps: sql<number>`SUM(CASE WHEN user_type = 'representative' THEN 1 ELSE 0 END)`,
-        companies: sql<number>`SUM(CASE WHEN user_type = 'company' THEN 1 ELSE 0 END)`,
+        reps: sql<number>`SUM(CASE WHEN userType = 'representative' THEN 1 ELSE 0 END)`,
+        companies: sql<number>`SUM(CASE WHEN userType = 'company' THEN 1 ELSE 0 END)`,
       })
         .from(users)
-        .where(sql`created_at >= DATE_SUB(NOW(), INTERVAL 8 WEEK)`)
-        .groupBy(sql`DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')`)
+        .where(gte(users.createdAt, eightWeeksAgo))
+        .groupBy(sql`DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-%m-%d')`)
         .orderBy(sql`1 ASC`);
       return rows.map(r => ({
         week: r.week,
@@ -1220,13 +1222,14 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       const { users } = await import("../drizzle/schema");
       const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
       const [totalReps] = await db.select({ count: sql<number>`count(*)` }).from(representatives);
+      const { ne: neOp } = await import("drizzle-orm");
       const [paidReps] = await db.select({ count: sql<number>`count(*)` })
         .from(representatives)
-        .where(sql`subscription_tier != 'free'`);
+        .where(neOp(representatives.subscriptionTier, 'free'));
       const [totalCompanies] = await db.select({ count: sql<number>`count(*)` }).from(companies);
       const [paidCompanies] = await db.select({ count: sql<number>`count(*)` })
         .from(companies)
-        .where(sql`subscription_tier != 'starter'`);
+        .where(neOp(companies.subscriptionTier, 'starter'));
       const total = Number(totalUsers?.count ?? 0);
       const reps = Number(totalReps?.count ?? 0);
       const paid = Number(paidReps?.count ?? 0) + Number(paidCompanies?.count ?? 0);
@@ -1330,34 +1333,35 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         const { pageViews } = await import("../drizzle/schema");
         const since = new Date(Date.now() - input.days * 24 * 3600 * 1000);
         try {
+          const { gte: gteOp } = await import("drizzle-orm");
           // Total pageviews e visitantes únicos no período
           const [totals] = await db.select({
             pageviews: sql<number>`count(*)`,
             visitors: sql<number>`count(distinct sessionId)`,
-          }).from(pageViews).where(sql`created_at >= ${since}`);
+          }).from(pageViews).where(gteOp(pageViews.createdAt, since));
 
           // Novos cadastros no período
           const [newUsersRow] = await db.select({
             count: sql<number>`count(*)`,
-          }).from(users).where(sql`created_at >= ${since}`);
+          }).from(users).where(gteOp(users.createdAt, since));
 
           // Pageviews por dia
           const dailyRows = await db.select({
-            date: sql<string>`DATE_FORMAT(created_at, '%Y-%m-%d')`,
+            date: sql<string>`DATE_FORMAT(createdAt, '%Y-%m-%d')`,
             pageviews: sql<number>`count(*)`,
             visitors: sql<number>`count(distinct sessionId)`,
           }).from(pageViews)
-            .where(sql`created_at >= ${since}`)
-            .groupBy(sql`DATE_FORMAT(created_at, '%Y-%m-%d')`)
+            .where(gteOp(pageViews.createdAt, since))
+            .groupBy(sql`DATE_FORMAT(createdAt, '%Y-%m-%d')`)
             .orderBy(sql`1 ASC`);
 
           // Novos usuários por dia
           const dailyNewUsers = await db.select({
-            date: sql<string>`DATE_FORMAT(created_at, '%Y-%m-%d')`,
+            date: sql<string>`DATE_FORMAT(createdAt, '%Y-%m-%d')`,
             count: sql<number>`count(*)`,
           }).from(users)
-            .where(sql`created_at >= ${since}`)
-            .groupBy(sql`DATE_FORMAT(created_at, '%Y-%m-%d')`)
+            .where(gteOp(users.createdAt, since))
+            .groupBy(sql`DATE_FORMAT(createdAt, '%Y-%m-%d')`)
             .orderBy(sql`1 ASC`);
 
           const newUsersMap: Record<string, number> = {};
@@ -1836,13 +1840,14 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       const { users } = await import("../drizzle/schema");
       const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
       const [totalReps] = await db.select({ count: sql<number>`count(*)` }).from(representatives);
+      const { ne: neOp } = await import("drizzle-orm");
       const [paidReps] = await db.select({ count: sql<number>`count(*)` })
         .from(representatives)
-        .where(sql`subscription_tier != 'free'`);
+        .where(neOp(representatives.subscriptionTier, 'free'));
       const [totalCompanies] = await db.select({ count: sql<number>`count(*)` }).from(companies);
       const [paidCompanies] = await db.select({ count: sql<number>`count(*)` })
         .from(companies)
-        .where(sql`subscription_tier != 'starter'`);
+        .where(neOp(companies.subscriptionTier, 'starter'));
       const total = Number(totalUsers?.count ?? 0);
       const reps = Number(totalReps?.count ?? 0);
       const paid = Number(paidReps?.count ?? 0) + Number(paidCompanies?.count ?? 0);

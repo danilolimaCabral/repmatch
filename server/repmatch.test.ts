@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { calculateMatchScore } from "./db";
 
 // ─── Match Score Tests ────────────────────────────────────────────────────────
+// Pesos atuais: region(40) + segment(30) + experience>=3(20) + active(5) + kyc(3) + core(2) = 100
 describe("calculateMatchScore", () => {
   const baseRep = {
     id: 1,
@@ -37,17 +38,19 @@ describe("calculateMatchScore", () => {
     updatedAt: new Date(),
   };
 
-  it("returns 100 when region, segment, experience and active all match", () => {
+  it("returns 95 when region, segment, experience and active all match (sem kyc/core)", () => {
+    // region(40) + segment(30) + experience(20) + active(5) = 95
     const score = calculateMatchScore(baseRep, baseJob);
-    expect(score).toBe(100);
+    expect(score).toBe(95);
   });
 
-  it("returns 60 when only region matches", () => {
+  it("returns 45 when only region matches (sem segmento, exp<3)", () => {
+    // region(40) + active(5) = 45
     const score = calculateMatchScore(
       { ...baseRep, segment: "Tecnologia", experienceYears: 1 },
       baseJob
     );
-    expect(score).toBe(50); // region(40) + active(10)
+    expect(score).toBe(45);
   });
 
   it("returns 0 for inactive rep with no matches", () => {
@@ -59,19 +62,21 @@ describe("calculateMatchScore", () => {
   });
 
   it("returns 90 when region and segment match but rep is inactive", () => {
+    // region(40) + segment(30) + experience(20) = 90
     const score = calculateMatchScore(
       { ...baseRep, isActive: false },
       baseJob
     );
-    expect(score).toBe(90); // region(40) + segment(30) + experience(20)
+    expect(score).toBe(90);
   });
 
-  it("returns 90 when region and segment match but experience < 3", () => {
+  it("returns 75 when region and segment match but experience < 3", () => {
+    // region(40) + segment(30) + active(5) = 75
     const score = calculateMatchScore(
       { ...baseRep, experienceYears: 2 },
       baseJob
     );
-    expect(score).toBe(80); // region(40) + segment(30) + active(10)
+    expect(score).toBe(75);
   });
 });
 
