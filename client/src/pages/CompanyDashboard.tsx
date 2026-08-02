@@ -395,6 +395,8 @@ export default function CompanyDashboard() {
       }
       refetchFreeUnlockStatus();
       utils.representatives.listForCompany.invalidate();
+      utils.representatives.autoMatch.invalidate();
+      utils.contacts.myUnlockedContacts.invalidate();
     },
     onError: (e: { message: string }) => toast.error(e.message),
   });
