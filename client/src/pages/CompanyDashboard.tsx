@@ -439,7 +439,8 @@ export default function CompanyDashboard() {
 
   // Decide qual fonte de dados usar: autoMatch (sem filtros) ou busca manual (com filtros)
   const activeSearchData = hasManualFilters ? searchData : (autoMatchData ?? searchData);
-  const activeSearchLoading = hasManualFilters ? searchLoading : (autoMatchLoading || searchLoading);
+  // Quando não há filtros manuais, só depende do autoMatch (não bloquear pelo searchLoading lento)
+  const activeSearchLoading = hasManualFilters ? searchLoading : autoMatchLoading;
   const { data: availableNowData } = trpc.representatives.countAvailableNow.useQuery(undefined, { staleTime: 60_000 });
 
   const utils = trpc.useUtils();
