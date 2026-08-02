@@ -183,6 +183,38 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
     chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core — raramente muda, fica em cache por muito tempo
+          "vendor-react": ["react", "react-dom"],
+          // tRPC + React Query — infra de dados
+          "vendor-trpc": ["@trpc/client", "@trpc/react-query", "@tanstack/react-query"],
+          // Radix UI components (shadcn/ui) — grande, separa do código da app
+          "vendor-radix": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-accordion",
+            "@radix-ui/react-avatar",
+            "@radix-ui/react-checkbox",
+            "@radix-ui/react-label",
+            "@radix-ui/react-separator",
+            "@radix-ui/react-slider",
+            "@radix-ui/react-switch",
+          ],
+          // Lucide icons — pesado, separa
+          "vendor-icons": ["lucide-react"],
+          // Routing
+          "vendor-router": ["wouter"],
+          // Recharts — biblioteca de gráficos pesada, só usada no Admin
+          "vendor-charts": ["recharts"],
+        },
+      },
+    },
   },
   server: {
     host: true,

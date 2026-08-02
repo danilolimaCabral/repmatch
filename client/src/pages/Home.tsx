@@ -1,7 +1,8 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import SEO from "@/components/SEO";
-import ROICalculator from "@/components/ROICalculator";
-import BrazilMapSection from "@/components/BrazilMapSection";
+import { lazy, Suspense } from "react";
+const ROICalculator = lazy(() => import("@/components/ROICalculator"));
+const BrazilMapSection = lazy(() => import("@/components/BrazilMapSection"));
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight, CheckCircle, Star, Users, Building2, Zap, TrendingUp,
@@ -549,6 +550,7 @@ export default function Home() {
           muted
           loop
           playsInline
+          preload="none"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           style={{ opacity: 0.35, zIndex: 0 }}
         >
@@ -982,10 +984,10 @@ export default function Home() {
       <AntesDepois />
 
       {/* ─── Calculadora de ROI ───────────────────────────────────────── */}
-      <ROICalculator />
+      <Suspense fallback={<div className="py-16 bg-background" />}><ROICalculator /></Suspense>
 
-      {/* ─── Mapa do Brasil ─────────────────────────────────────────────── */}
-      <BrazilMapSection />
+      {/* ─── Mapa do Brasil ───────────────────────────────────────────────────────────────────────────────────── */}
+      <Suspense fallback={<div className="py-16 bg-background" />}><BrazilMapSection /></Suspense>
 
       {/* ─── Vagas em Destaque ─────────────────────────────────────────── */}
       <VagasDestaque />

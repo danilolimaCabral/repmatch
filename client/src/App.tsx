@@ -4,31 +4,45 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ThemeProvider } from "./contexts/ThemeContext";
-
-// Imports estáticos — evita chunks separados e erros de inicialização circular em produção
-import Home from "./pages/Home";
-import NotFound from "@/pages/NotFound";
-import Onboarding from "./pages/Onboarding";
-import RepDashboard from "./pages/RepDashboard";
-import CompanyDashboard from "./pages/CompanyDashboard";
-import ManagerDashboard from "./pages/ManagerDashboard";
-import ManagerPlans from "./pages/ManagerPlans";
-import AdminDashboard from "./pages/AdminDashboard";
-import BuscarRepresentantes from "./pages/BuscarRepresentantes";
-import Vagas from "./pages/Vagas";
-import Privacidade from "./pages/Privacidade";
-import Termos from "./pages/Termos";
-import VerificacaoKYC from "./pages/VerificacaoKYC";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Perfil from "./pages/Perfil";
-import EsqueciSenha from "./pages/EsqueciSenha";
-import RedefinirSenha from "./pages/RedefinirSenha";
-import VerificarEmail from "./pages/VerificarEmail";
-import OportunidadesReps from "./pages/OportunidadesReps";
-import Parcerias from "./pages/Parcerias";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { Redirect, useLocation } from "wouter";
-import { useEffect, useRef } from "react";
+
+// Home carregada de forma síncrona (rota principal — crítica para LCP)
+import Home from "./pages/Home";
+
+// Skeleton de carregamento para lazy routes
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-muted-foreground">Carregando...</p>
+      </div>
+    </div>
+  );
+}
+
+// Lazy imports — cada rota vira um chunk separado (code splitting)
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const RepDashboard = lazy(() => import("./pages/RepDashboard"));
+const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
+const ManagerDashboard = lazy(() => import("./pages/ManagerDashboard"));
+const ManagerPlans = lazy(() => import("./pages/ManagerPlans"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const BuscarRepresentantes = lazy(() => import("./pages/BuscarRepresentantes"));
+const Vagas = lazy(() => import("./pages/Vagas"));
+const Privacidade = lazy(() => import("./pages/Privacidade"));
+const Termos = lazy(() => import("./pages/Termos"));
+const VerificacaoKYC = lazy(() => import("./pages/VerificacaoKYC"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Perfil = lazy(() => import("./pages/Perfil"));
+const EsqueciSenha = lazy(() => import("./pages/EsqueciSenha"));
+const RedefinirSenha = lazy(() => import("./pages/RedefinirSenha"));
+const VerificarEmail = lazy(() => import("./pages/VerificarEmail"));
+const OportunidadesReps = lazy(() => import("./pages/OportunidadesReps"));
+const Parcerias = lazy(() => import("./pages/Parcerias"));
 
 // Gera ou recupera um sessionId anônimo para rastreamento de visitas
 function getSessionId(): string {
@@ -66,6 +80,7 @@ function PageViewTracker() {
 
 function Router() {
   return (
+    <Suspense fallback={<PageLoader />}>
     <Switch>
       {/* Public routes */}
       <Route path="/" component={Home} />
@@ -114,6 +129,7 @@ function Router() {
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 
