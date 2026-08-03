@@ -165,6 +165,13 @@ export default function Onboarding() {
     return null;
   }
 
+  // Se o usuário já tem tipo definido e não veio por URL, redirecionar direto ao dashboard
+  if (!loading && user && !urlType) {
+    if (user.userType === "representative") { navigate("/dashboard/rep"); return null; }
+    if (user.userType === "company") { navigate("/dashboard/company"); return null; }
+    if (user.userType === "manager") { navigate("/dashboard/manager"); return null; }
+  }
+
   // If URL has type param and we haven't set it yet in DB, do it on mount
   useEffect(() => {
     if (urlType && !setTypeMutation.isSuccess && !setTypeMutation.isPending) {
