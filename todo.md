@@ -642,3 +642,5 @@
 - [x] Data de desbloqueio e valor pago em cada card
 - [x] Estado vazio com CTA para buscar representantes
 - [ ] Adicionar vídeo de fundo na seção hero da landing page (Home.tsx) usando /hero-bg.mp4
+- [ ] Adicionar botão flutuante do WhatsApp (41999499815) em todas as páginas
+- [ ] Melhorias de SEO: sitemap.xml, robots.txt, Schema.org, meta tags otimizadas
