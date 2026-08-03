@@ -428,19 +428,11 @@ export default function RepDashboard() {
       </div>
     );
   }
-  // Somente redireciona para onboarding se o perfil não existe E o usuário ainda não tem tipo definido
-  // Evita loop: dashboard/rep → onboarding → dashboard/rep
-  if (!profile && user?.userType === "pending") {
-    navigate("/onboarding");
-    return null;
-  }
   if (!profile) {
-    // Perfil não encontrado mas usuário já tem tipo: mostrar estado de carregamento
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-      </div>
-    );
+    // Se o perfil não existe, enviar para onboarding com type=representative
+    // O parâmetro ?type=representative evita o loop pois o Onboarding não redireciona de volta quando há URL param
+    navigate("/onboarding?type=representative");
+    return null;
   }
 
   const tier = profile.subscriptionTier as keyof typeof TIER_CONFIG;
