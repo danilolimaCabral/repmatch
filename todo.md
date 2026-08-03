@@ -700,3 +700,28 @@
 - [ ] Adicionar Schema.org FAQPage na seção FAQ
 - [ ] Adicionar Schema.org BreadcrumbList nas páginas internas
 - [ ] Melhorar robots.txt com regras específicas
+
+## Melhorias de Performance PageSpeed (03/08/2026)
+
+- [ ] Adicionar width/height explícitos na logo para evitar CLS
+- [ ] Adicionar preload para fontes Google Fonts críticas no index.html
+- [ ] Otimizar imagens com width/height para evitar layout shift
+
+## Blog: Sistema de Reações + Melhorias Visuais + SEO (03/08/2026)
+
+- [x] Criar tabela blog_reactions no schema (id, slug, reaction, sessionId, createdAt)
+- [x] Aplicar migração SQL no banco de dados
+- [x] Implementar procedure tRPC blog.getReactions (contagem por tipo)
+- [x] Implementar procedure tRPC blog.toggleReaction (toggle por sessionId anônimo)
+- [x] Implementar procedure tRPC blog.getUserReactions (reações do usuário por sessão)
+- [x] Adicionar componente BlogReactions no BlogPost.tsx com 4 emojis (👍 ❤️ 🚀 💡)
+- [x] Optimistic updates no sistema de reações (sem delay visual)
+- [x] Melhorar Blog.tsx: adicionar busca por texto e filtros de categoria
+- [x] Melhorar Blog.tsx: mostrar tags nos cards de artigos
+- [x] Melhorar Blog.tsx: adicionar estatísticas do blog (artigos, categorias, tempo médio)
+- [x] Melhorar Blog.tsx: estado vazio com botão de limpar filtros
+- [x] Atualizar sitemap.xml com todos os 12 artigos do blog
+- [x] Melhorar index.html: carregamento não-bloqueante das fontes (media=print trick)
+- [x] Melhorar index.html: adicionar DNS prefetch para Stripe e MercadoPago
+- [x] Melhorar index.html: atualizar FAQ Schema.org com pergunta sobre CORE
+- [x] Melhorar index.html: adicionar Blog no BreadcrumbList Schema.org

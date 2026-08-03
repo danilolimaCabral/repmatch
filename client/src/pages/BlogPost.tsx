@@ -1,12 +1,12 @@
 import { useLocation, useParams } from "wouter";
-import { useEffect } from "react";
-import { Clock, ArrowLeft, ArrowRight, Tag, Share2, BookOpen, Link2, Check } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { Clock, ArrowLeft, ArrowRight, Tag, BookOpen, Link2, Check, ThumbsUp, Heart, Rocket, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import SEO from "@/components/SEO";
 import { getBlogPost, getRecentPosts, BLOG_POSTS } from "@/data/blogPosts";
 import ReactMarkdown from "react-markdown";
+import { trpc } from "@/lib/trpc";
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
@@ -19,7 +19,105 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Estratégia": "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
 };
 
-// ─── Componente de Compartilhamento ─────────────────────────────────────────
+// ─── Gera/recupera sessionId anônimo ─────────────────────────────────────────
+function getSessionId(): string {
+  let sid = sessionStorage.getItem("rm_blog_sid");
+  if (!sid) {
+    sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    sessionStorage.setItem("rm_blog_sid", sid);
+  }
+  return sid;
+}
+
+// ─── Componente de Reações ───────────────────────────────────────────────────
+type ReactionType = "like" | "love" | "rocket" | "bulb";
+
+const REACTIONS: { type: ReactionType; emoji: string; label: string; icon: React.ReactNode }[] = [
+  { type: "like", emoji: "👍", label: "Útil", icon: <ThumbsUp className="w-4 h-4" /> },
+  { type: "love", emoji: "❤️", label: "Adorei", icon: <Heart className="w-4 h-4" /> },
+  { type: "rocket", emoji: "🚀", label: "Incrível", icon: <Rocket className="w-4 h-4" /> },
+  { type: "bulb", emoji: "💡", label: "Aprendi", icon: <Lightbulb className="w-4 h-4" /> },
+];
+
+function BlogReactions({ slug }: { slug: string }) {
+  const sessionId = useMemo(() => getSessionId(), []);
+  const utils = trpc.useUtils();
+
+  const { data: counts, isLoading: countsLoading } = trpc.blog.getReactions.useQuery({ slug });
+  const { data: userReactions } = trpc.blog.getUserReactions.useQuery({ slug, sessionId });
+
+  const toggleMutation = trpc.blog.toggleReaction.useMutation({
+    onMutate: async ({ reaction }) => {
+      // Optimistic update
+      await utils.blog.getReactions.cancel({ slug });
+      await utils.blog.getUserReactions.cancel({ slug, sessionId });
+      const prevCounts = utils.blog.getReactions.getData({ slug });
+      const prevUserRx = utils.blog.getUserReactions.getData({ slug, sessionId });
+      const isActive = prevUserRx?.includes(reaction);
+      utils.blog.getReactions.setData({ slug }, (old) => {
+        if (!old) return old;
+        return { ...old, [reaction]: isActive ? Math.max(0, old[reaction] - 1) : old[reaction] + 1 };
+      });
+      utils.blog.getUserReactions.setData({ slug, sessionId }, (old) => {
+        if (!old) return old;
+        return isActive ? old.filter(r => r !== reaction) : [...old, reaction];
+      });
+      return { prevCounts, prevUserRx };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prevCounts) utils.blog.getReactions.setData({ slug }, ctx.prevCounts);
+      if (ctx?.prevUserRx) utils.blog.getUserReactions.setData({ slug, sessionId }, ctx.prevUserRx);
+    },
+    onSettled: () => {
+      utils.blog.getReactions.invalidate({ slug });
+      utils.blog.getUserReactions.invalidate({ slug, sessionId });
+    },
+  });
+
+  const totalReactions = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : 0;
+
+  return (
+    <div className="mt-10 pt-8 border-t border-border">
+      <div className="text-center mb-6">
+        <p className="text-sm font-semibold text-muted-foreground mb-1">Este artigo foi útil para você?</p>
+        <p className="text-xs text-muted-foreground">Deixe sua reação — ajuda outros leitores!</p>
+      </div>
+      <div className="flex items-center justify-center gap-3 flex-wrap">
+        {REACTIONS.map(({ type, emoji, label }) => {
+          const isActive = userReactions?.includes(type) ?? false;
+          const count = counts?.[type] ?? 0;
+          return (
+            <button
+              key={type}
+              onClick={() => toggleMutation.mutate({ slug, reaction: type, sessionId })}
+              disabled={toggleMutation.isPending}
+              className={`flex flex-col items-center gap-1.5 px-5 py-3 rounded-2xl border-2 transition-all font-semibold text-sm
+                ${isActive
+                  ? "border-primary bg-primary/15 text-primary shadow-md scale-105"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground hover:scale-105"
+                }`}
+            >
+              <span className="text-2xl leading-none">{emoji}</span>
+              <span className="text-xs font-bold">{label}</span>
+              {!countsLoading && (
+                <span className={`text-xs font-black ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                  {count > 0 ? count : ""}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {totalReactions > 0 && (
+        <p className="text-center text-xs text-muted-foreground mt-4">
+          {totalReactions} {totalReactions === 1 ? "pessoa reagiu" : "pessoas reagiram"} a este artigo
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Compartilhamento ────────────────────────────────────────────────────────
 function ShareButtons({ title, excerpt, large }: { title: string; excerpt: string; large?: boolean }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window !== "undefined" ? window.location.href : "";
@@ -51,7 +149,6 @@ function ShareButtons({ title, excerpt, large }: { title: string; excerpt: strin
 
   return (
     <div className="flex items-center gap-2">
-      {/* WhatsApp */}
       <button
         onClick={shareWhatsApp}
         title="Compartilhar no WhatsApp"
@@ -64,7 +161,6 @@ function ShareButtons({ title, excerpt, large }: { title: string; excerpt: strin
         {large && <span>WhatsApp</span>}
       </button>
 
-      {/* LinkedIn */}
       <button
         onClick={shareLinkedIn}
         title="Compartilhar no LinkedIn"
@@ -77,7 +173,6 @@ function ShareButtons({ title, excerpt, large }: { title: string; excerpt: strin
         {large && <span>LinkedIn</span>}
       </button>
 
-      {/* Copiar link */}
       <button
         onClick={copyLink}
         title="Copiar link"
@@ -109,7 +204,6 @@ export default function BlogPost() {
 
   useEffect(() => {
     if (!post) return;
-    // Inject Article Schema.org
     const existing = document.getElementById("blog-schema");
     if (existing) existing.remove();
     const script = document.createElement("script");
@@ -166,7 +260,7 @@ export default function BlogPost() {
   const nextPost = currentIndex < BLOG_POSTS.length - 1 ? BLOG_POSTS[currentIndex + 1] : null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-background text-foreground">
       <SEO
         title={post.title}
         description={post.excerpt}
@@ -179,7 +273,7 @@ export default function BlogPost() {
       <header className="border-b border-border bg-card/90 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <button onClick={() => navigate("/")} className="flex items-center gap-2">
-            <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
+            <img src={LOGO_URL} alt="RepMatch" width={28} height={28} className="h-7 object-contain" />
           </button>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <a href="/buscar" className="hover:text-foreground transition-colors">Buscar Reps</a>
@@ -229,7 +323,7 @@ export default function BlogPost() {
 
         {/* Autor */}
         <div className="flex items-center gap-3 mb-8 pb-8 border-b border-border">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm">
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm flex-shrink-0">
             RM
           </div>
           <div>
@@ -278,6 +372,9 @@ export default function BlogPost() {
           </div>
         </div>
 
+        {/* ─── Sistema de Reações ──────────────────────────────────────── */}
+        <BlogReactions slug={post.slug} />
+
         {/* Navegação prev/next */}
         <div className="mt-10 grid grid-cols-2 gap-4">
           {prevPost ? (
@@ -315,7 +412,7 @@ export default function BlogPost() {
           <h2 className="text-xl font-black mb-6 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-primary" /> Artigos Relacionados
           </h2>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
             {recent.map(p => (
               <article
                 key={p.slug}
@@ -357,7 +454,7 @@ export default function BlogPost() {
 
       {/* Footer */}
       <footer className="border-t border-border bg-card py-6 px-4 text-center text-sm text-muted-foreground">
-        <img src={LOGO_URL} alt="RepMatch" className="h-6 object-contain mx-auto mb-3" />
+        <img src={LOGO_URL} alt="RepMatch" width={24} height={24} className="h-6 object-contain mx-auto mb-3" />
         <p>© 2025 RepMatch · Marketplace de Representantes Comerciais</p>
         <div className="flex justify-center gap-4 mt-2 text-xs">
           <a href="/" className="hover:text-foreground transition-colors">Início</a>

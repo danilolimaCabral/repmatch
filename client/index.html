@@ -6,7 +6,7 @@
 
     <!-- ─── Primary SEO ─────────────────────────────────────────── -->
     <title>RepMatch | Contratar Representante Comercial — Marketplace #1 do Brasil</title>
-    <meta name="description" content="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e experiência. Base com +173 mil representantes verificados. Desbloqueie contatos a partir de R$29." />
+    <meta name="description" content="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e experiência. Base com +9.000 representantes verificados. Desbloqueie contatos a partir de R$29." />
     <meta name="keywords" content="contratar representante comercial, representante comercial, marketplace representantes, vagas representante comercial, buscar representante, representação comercial, vendas externas, agente comercial, representante de vendas, plataforma representantes, encontrar representante, representante comercial brasil, RepMatch" />
     <meta name="author" content="RepMatch" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -24,7 +24,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://repmatch.com.br/" />
     <meta property="og:title" content="RepMatch | Contratar Representante Comercial no Brasil" />
-    <meta property="og:description" content="Encontre representantes comerciais qualificados por região e segmento. Base com +173 mil representantes verificados. Desbloqueie contatos a partir de R$29." />
+    <meta property="og:description" content="Encontre representantes comerciais qualificados por região e segmento. Base com +9.000 representantes verificados. Desbloqueie contatos a partir de R$29." />
     <meta property="og:image" content="https://repmatch.com.br/manus-storage/repmatch-logo-nobg_ec328e76.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -36,7 +36,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://repmatch.com.br/" />
     <meta name="twitter:title" content="RepMatch | Contratar Representante Comercial no Brasil" />
-    <meta name="twitter:description" content="Encontre representantes comerciais qualificados por região e segmento. Base com +173 mil representantes verificados. Desbloqueie contatos a partir de R$29." />
+    <meta name="twitter:description" content="Encontre representantes comerciais qualificados por região e segmento. Base com +9.000 representantes verificados. Desbloqueie contatos a partir de R$29." />
     <meta name="twitter:image" content="https://repmatch.com.br/manus-storage/repmatch-logo-nobg_ec328e76.png" />
     <meta name="twitter:image:alt" content="RepMatch — Marketplace de Representantes Comerciais no Brasil" />
 
@@ -44,15 +44,22 @@
     <link rel="icon" type="image/png" href="/manus-storage/repmatch-logo-nobg_ec328e76.png" />
     <link rel="apple-touch-icon" href="/manus-storage/repmatch-logo-nobg_ec328e76.png" />
 
-    <!-- ─── Fonts (preload para performance) ─────────────────────── -->
+    <!-- ─── Fonts: preconnect para performance ─────────────────────── -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet" />
+    <!-- Carregamento não-bloqueante das fontes (evita render-blocking) -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet" />
+    </noscript>
 
     <!-- ─── DNS Prefetch para recursos externos ──────────────────────────── -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="https://api.mercadopago.com" />
+    <link rel="dns-prefetch" href="https://js.stripe.com" />
 
     <!-- ─── Schema.org: WebSite com SearchAction ─────────────────── -->
     <script type="application/ld+json">
@@ -62,7 +69,7 @@
       "name": "RepMatch",
       "alternateName": "RepMatch Marketplace",
       "url": "https://repmatch.com.br",
-      "description": "Maior marketplace de representantes comerciais do Brasil. Conectamos empresas com representantes qualificados por inteligência artificial.",
+      "description": "Maior marketplace de representantes comerciais do Brasil. Conectamos empresas com representantes qualificados em todo o Brasil.",
       "inLanguage": "pt-BR",
       "potentialAction": {
         "@type": "SearchAction",
@@ -88,22 +95,12 @@
         "width": 512,
         "height": 512
       },
-      "description": "Marketplace de representantes comerciais no Brasil. Conectamos empresas com representantes qualificados por inteligência artificial.",
+      "description": "Marketplace de representantes comerciais no Brasil. Conectamos empresas com representantes qualificados por todo o Brasil.",
       "foundingDate": "2024",
       "areaServed": {
         "@type": "Country",
         "name": "Brazil"
       },
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+55-41-99949-9815",
-        "contactType": "customer service",
-        "areaServed": "BR",
-        "availableLanguage": "Portuguese"
-      },
-      "sameAs": [
-        "https://repmatch.com.br"
-      ],
       "contactPoint": [
         {
           "@type": "ContactPoint",
@@ -113,6 +110,9 @@
           "areaServed": "BR",
           "availableLanguage": "Portuguese"
         }
+      ],
+      "sameAs": [
+        "https://repmatch.com.br"
       ]
     }
     </script>
@@ -138,8 +138,8 @@
       },
       "employmentType": "CONTRACTOR",
       "workHours": "Flexível",
-      "datePosted": "2026-08-02",
-      "validThrough": "2027-08-02",
+      "datePosted": "2026-08-03",
+      "validThrough": "2027-08-03",
       "url": "https://repmatch.com.br/vagas",
       "baseSalary": {
         "@type": "MonetaryAmount",
@@ -163,7 +163,7 @@
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "url": "https://repmatch.com.br",
-      "description": "Plataforma de matching entre empresas e representantes comerciais usando inteligência artificial. Filtre por região, segmento e experiência.",
+      "description": "Plataforma de matching entre empresas e representantes comerciais. Filtre por região, segmento e experiência.",
       "offers": {
         "@type": "Offer",
         "price": "29.00",
@@ -191,7 +191,7 @@
           "name": "Como funciona o match do RepMatch?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "O RepMatch usa inteligência artificial para cruzar região de atuação, segmento de mercado, experiência e histórico do representante com os critérios da vaga publicada pela empresa. O resultado é uma lista ranqueada de representantes compatíveis, ordenada por plano (Ouro, Prata, Bronze)."
+            "text": "O RepMatch cruza região de atuação, segmento de mercado, experiência e histórico do representante com os critérios da vaga publicada pela empresa. O resultado é uma lista ranqueada de representantes compatíveis, ordenada por plano (Ouro, Prata, Bronze)."
           }
         },
         {
@@ -212,10 +212,10 @@
         },
         {
           "@type": "Question",
-          "name": "O que é o ranking Bronze, Silver, Gold e Platinum?",
+          "name": "O que é o ranking Bronze, Prata e Ouro?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "É o sistema de reputação do RepMatch para empresas. Empresas Bronze têm acesso básico; Silver, Gold e Platinum têm maior visibilidade e acesso a representantes mais qualificados. O ranking sobe conforme o histórico de contratações, avaliações recebidas e comissão oferecida."
+            "text": "É o sistema de reputação do RepMatch para representantes. Representantes Bronze têm acesso básico; Prata e Ouro têm maior visibilidade e aparecem primeiro nas buscas das empresas. O ranking sobe conforme o histórico de contratações e avaliações recebidas."
           }
         },
         {
@@ -231,15 +231,15 @@
           "name": "Como funciona o desbloqueio de contato por R$29?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Ao encontrar um representante de interesse na busca, você adiciona ao carrinho e paga R$29 por representante via PIX ou cartão. Após o pagamento, o telefone, e-mail, cidade e bio completa do representante são liberados imediatamente."
+            "text": "Ao encontrar um representante de interesse na busca, você paga R$29 por representante via PIX ou cartão. Após o pagamento, o telefone, e-mail, cidade e bio completa do representante são liberados imediatamente."
           }
         },
         {
           "@type": "Question",
-          "name": "Posso importar minha base de clientes ou representantes?",
+          "name": "O que é o CORE e por que é importante?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sim. O RepMatch permite importar sua base existente de representantes ou clientes para facilitar a gestão e evitar duplicidades."
+            "text": "O CORE (Conselho Regional dos Representantes Comerciais) é o registro obrigatório para exercer a profissão de representante comercial legalmente no Brasil. O RepMatch verifica o CORE de cada representante para garantir que todos os profissionais da plataforma estejam regularizados."
           }
         }
       ]
@@ -269,6 +269,12 @@
           "position": 3,
           "name": "Vagas de Representação",
           "item": "https://repmatch.com.br/vagas"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "Blog",
+          "item": "https://repmatch.com.br/blog"
         }
       ]
     }

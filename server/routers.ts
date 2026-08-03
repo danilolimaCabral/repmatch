@@ -2567,5 +2567,77 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         return { success: true };
       }),
   }),
+
+  // ─── Blog Reactions ─────────────────────────────────────────────────────────
+  blog: router({
+    // Retorna contagem de reações por tipo para um artigo
+    getReactions: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return { like: 0, love: 0, rocket: 0, bulb: 0 };
+        const { blogReactions } = await import('../drizzle/schema');
+        const rows = await db
+          .select({ reaction: blogReactions.reaction, count: count() })
+          .from(blogReactions)
+          .where(eq(blogReactions.slug, input.slug))
+          .groupBy(blogReactions.reaction);
+        const result = { like: 0, love: 0, rocket: 0, bulb: 0 };
+        for (const row of rows) {
+          result[row.reaction as keyof typeof result] = Number(row.count);
+        }
+        return result;
+      }),
+
+    // Adiciona ou remove reação (toggle por sessionId)
+    toggleReaction: publicProcedure
+      .input(z.object({
+        slug: z.string(),
+        reaction: z.enum(['like', 'love', 'rocket', 'bulb']),
+        sessionId: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        const { blogReactions } = await import('../drizzle/schema');
+        // Verificar se já reagiu
+        const [existing] = await db.select({ id: blogReactions.id })
+          .from(blogReactions)
+          .where(and(
+            eq(blogReactions.slug, input.slug),
+            eq(blogReactions.reaction, input.reaction),
+            eq(blogReactions.sessionId, input.sessionId),
+          )).limit(1);
+        if (existing) {
+          // Remove reação (toggle off)
+          await db.delete(blogReactions).where(eq(blogReactions.id, existing.id));
+          return { action: 'removed' };
+        } else {
+          // Adiciona reação
+          await db.insert(blogReactions).values({
+            slug: input.slug,
+            reaction: input.reaction,
+            sessionId: input.sessionId,
+          });
+          return { action: 'added' };
+        }
+      }),
+
+    // Retorna quais reações o usuário (por sessionId) já deu neste artigo
+    getUserReactions: publicProcedure
+      .input(z.object({ slug: z.string(), sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const { blogReactions } = await import('../drizzle/schema');
+        const rows = await db.select({ reaction: blogReactions.reaction })
+          .from(blogReactions)
+          .where(and(
+            eq(blogReactions.slug, input.slug),
+            eq(blogReactions.sessionId, input.sessionId),
+          ));
+        return rows.map(r => r.reaction);
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

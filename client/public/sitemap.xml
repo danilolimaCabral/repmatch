@@ -2,79 +2,73 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
+  <!-- ─── Páginas Principais ──────────────────────────────────────── -->
   <url>
     <loc>https://repmatch.com.br/</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
     <loc>https://repmatch.com.br/buscar</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
   </url>
 
   <url>
     <loc>https://repmatch.com.br/vagas</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
 
-  <!-- Blog -->
   <url>
-    <loc>https://repmatch.com.br/blog</loc>
+    <loc>https://repmatch.com.br/oportunidades-reps</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
+    <loc>https://repmatch.com.br/parcerias</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <!-- ─── Blog ────────────────────────────────────────────────────── -->
+  <url>
+    <loc>https://repmatch.com.br/blog</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <url>
     <loc>https://repmatch.com.br/blog/como-contratar-representante-comercial</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
+    <priority>0.85</priority>
   </url>
 
   <url>
-    <loc>https://repmatch.com.br/blog/representante-comercial-salario-comissao</loc>
+    <loc>https://repmatch.com.br/blog/representante-comercial-o-que-faz</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.80</priority>
   </url>
 
   <url>
-    <loc>https://repmatch.com.br/blog/lei-representacao-comercial-brasil</loc>
+    <loc>https://repmatch.com.br/blog/contrato-representacao-comercial-modelo</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.80</priority>
   </url>
 
   <url>
-    <loc>https://repmatch.com.br/blog/diferenca-representante-vendedor-clt</loc>
-    <lastmod>2026-08-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-
-  <url>
-    <loc>https://repmatch.com.br/blog/contrato-representacao-comercial</loc>
-    <lastmod>2026-08-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-
-  <url>
-    <loc>https://repmatch.com.br/blog/como-ser-representante-comercial</loc>
-    <lastmod>2026-08-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
-  </url>
-
-  <url>
-    <loc>https://repmatch.com.br/blog/expandir-vendas-representantes-regionais</loc>
+    <loc>https://repmatch.com.br/blog/representante-comercial-segmentos-mais-lucrativos</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.80</priority>
@@ -88,43 +82,79 @@
   </url>
 
   <url>
-    <loc>https://repmatch.com.br/oportunidades-reps</loc>
-    <lastmod>2026-08-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>https://repmatch.com.br/blog/como-expandir-vendas-com-representantes</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.80</priority>
   </url>
 
   <url>
-    <loc>https://repmatch.com.br/parcerias</loc>
-    <lastmod>2026-08-02</lastmod>
+    <loc>https://repmatch.com.br/blog/representante-comercial-vs-distribuidor</loc>
+    <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.70</priority>
+    <priority>0.80</priority>
   </url>
 
   <url>
+    <loc>https://repmatch.com.br/blog/dicas-representante-comercial-iniciante</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://repmatch.com.br/blog/lei-representacao-comercial-brasil</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://repmatch.com.br/blog/como-precificar-comissao-representante</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://repmatch.com.br/blog/representante-comercial-digital</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://repmatch.com.br/blog/mercado-representacao-comercial-brasil-2025</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- ─── Páginas de Suporte ──────────────────────────────────────── -->
+  <url>
     <loc>https://repmatch.com.br/login</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.50</priority>
   </url>
 
   <url>
     <loc>https://repmatch.com.br/register</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.50</priority>
   </url>
 
   <url>
     <loc>https://repmatch.com.br/termos</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.30</priority>
   </url>
 
   <url>
     <loc>https://repmatch.com.br/privacidade</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.30</priority>
   </url>

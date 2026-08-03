@@ -438,3 +438,17 @@ export const pageViews = mysqlTable("page_views", {
 }));
 export type PageView = typeof pageViews.$inferSelect;
 export type InsertPageView = typeof pageViews.$inferInsert;
+
+// ─── Blog Reactions (reações nos artigos do blog) ────────────────────────────
+export const blogReactions = mysqlTable("blog_reactions", {
+  id: int("id").autoincrement().primaryKey(),
+  slug: varchar("slug", { length: 200 }).notNull(),
+  reaction: mysqlEnum("reaction", ["like", "love", "rocket", "bulb"]).notNull(),
+  sessionId: varchar("sessionId", { length: 64 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  slugReactionIdx: index("br_slug_reaction_idx").on(t.slug, t.reaction),
+  sessionSlugIdx: index("br_session_slug_idx").on(t.sessionId, t.slug),
+}));
+export type BlogReaction = typeof blogReactions.$inferSelect;
+export type InsertBlogReaction = typeof blogReactions.$inferInsert;
