@@ -657,3 +657,24 @@
 ## Toast de Boas-vindas (03/08/2026)
 
 - [ ] Implementar toast de boas-vindas personalizado nos dashboards Rep, Empresa e Gerente (aparece uma vez por sessão ao carregar o perfil com sucesso)
+
+## SEO Orgânico Google (03/08/2026)
+
+- [ ] Otimizar meta tags (title, description) em todas as páginas públicas
+- [ ] Adicionar Open Graph tags (og:title, og:description, og:image) para compartilhamento social
+- [ ] Implementar Schema.org JSON-LD (Organization, WebSite, Service, FAQPage)
+- [ ] Criar/atualizar sitemap.xml com todas as URLs públicas
+- [ ] Criar/atualizar robots.txt correto
+- [ ] Adicionar canonical URLs para evitar conteúdo duplicado
+- [ ] Criar página de blog/conteúdo com artigos sobre representação comercial
+- [ ] Adicionar alt text em todas as imagens
+- [ ] Otimizar títulos H1/H2/H3 com palavras-chave
+- [ ] Criar página de FAQ otimizada para SEO
+- [ ] Adicionar Google Search Console verification meta tag
+
+## Melhorias UX Páginas Públicas (03/08/2026)
+
+- [ ] Página Vagas: verificar e corrigir botões, garantir que vagas públicas aparecem
+- [ ] Buscar Representantes: melhorar filtros (região, segmento, experiência) com busca funcional
+- [ ] Buscar Representantes: mostrar cards com dados parciais bloqueados (nome parcial, região, segmento visíveis) com cadeado — evidenciar que há base cadastrada
+- [ ] Buscar Representantes: exibir contador total de representantes disponíveis

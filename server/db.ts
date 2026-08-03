@@ -792,8 +792,8 @@ export async function getRepresentativePreview(filters?: { region?: string; segm
     .where(and(...conditions));
   const totalCount = Number(countResult?.count ?? 0);
 
-  // Busca apenas os primeiros registros para preview (máx 5)
-  const previewLimit = filters?.subscriptionTier && filters.subscriptionTier !== 'free' ? 5 : 3;
+  // Busca os primeiros registros para preview — mostra mais cards para evidenciar a base
+  const previewLimit = filters?.subscriptionTier && filters.subscriptionTier !== 'free' ? 9 : 6;
   const allReps = await db
     .select({
       id: representatives.id,

@@ -307,25 +307,75 @@ export default function BuscarRepresentantes() {
                 );
               })}
 
-              {/* Locked "more" card */}
+              {/* Cards fantasmas bloqueados — mostram que há muito mais na base */}
               {count > previews.length && (
-                <div
-                  className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary/60 hover:bg-primary/10 transition-all"
-                  onClick={() => navigate("/register")}
-                >
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-3">
-                    <Lock className="w-5 h-5 text-primary" />
+                <>
+                  {/* Card fantasma 1 */}
+                  <div className="rounded-xl border border-border bg-card p-5 relative overflow-hidden opacity-60 select-none">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-card/60 to-card z-10 flex flex-col items-center justify-end pb-5">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mb-2">
+                        <Lock className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="text-xs font-semibold text-primary">Cadastre-se para ver</div>
+                    </div>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center font-bold text-sm">R</div>
+                      <div className="h-5 w-16 bg-secondary rounded-full" />
+                    </div>
+                    <div className="h-4 w-32 bg-secondary rounded mb-2" />
+                    <div className="flex flex-col gap-1.5 mb-3">
+                      <div className="h-3 w-24 bg-secondary rounded" />
+                      <div className="h-3 w-28 bg-secondary rounded" />
+                      <div className="h-3 w-20 bg-secondary rounded" />
+                    </div>
+                    <div className="border-t border-border pt-3">
+                      <div className="h-3 w-36 bg-secondary rounded mb-1" />
+                      <div className="h-3 w-32 bg-secondary rounded" />
+                    </div>
                   </div>
-                  <div className="font-bold text-sm mb-1">
-                    +{(count - previews.length).toLocaleString("pt-BR")} representantes
+                  {/* Card fantasma 2 */}
+                  <div className="rounded-xl border border-border bg-card p-5 relative overflow-hidden opacity-40 select-none hidden lg:block">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-card/60 to-card z-10 flex flex-col items-center justify-end pb-5">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mb-2">
+                        <Lock className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="text-xs font-semibold text-primary">Cadastre-se para ver</div>
+                    </div>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center font-bold text-sm">M</div>
+                      <div className="h-5 w-16 bg-secondary rounded-full" />
+                    </div>
+                    <div className="h-4 w-28 bg-secondary rounded mb-2" />
+                    <div className="flex flex-col gap-1.5 mb-3">
+                      <div className="h-3 w-20 bg-secondary rounded" />
+                      <div className="h-3 w-32 bg-secondary rounded" />
+                      <div className="h-3 w-24 bg-secondary rounded" />
+                    </div>
+                    <div className="border-t border-border pt-3">
+                      <div className="h-3 w-36 bg-secondary rounded mb-1" />
+                      <div className="h-3 w-28 bg-secondary rounded" />
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground mb-3">
-                    Cadastre-se para ver todos
+                  {/* Card CTA — +N representantes */}
+                  <div
+                    className="rounded-xl border-2 border-primary/40 bg-primary/5 p-5 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary hover:bg-primary/10 transition-all"
+                    onClick={() => navigate("/register")}
+                  >
+                    <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mb-3">
+                      <Lock className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="font-black text-2xl text-primary mb-1">
+                      +{(count - previews.length).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="font-semibold text-sm mb-1">representantes bloqueados</div>
+                    <div className="text-xs text-muted-foreground mb-4">
+                      Crie sua conta gratuita para ver todos os perfis com contato, histórico e avaliações
+                    </div>
+                    <Button size="sm" className="bg-primary text-primary-foreground text-xs font-bold w-full">
+                      Desbloquear acesso <ArrowRight className="w-3 h-3 ml-1" />
+                    </Button>
                   </div>
-                  <Button size="sm" className="bg-primary text-primary-foreground text-xs font-semibold">
-                    Desbloquear <ArrowRight className="w-3 h-3 ml-1" />
-                  </Button>
-                </div>
+                </>
               )}
             </div>
             )}
