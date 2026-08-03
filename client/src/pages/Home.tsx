@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { LogOut, LayoutDashboard, ChevronDown as ChevronDownSmall } from "lucide-react";
 import SEO from "@/components/SEO";
 import { lazy, Suspense } from "react";
 const ROICalculator = lazy(() => import("@/components/ROICalculator"));
@@ -462,7 +463,8 @@ function ThemeToggleButton() {
 }
 
 export default function Home() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [, navigate] = useLocation();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -519,16 +521,39 @@ export default function Home() {
                     <span>🔑</span> Painel Admin
                   </a>
                 )}
-                <button
-                  onClick={() => {
-                    if (companyProfile) navigate("/dashboard/company");
-                    else if (repProfile) navigate("/dashboard/rep");
-                    else navigate("/onboarding");
-                  }}
-                  className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors"
-                >
-                  Olá, {user?.name?.split(" ")[0]} <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors"
+                  >
+                    Olá, {user?.name?.split(" ")[0]} <ChevronDownSmall className="w-4 h-4" />
+                  </button>
+                  {userMenuOpen && (
+                    <div
+                      className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden"
+                      onMouseLeave={() => setUserMenuOpen(false)}
+                    >
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          if (companyProfile) navigate("/dashboard/company");
+                          else if (repProfile) navigate("/dashboard/rep");
+                          else navigate("/onboarding");
+                        }}
+                        className="flex items-center gap-2 w-full px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4" /> Meu Painel
+                      </button>
+                      <div className="border-t border-border" />
+                      <button
+                        onClick={() => { setUserMenuOpen(false); logout(); navigate("/"); }}
+                        className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" /> Sair
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <>

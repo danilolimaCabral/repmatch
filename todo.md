@@ -644,3 +644,8 @@
 - [ ] Adicionar vídeo de fundo na seção hero da landing page (Home.tsx) usando /hero-bg.mp4
 - [ ] Adicionar botão flutuante do WhatsApp (41999499815) em todas as páginas
 - [ ] Melhorias de SEO: sitemap.xml, robots.txt, Schema.org, meta tags otimizadas
+
+## Correções de UX — Logout e Onboarding (03/08/2026)
+
+- [x] Adicionar menu dropdown com logout no botão do usuário na navbar (botão "Olá, danilo" sem opção de sair)
+- [x] Corrigir tela de onboarding que aparece após login (deve ir direto ao dashboard sem pedir tipo novamente)
