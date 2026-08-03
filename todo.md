@@ -690,22 +690,22 @@
 
 ## SEO Completo + Blog (03/08/2026)
 
-- [ ] Criar página /blog com listagem de artigos e design profissional
-- [ ] Criar página /blog/:slug com artigo individual e Schema.org Article
-- [ ] Criar 8 artigos SEO sobre representação comercial
-- [ ] Adicionar link "Blog" na navbar principal
-- [ ] Melhorar componente SEO com meta tags dinâmicas por página
-- [ ] Atualizar sitemap.xml com todas as URLs do blog
-- [ ] Adicionar Schema.org Organization na home
-- [ ] Adicionar Schema.org FAQPage na seção FAQ
-- [ ] Adicionar Schema.org BreadcrumbList nas páginas internas
-- [ ] Melhorar robots.txt com regras específicas
+- [x] Criar página /blog com listagem de artigos e design profissional
+- [x] Criar página /blog/:slug com artigo individual e Schema.org Article
+- [x] Criar 8 artigos SEO sobre representação comercial
+- [x] Adicionar link "Blog" na navbar principal
+- [x] Melhorar componente SEO com meta tags dinâmicas por página
+- [x] Atualizar sitemap.xml com todas as URLs do blog
+- [x] Adicionar Schema.org Organization na home
+- [x] Adicionar Schema.org FAQPage na seção FAQ
+- [x] Adicionar Schema.org BreadcrumbList nas páginas internas
+- [x] Melhorar robots.txt com regras específicas
 
 ## Melhorias de Performance PageSpeed (03/08/2026)
 
-- [ ] Adicionar width/height explícitos na logo para evitar CLS
-- [ ] Adicionar preload para fontes Google Fonts críticas no index.html
-- [ ] Otimizar imagens com width/height para evitar layout shift
+- [x] Adicionar width/height explícitos na logo para evitar CLS
+- [x] Adicionar preload para fontes Google Fonts críticas no index.html
+- [x] Otimizar imagens com width/height para evitar layout shift
 
 ## Blog: Sistema de Reações + Melhorias Visuais + SEO (03/08/2026)
 

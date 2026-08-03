@@ -1,16 +1,20 @@
 # RepMatch — Marketplace de Representantes Comerciais
 # https://repmatch.com.br
 
+# ─── Regras gerais ─────────────────────────────────────────────────────────
 User-agent: *
 Allow: /
 Allow: /buscar
 Allow: /vagas
 Allow: /planos
 Allow: /oportunidades-reps
+Allow: /parcerias
 Allow: /termos
 Allow: /privacidade
 Allow: /login
 Allow: /register
+Allow: /blog
+Allow: /blog/
 
 # Disallow private/dashboard routes
 Disallow: /dashboard/
@@ -19,6 +23,39 @@ Disallow: /onboarding
 Disallow: /perfil
 Disallow: /verificacao
 Disallow: /api/
+Disallow: /manus-storage/
 
-# Sitemap
+# ─── Google (Googlebot) ─────────────────────────────────────────────────────
+User-agent: Googlebot
+Allow: /
+Allow: /buscar
+Allow: /vagas
+Allow: /blog
+Allow: /blog/
+Crawl-delay: 1
+
+# ─── Bing ───────────────────────────────────────────────────────────────────
+User-agent: Bingbot
+Allow: /
+Allow: /blog
+Allow: /blog/
+Crawl-delay: 2
+
+# ─── Bots de IA (bloquear scraping de conteúdo) ────────────────────────────
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+# ─── Sitemap ────────────────────────────────────────────────────────────────
 Sitemap: https://repmatch.com.br/sitemap.xml
