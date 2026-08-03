@@ -324,6 +324,18 @@ export default function RepDashboard() {
 
   const utils = trpc.useUtils();
   const { data: profile, isLoading: profileLoading } = trpc.representatives.myProfile.useQuery();
+
+  // Toast de boas-vindas — dispara uma vez por sessão quando o perfil carrega
+  useEffect(() => {
+    if (profile && !sessionStorage.getItem("rep_welcome_shown")) {
+      sessionStorage.setItem("rep_welcome_shown", "1");
+      const firstName = user?.name?.split(" ")[0] ?? "Representante";
+      toast.success(`Bem-vindo de volta, ${firstName}! 👋`, {
+        description: "Seu painel está pronto. Boas oportunidades te esperam!",
+        duration: 4000,
+      });
+    }
+  }, [profile, user?.name]);
   const { data: allJobs, isLoading: jobsLoading } = trpc.jobs.list.useQuery({
     region: searchRegion || undefined,
     segment: searchSegment || undefined,

@@ -8,7 +8,7 @@ import {
   Phone, Mail, Eye, ChevronRight, TrendingUp, Target, Award, Clock,
   Coins, ShoppingCart, Unlock, CheckCircle, Infinity
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -62,6 +62,18 @@ export default function ManagerDashboard() {
 
   const creditsQuery = trpc.manager.getCredits.useQuery(undefined, { enabled: isAuthenticated });
   const unlockedRepsQuery = trpc.manager.listUnlockedReps.useQuery(undefined, { enabled: isAuthenticated });
+
+  // Toast de boas-vindas — dispara uma vez por sessão quando os dados carregam
+  useEffect(() => {
+    if (isAuthenticated && creditsQuery.data !== undefined && !sessionStorage.getItem("manager_welcome_shown")) {
+      sessionStorage.setItem("manager_welcome_shown", "1");
+      const firstName = user?.name?.split(" ")[0] ?? "Gerente";
+      toast.success(`Bem-vindo de volta, ${firstName}! 👋`, {
+        description: "Seu painel está pronto. Gerencie sua equipe com facilidade!",
+        duration: 4000,
+      });
+    }
+  }, [isAuthenticated, creditsQuery.data, user?.name]);
 
   const unlockMutation = trpc.manager.unlockRepContact.useMutation({
     onSuccess: (data) => {

@@ -653,3 +653,7 @@
 ## Mensagem de Boas-vindas (03/08/2026)
 
 - [ ] Adicionar mensagem de boas-vindas personalizada com nome do usuário nos dashboards (Rep, Empresa, Gerente)
+
+## Toast de Boas-vindas (03/08/2026)
+
+- [ ] Implementar toast de boas-vindas personalizado nos dashboards Rep, Empresa e Gerente (aparece uma vez por sessão ao carregar o perfil com sucesso)

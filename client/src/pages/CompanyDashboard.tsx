@@ -382,6 +382,18 @@ export default function CompanyDashboard() {
   const { data: profile, isLoading: profileLoading } = trpc.companies.myProfile.useQuery();
   const { data: myJobs, isLoading: jobsLoading } = trpc.jobs.myJobs.useQuery();
 
+  // Toast de boas-vindas — dispara uma vez por sessão quando o perfil carrega
+  useEffect(() => {
+    if (profile && !sessionStorage.getItem("company_welcome_shown")) {
+      sessionStorage.setItem("company_welcome_shown", "1");
+      const firstName = user?.name?.split(" ")[0] ?? "Empresa";
+      toast.success(`Bem-vindo de volta, ${firstName}! 👋`, {
+        description: "Seu painel está pronto. Encontre os melhores representantes!",
+        duration: 4000,
+      });
+    }
+  }, [profile, user?.name]);
+
   // ─── Promoção: 1 contato grátis ──────────────────────────────────────────────
   const { data: freeUnlockStatus, refetch: refetchFreeUnlockStatus } = trpc.contacts.freeUnlockStatus.useQuery(undefined, {
     staleTime: 60_000,
