@@ -678,3 +678,12 @@
 - [ ] Buscar Representantes: melhorar filtros (região, segmento, experiência) com busca funcional
 - [ ] Buscar Representantes: mostrar cards com dados parciais bloqueados (nome parcial, região, segmento visíveis) com cadeado — evidenciar que há base cadastrada
 - [ ] Buscar Representantes: exibir contador total de representantes disponíveis
+
+## Blog SEO (03/08/2026)
+
+- [ ] Criar página de listagem do blog (/blog) com cards de artigos
+- [ ] Criar página de artigo individual (/blog/:slug) com conteúdo completo
+- [ ] Criar 8 artigos SEO sobre representação comercial
+- [ ] Adicionar link para o blog na navbar
+- [ ] Atualizar sitemap.xml com URLs do blog
+- [ ] Adicionar Schema.org Article em cada artigo
