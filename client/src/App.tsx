@@ -44,6 +44,8 @@ const RedefinirSenha = lazy(() => import("./pages/RedefinirSenha"));
 const VerificarEmail = lazy(() => import("./pages/VerificarEmail"));
 const OportunidadesReps = lazy(() => import("./pages/OportunidadesReps"));
 const Parcerias = lazy(() => import("./pages/Parcerias"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
 
 // Gera ou recupera um sessionId anônimo para rastreamento de visitas
 function getSessionId(): string {
@@ -93,6 +95,8 @@ function Router() {
       <Route path="/faq">{() => { window.location.replace('/#faq'); return null; }}</Route>
       <Route path="/planos">{() => { window.location.replace('/'); return null; }}</Route>
       <Route path="/parcerias" component={Parcerias} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/privacidade" component={Privacidade} />
       <Route path="/termos" component={Termos} />
       <Route path="/login" component={Login} />

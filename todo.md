@@ -687,3 +687,16 @@
 - [ ] Adicionar link para o blog na navbar
 - [ ] Atualizar sitemap.xml com URLs do blog
 - [ ] Adicionar Schema.org Article em cada artigo
+
+## SEO Completo + Blog (03/08/2026)
+
+- [ ] Criar página /blog com listagem de artigos e design profissional
+- [ ] Criar página /blog/:slug com artigo individual e Schema.org Article
+- [ ] Criar 8 artigos SEO sobre representação comercial
+- [ ] Adicionar link "Blog" na navbar principal
+- [ ] Melhorar componente SEO com meta tags dinâmicas por página
+- [ ] Atualizar sitemap.xml com todas as URLs do blog
+- [ ] Adicionar Schema.org Organization na home
+- [ ] Adicionar Schema.org FAQPage na seção FAQ
+- [ ] Adicionar Schema.org BreadcrumbList nas páginas internas
+- [ ] Melhorar robots.txt com regras específicas
