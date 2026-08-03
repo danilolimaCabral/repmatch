@@ -2,7 +2,7 @@ import { MessageCircle } from "lucide-react";
 
 const WHATSAPP_NUMBER = "5541999499815";
 const WHATSAPP_MESSAGE = encodeURIComponent(
-  "Olá! Tenho uma dúvida sobre o RepMatch. Pode me ajudar?"
+  "Olá! Vim pelo site RepMatch (repmatch.com.br) e gostaria de tirar uma dúvida. Pode me ajudar?"
 );
 
 export function WhatsAppButton() {
