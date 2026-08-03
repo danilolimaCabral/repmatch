@@ -568,10 +568,12 @@ export default function CompanyDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!profileLoading && !profile) {
+    // Somente redireciona para onboarding se o perfil não existe E o usuário ainda não tem tipo definido
+    // Evita loop: dashboard/company → onboarding → dashboard/company
+    if (!profileLoading && !profile && user?.userType === "pending") {
       navigate("/onboarding");
     }
-  }, [profileLoading, profile, navigate]);
+  }, [profileLoading, profile, navigate, user?.userType]);
 
   // Computed chart data
   const jobStatusData = useMemo(() => {
