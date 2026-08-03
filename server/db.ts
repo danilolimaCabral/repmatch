@@ -469,6 +469,7 @@ export async function listPublicJobs(filters?: {
       companyId: jobs.companyId,
       companyName: companies.companyName,
       companyRank: companies.dynamicRank,
+      companyLogoUrl: companies.logoUrl,
     })
     .from(jobs)
     .innerJoin(companies, eq(jobs.companyId, companies.id))

@@ -227,79 +227,92 @@ export default function Vagas() {
                 return (
                   <div
                     key={job.id}
-                    className={`rounded-xl border bg-card p-5 flex flex-col gap-4 relative overflow-hidden transition-shadow hover:shadow-lg ${
+                    className={`rounded-xl border bg-card flex flex-col relative overflow-hidden transition-all hover:shadow-xl hover:-translate-y-0.5 ${
                       job.isFeatured ? "border-primary/40 shadow-[0_0_0_1px_hsl(var(--primary)/0.2)]" : "border-border"
                     }`}
                   >
-                    {/* Badges */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {job.isFeatured && (
-                        <Badge className="bg-amber-500/15 text-amber-400 text-xs">
-                          <Star className="w-3 h-3 mr-1 fill-amber-400" />Destaque
-                        </Badge>
-                      )}
-                      {isNew && (
-                        <Badge className="bg-primary/15 text-primary text-xs">Nova</Badge>
-                      )}
-                      <Badge className="bg-secondary text-muted-foreground text-xs ml-auto">
-                        {timeAgo(job.createdAt)}
-                      </Badge>
-                    </div>
-
-                    {/* Title */}
-                    <div>
-                      <h3 className="font-bold text-base leading-snug mb-1">{job.title}</h3>
-                      {job.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                          {job.description}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Meta */}
-                    <div className="space-y-1.5 text-xs text-muted-foreground">
-                      {job.region && (
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-primary" />
-                          {job.region}
-                        </div>
-                      )}
-                      {job.segment && (
-                        <div className="flex items-center gap-1.5">
-                          <Briefcase className="w-3.5 h-3.5" />
-                          {job.segment}
-                        </div>
-                      )}
-                      {job.commissionPercentage && (
-                        <div className="flex items-center gap-1.5 text-primary font-semibold">
-                          <DollarSign className="w-3.5 h-3.5" />
-                          {job.commissionPercentage}% de comissão
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Company (masked) */}
-                    <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-secondary/60 border border-border">
-                      <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-black flex-shrink-0">
-                        {job.companyName?.charAt(0) ?? "E"}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold truncate">{maskCompanyName(job.companyName ?? "Empresa")}</div>
-                        {rank && (
-                          <div className={`text-xs font-bold ${rank.color}`}>{rank.label}</div>
+                    {/* Header com logo */}
+                    <div className="flex items-start gap-3 p-5 pb-3">
+                      {/* Logo da empresa */}
+                      <div className="flex-shrink-0">
+                        {job.companyLogoUrl ? (
+                          <div className="w-14 h-14 rounded-xl border border-border bg-white flex items-center justify-center overflow-hidden shadow-sm">
+                            <img
+                              src={job.companyLogoUrl}
+                              alt={job.companyName ?? "Empresa"}
+                              className="w-full h-full object-contain p-1"
+                              onError={(e) => {
+                                const t = e.currentTarget;
+                                t.style.display = "none";
+                                t.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-black text-xl">${(job.companyName ?? "E").charAt(0)}</div>`;
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-xl border border-border bg-primary/10 flex items-center justify-center text-primary font-black text-xl shadow-sm">
+                            {(job.companyName ?? "E").charAt(0)}
+                          </div>
                         )}
                       </div>
-                      <Lock className="w-3.5 h-3.5 text-muted-foreground ml-auto flex-shrink-0" />
+                      {/* Título e badges */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          {job.isFeatured && (
+                            <Badge className="bg-amber-500/15 text-amber-400 text-xs px-1.5 py-0">
+                              <Star className="w-2.5 h-2.5 mr-0.5 fill-amber-400" />Destaque
+                            </Badge>
+                          )}
+                          {isNew && (
+                            <Badge className="bg-primary/15 text-primary text-xs px-1.5 py-0">Nova</Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground ml-auto">{timeAgo(job.createdAt)}</span>
+                        </div>
+                        <h3 className="font-bold text-sm leading-snug line-clamp-2">{job.title}</h3>
+                        {/* Empresa mascarada */}
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-xs text-muted-foreground truncate">{maskCompanyName(job.companyName ?? "Empresa")}</span>
+                          {rank && <span className={`text-xs font-bold ${rank.color}`}>· {rank.label}</span>}
+                          <Lock className="w-2.5 h-2.5 text-muted-foreground ml-0.5 flex-shrink-0" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Descrição */}
+                    {job.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed px-5 pb-3">
+                        {job.description}
+                      </p>
+                    )}
+
+                    {/* Meta tags */}
+                    <div className="flex flex-wrap gap-2 px-5 pb-4">
+                      {job.region && (
+                        <span className="inline-flex items-center gap-1 text-xs bg-secondary text-muted-foreground px-2 py-1 rounded-full">
+                          <MapPin className="w-3 h-3 text-primary" />{job.region}
+                        </span>
+                      )}
+                      {job.segment && (
+                        <span className="inline-flex items-center gap-1 text-xs bg-secondary text-muted-foreground px-2 py-1 rounded-full">
+                          <Briefcase className="w-3 h-3" />{job.segment}
+                        </span>
+                      )}
+                      {job.commissionPercentage && (
+                        <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary font-semibold px-2 py-1 rounded-full">
+                          <DollarSign className="w-3 h-3" />{job.commissionPercentage}% comissão
+                        </span>
+                      )}
                     </div>
 
                     {/* CTA */}
-                    <Button
-                      className="w-full bg-primary text-primary-foreground font-semibold"
-                      onClick={() => navigate(registerUrl)}
-                    >
-                      {user ? "Ver detalhes" : "Cadastrar e se candidatar"}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    <div className="px-5 pb-5 mt-auto">
+                      <Button
+                        className="w-full bg-primary text-primary-foreground font-semibold"
+                        onClick={() => navigate(registerUrl)}
+                      >
+                        {user ? "Ver detalhes" : "Cadastrar e se candidatar"}
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
                   </div>
                 );
               })}

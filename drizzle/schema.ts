@@ -126,6 +126,7 @@ export const companies = mysqlTable("companies", {
   cnpjValidated: boolean("cnpjValidated").default(false),
   cnpjStatus: varchar("cnpjStatus", { length: 50 }),
   freeUnlockUsed: boolean("freeUnlockUsed").default(false).notNull(),
+  logoUrl: varchar("logoUrl", { length: 500 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (t) => ({

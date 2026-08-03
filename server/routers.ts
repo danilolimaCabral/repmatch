@@ -553,6 +553,7 @@ export const appRouter = router({
           phone: z.string().optional(),
           description: z.string().optional(),
           website: z.string().optional(),
+          logoUrl: z.string().url().optional().or(z.literal("")),
         })
       )
       .mutation(async ({ ctx, input }) => {

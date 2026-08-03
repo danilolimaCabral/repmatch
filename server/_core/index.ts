@@ -346,6 +346,40 @@ async function startServer() {
     }
   });
 
+  // Upload de imagens (logo da empresa, etc.)
+  app.post("/api/upload", async (req, res) => {
+    try {
+      // Parse multipart form data manually using busboy
+      const busboy = (await import("busboy")).default;
+      const bb = busboy({ headers: req.headers, limits: { fileSize: 2 * 1024 * 1024 } });
+      let fileBuffer: Buffer | null = null;
+      let mimeType = "image/png";
+      let fileName = "upload.png";
+      await new Promise<void>((resolve, reject) => {
+        bb.on("file", (_name: string, file: NodeJS.ReadableStream & { on(event: 'limit', listener: () => void): NodeJS.ReadableStream }, info: { mimeType: string; filename: string }) => {
+          mimeType = info.mimeType || "image/png";
+          fileName = info.filename || "upload.png";
+          const chunks: Buffer[] = [];
+          file.on("data", (d: Buffer) => chunks.push(d));
+          file.on("end", () => { fileBuffer = Buffer.concat(chunks); });
+          file.on("limit", () => reject(new Error("Arquivo muito grande. Máximo 2MB.")));
+        });
+        bb.on("finish", resolve);
+        bb.on("error", reject);
+        req.pipe(bb);
+      });
+      if (!fileBuffer) return res.status(400).json({ error: "Nenhum arquivo enviado" });
+      const { storagePut } = await import("../storage");
+      const ext = fileName.split(".").pop() ?? "png";
+      const key = `logos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { url } = await storagePut(key, fileBuffer, mimeType);
+      res.json({ url, key });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro no upload";
+      res.status(500).json({ error: msg });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

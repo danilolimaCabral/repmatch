@@ -1876,6 +1876,68 @@ export default function CompanyDashboard() {
 
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-5">
+                {/* Card de Logo da Empresa */}
+                <Card className="border-slate-200 shadow-sm bg-white">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold text-slate-700">Logo da Empresa</CardTitle>
+                    <p className="text-xs text-slate-400">A logo aparece nos cards de vagas para representantes. Formatos: JPG, PNG, SVG (máx. 2MB)</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-5">
+                      {/* Preview */}
+                      <div className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {profile.logoUrl ? (
+                          <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                        ) : (
+                          <div className="text-slate-300 text-center">
+                            <Building2 className="w-8 h-8 mx-auto mb-1" />
+                            <span className="text-xs">Sem logo</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Upload */}
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/svg+xml,image/webp"
+                          className="hidden"
+                          id="logo-upload-input"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 2 * 1024 * 1024) { toast.error("Arquivo muito grande. Máximo 2MB."); return; }
+                            const toastId = toast.loading("Enviando logo...");
+                            try {
+                              const formData = new FormData();
+                              formData.append("file", file);
+                              const res = await fetch("/api/upload", { method: "POST", body: formData });
+                              if (!res.ok) throw new Error("Erro no upload");
+                              const { url } = await res.json() as { url: string };
+                              await updateProfileMutation.mutateAsync({ logoUrl: url });
+                              toast.success("Logo atualizada!", { id: toastId });
+                            } catch (err) {
+                              toast.error("Erro ao enviar logo. Tente novamente.", { id: toastId });
+                            }
+                            e.target.value = "";
+                          }}
+                        />
+                        <label htmlFor="logo-upload-input">
+                          <Button size="sm" variant="outline" className="border-slate-200 cursor-pointer" asChild>
+                            <span><Upload className="w-3.5 h-3.5 mr-1.5" />{profile.logoUrl ? "Trocar Logo" : "Enviar Logo"}</span>
+                          </Button>
+                        </label>
+                        {profile.logoUrl && (
+                          <Button size="sm" variant="ghost" className="ml-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => updateProfileMutation.mutateAsync({ logoUrl: "" }).then(() => toast.success("Logo removida!"))}>
+                            <XIcon className="w-3.5 h-3.5 mr-1" />Remover
+                          </Button>
+                        )}
+                        <p className="text-xs text-slate-400 mt-2">Recomendado: 200×200px ou maior, fundo transparente (PNG)</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card className="border-slate-200 shadow-sm bg-white">
                   <CardHeader className="pb-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-base font-semibold text-slate-700">Informações da Empresa</CardTitle>
