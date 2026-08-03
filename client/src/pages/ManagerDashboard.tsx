@@ -215,11 +215,28 @@ export default function ManagerDashboard() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
+        {/* Welcome Banner */}
+        <div className="px-8 pt-6 pb-0">
+          <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-100 rounded-2xl px-6 py-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
+              {(user?.name ?? "U").charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">Bem-vindo de volta</p>
+              <h2 className="text-lg font-bold text-slate-900">Olá, {user?.name?.split(" ")[0] ?? "Gerente"}! 👋</h2>
+            </div>
+            <div className="ml-auto text-right hidden sm:block">
+              <p className="text-xs text-slate-400">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
+              <p className="text-xs font-semibold text-purple-600 mt-0.5">Painel do Gerente</p>
+            </div>
+          </div>
+        </div>
+
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="p-8">
             <div className="mb-8">
-              <h1 className="text-2xl font-bold">Bem-vindo, {user?.name?.split(" ")[0]}!</h1>
+              <h1 className="text-2xl font-bold">Visão Geral</h1>
               <p className="text-muted-foreground mt-1">Gerencie sua equipe de representantes comerciais</p>
             </div>
 

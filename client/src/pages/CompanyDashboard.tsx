@@ -883,6 +883,23 @@ export default function CompanyDashboard() {
           </div>
         )}
 
+          {/* Welcome Banner */}
+          <div className="px-8 pt-6 pb-0">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl px-6 py-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
+                {(user?.name ?? "U").charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">Bem-vindo de volta</p>
+                <h2 className="text-lg font-bold text-slate-900">Olá, {user?.name?.split(" ")[0] ?? "Empresa"}! 👋</h2>
+              </div>
+              <div className="ml-auto text-right hidden sm:block">
+                <p className="text-xs text-slate-400">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
+                <p className="text-xs font-semibold text-blue-600 mt-0.5">Painel da Empresa</p>
+              </div>
+            </div>
+          </div>
+
         {/* ─── Jobs Tab ─────────────────────────────────────────────────── */}
         {activeTab === "jobs" && (
           <div className="p-8">

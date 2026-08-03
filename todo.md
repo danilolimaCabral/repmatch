@@ -649,3 +649,7 @@
 
 - [x] Adicionar menu dropdown com logout no botão do usuário na navbar (botão "Olá, danilo" sem opção de sair)
 - [x] Corrigir tela de onboarding que aparece após login (deve ir direto ao dashboard sem pedir tipo novamente)
+
+## Mensagem de Boas-vindas (03/08/2026)
+
+- [ ] Adicionar mensagem de boas-vindas personalizada com nome do usuário nos dashboards (Rep, Empresa, Gerente)

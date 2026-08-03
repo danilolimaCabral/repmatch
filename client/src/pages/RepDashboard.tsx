@@ -546,6 +546,23 @@ export default function RepDashboard() {
             </div>
           )}
 
+          {/* Welcome Banner */}
+          <div className="px-8 pt-6 pb-0">
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-6 py-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
+                {(user?.name ?? "U").charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">Bem-vindo de volta</p>
+                <h2 className="text-lg font-bold text-slate-900">Olá, {user?.name?.split(" ")[0] ?? "Representante"}! 👋</h2>
+              </div>
+              <div className="ml-auto text-right hidden sm:block">
+                <p className="text-xs text-slate-400">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
+                <p className="text-xs font-semibold text-emerald-600 mt-0.5">Painel do Representante</p>
+              </div>
+            </div>
+          </div>
+
           {/* ══ Jobs Tab ══════════════════════════════════════════════════ */}
           {activeTab === "jobs" && (
             <div className="p-8">
