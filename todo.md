@@ -742,3 +742,14 @@
 - [x] Gerar resumo IA dos pontos fortes do representante no backend (routers.ts, candidaturas.submit)
 - [x] Passar o resumo IA como parâmetro para sendNewApplicationToCompanyEmail
 - [x] Atualizar template HTML do e-mail com seção visual "Análise IA" destacando os pontos fortes
+
+## Créditos por Unidade para Gerente Comercial (04/08/2026)
+
+- [x] Auditar schema: verificar se gerentes já têm campo de créditos
+- [x] Adicionar campo credits na tabela managers (se não existir) e migrar
+- [x] Criar procedure tRPC manager.buyCredits com checkout MercadoPago
+- [x] Criar procedure tRPC manager.getCredits para consultar saldo
+- [x] Webhook MercadoPago: creditar ao gerente após pagamento confirmado
+- [x] Atualizar ManagerDashboard.tsx: exibir saldo de créditos e botão "Comprar créditos"
+- [x] Modal de compra de créditos com pacotes (ex: 5, 10, 20 créditos)
+- [x] Integrar desbloqueio de contato usando créditos do gerente

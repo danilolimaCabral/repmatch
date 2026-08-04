@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
-import { representatives, companies, users, unlockRequests, unlockedContacts, cnpjRepresentatives } from "../../drizzle/schema";
+import { representatives, companies, users, unlockRequests, unlockedContacts, cnpjRepresentatives, managerCredits } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { consultarCnpj, isRepresentanteComercial } from "../cnpja";
 
@@ -374,6 +374,41 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
               await db.update(companies)
                 .set({ subscriptionTier: plan.tier as any })
                 .where(eq(companies.userId, userId));
+            } else if (plan.userType === "manager") {
+              // ── Créditos de gerente ──────────────────────────────────────────
+              const managerPlan = plan as { credits: number; interval: string | null };
+              const creditsToAdd = managerPlan.credits;
+              const isUnlimited = managerPlan.interval === "monthly" && creditsToAdd >= 9999;
+
+              const [existing] = await db.select().from(managerCredits)
+                .where(eq(managerCredits.userId, userId)).limit(1);
+
+              if (!existing) {
+                await db.insert(managerCredits).values({
+                  userId: userId,
+                  credits: isUnlimited ? 0 : creditsToAdd,
+                  totalPurchased: isUnlimited ? 0 : creditsToAdd,
+                  isUnlimited: isUnlimited,
+                  unlimitedExpiresAt: isUnlimited ? new Date(Date.now() + 30 * 24 * 3600 * 1000) : null,
+                });
+              } else {
+                if (isUnlimited) {
+                  await db.update(managerCredits)
+                    .set({
+                      isUnlimited: true,
+                      unlimitedExpiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+                    })
+                    .where(eq(managerCredits.userId, userId));
+                } else {
+                  await db.update(managerCredits)
+                    .set({
+                      credits: existing.credits + creditsToAdd,
+                      totalPurchased: existing.totalPurchased + creditsToAdd,
+                    })
+                    .where(eq(managerCredits.userId, userId));
+                }
+              }
+              console.log(`[MP Webhook] Manager credits: +${creditsToAdd} (unlimited=${isUnlimited}) for user ${userId}`);
             }
 
             console.log(`[MP Webhook] Activated plan ${planKey} for user ${userId}`);
