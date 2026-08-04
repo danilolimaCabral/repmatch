@@ -753,3 +753,9 @@
 - [x] Atualizar ManagerDashboard.tsx: exibir saldo de créditos e botão "Comprar créditos"
 - [x] Modal de compra de créditos com pacotes (ex: 5, 10, 20 créditos)
 - [x] Integrar desbloqueio de contato usando créditos do gerente
+
+## E-mail de Recibo para Gerente Comercial (04/08/2026)
+
+- [x] Criar função sendManagerCreditReceiptEmail no email.ts com template HTML de recibo detalhado
+- [x] Disparar e-mail no webhook do MercadoPago após pagamento aprovado de pacote MANAGER_*
+- [x] Recibo deve incluir: número do pedido, pacote adquirido, créditos, valor pago, data/hora, saldo atual

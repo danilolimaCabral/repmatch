@@ -4,6 +4,7 @@ import { getDb } from "../db";
 import { representatives, companies, users, unlockRequests, unlockedContacts, cnpjRepresentatives, managerCredits } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { consultarCnpj, isRepresentanteComercial } from "../cnpja";
+import { sendManagerCreditReceiptEmail } from "../email";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -409,6 +410,41 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
                 }
               }
               console.log(`[MP Webhook] Manager credits: +${creditsToAdd} (unlimited=${isUnlimited}) for user ${userId}`);
+
+              // Buscar e-mail e nome do gerente para enviar recibo
+              try {
+                const [managerUser] = await db.select({ email: users.email, name: users.name })
+                  .from(users).where(eq(users.id, userId)).limit(1);
+
+                if (managerUser?.email) {
+                  // Calcular saldo atual após crédito
+                  const [updatedCredits] = await db.select({ credits: managerCredits.credits, isUnlimited: managerCredits.isUnlimited })
+                    .from(managerCredits).where(eq(managerCredits.userId, userId)).limit(1);
+
+                  const planLabels: Record<string, string> = {
+                    MANAGER_AVULSO: "Avulso — 1 Crédito",
+                    MANAGER_STARTER: "Pacote Starter — 5 Créditos",
+                    MANAGER_PRO: "Pacote Pro — 15 Créditos",
+                    MANAGER_ILIMITADO: "Pacote Ilimitado",
+                  };
+
+                  await sendManagerCreditReceiptEmail({
+                    to: managerUser.email,
+                    managerName: managerUser.name ?? "Gerente",
+                    planName: planLabels[planKey] ?? planKey,
+                    credits: creditsToAdd,
+                    isUnlimited,
+                    amountPaid: result.transaction_amount ?? 0,
+                    paymentId: result.id ?? "",
+                    paymentMethod: result.payment_method_id === "pix" ? "pix" : "card",
+                    newBalance: updatedCredits?.credits ?? creditsToAdd,
+                    paidAt: result.date_approved ? new Date(result.date_approved) : new Date(),
+                  });
+                  console.log(`[MP Webhook] Receipt email sent to ${managerUser.email}`);
+                }
+              } catch (emailErr: any) {
+                console.error("[MP Webhook] Failed to send receipt email:", emailErr?.message);
+              }
             }
 
             console.log(`[MP Webhook] Activated plan ${planKey} for user ${userId}`);

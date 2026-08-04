@@ -640,3 +640,80 @@ export async function sendMatchNotificationToRep(params: {
     return { success: false, error: err?.message ?? "Erro desconhecido" };
   }
 }
+
+// ─── 10. Manager Credit Receipt ───────────────────────────────────────────────
+export async function sendManagerCreditReceiptEmail(params: {
+  to: string;
+  managerName: string;
+  planName: string;
+  credits: number;
+  isUnlimited: boolean;
+  amountPaid: number;
+  paymentId: string | number;
+  paymentMethod: "pix" | "card";
+  newBalance: number;
+  paidAt: Date;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const resend = getResend();
+    const firstName = params.managerName?.split(" ")[0] || "Gerente";
+    const formattedAmount = params.amountPaid.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const formattedDate = params.paidAt.toLocaleString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    });
+    const creditsLabel = params.isUnlimited ? "Ilimitado por 30 dias" : `${params.credits} crédito${params.credits !== 1 ? "s" : ""}`;
+    const balanceLabel = params.isUnlimited ? "Ilimitado ativo" : `${params.newBalance} crédito${params.newBalance !== 1 ? "s" : ""}`;
+    const methodLabel = params.paymentMethod === "pix" ? "PIX" : "Cartão de Crédito";
+    const methodIcon = params.paymentMethod === "pix" ? "📱" : "💳";
+
+    const content = `
+      <div class="hero">
+        <div class="hero-badge">✅ Pagamento Confirmado</div>
+        <h1>${firstName}, seus créditos foram adicionados!</h1>
+        <p>Recibo de compra — ${params.planName}</p>
+      </div>
+      <div class="body">
+        <p>Olá, <strong>${params.managerName}</strong>! Seu pagamento foi confirmado e os créditos já estão disponíveis na sua conta.</p>
+
+        <div class="info-card">
+          <div class="info-card-title">🧾 Recibo de Compra</div>
+          <div class="row">📦 Pacote: <strong>${params.planName}</strong></div>
+          <div class="row">🪙 Créditos adquiridos: <strong>${creditsLabel}</strong></div>
+          <div class="row">${methodIcon} Forma de pagamento: <strong>${methodLabel}</strong></div>
+          <div class="row">💰 Valor pago: <strong>${formattedAmount}</strong></div>
+          <div class="row">📅 Data/hora: <strong>${formattedDate} (Brasília)</strong></div>
+          <div class="row">🔖 ID do pagamento: <strong>#${params.paymentId}</strong></div>
+        </div>
+
+        <div class="info-card" style="background:#0d2b1a;border-color:#166534;">
+          <div class="info-card-title" style="color:#4ade80;">💼 Saldo atual na sua conta</div>
+          <div style="font-size:32px;font-weight:900;color:#4ade80;text-align:center;padding:12px 0;">${balanceLabel}</div>
+          <div style="text-align:center;color:#6b7280;font-size:13px;">Use seus créditos para desbloquear contatos de representantes</div>
+        </div>
+
+        <div class="cta-wrapper">
+          <a href="${SITE_URL}/dashboard/manager" class="cta">Buscar representantes agora →</a>
+        </div>
+
+        <p style="font-size:12px;color:#6b7280;margin-top:24px;">
+          Este é um recibo automático. Guarde este e-mail como comprovante da sua compra.
+          Em caso de dúvidas, entre em contato pelo WhatsApp ou pelo painel de suporte.
+        </p>
+      </div>
+    `;
+
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: params.to,
+      subject: `✅ Recibo: ${params.planName} — ${formattedAmount} — RepMatch`,
+      html: baseTemplate(content),
+    });
+    if (result.error) return { success: false, error: result.error.message };
+    return { success: true };
+  } catch (err: any) {
+    console.error("[Email] sendManagerCreditReceiptEmail error:", err);
+    return { success: false, error: err?.message ?? "Erro desconhecido" };
+  }
+}
