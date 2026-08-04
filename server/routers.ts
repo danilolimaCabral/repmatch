@@ -280,6 +280,16 @@ export const appRouter = router({
           title: "👤 Novo Representante Cadastrado",
           content: `${input.fullName} (${input.region} • ${input.segment}) acabou de completar o cadastro. Telefone: ${input.phone ?? "não informado"}. Plano: Pendente.`,
         });
+        // Send welcome email (non-blocking)
+        if (ctx.user.email) {
+          const { sendWelcomeRepEmail } = await import("./email");
+          sendWelcomeRepEmail({
+            to: ctx.user.email,
+            name: input.fullName,
+            region: input.region,
+            segment: input.segment,
+          }).catch((e) => console.warn("[Email] welcome rep failed:", e));
+        }
         return { success: true };
       }),
 
@@ -307,6 +317,16 @@ export const appRouter = router({
           title: "🏢 Nova Empresa Cadastrada",
           content: `${input.companyName} (${input.segment} • ${input.region ?? "região não informada"}) acabou de completar o cadastro. CNPJ: ${input.cnpj ?? "não informado"}. Telefone: ${input.phone ?? "não informado"}.`,
         });
+        // Send welcome email (non-blocking)
+        if (ctx.user.email) {
+          const { sendWelcomeCompanyEmail } = await import("./email");
+          sendWelcomeCompanyEmail({
+            to: ctx.user.email,
+            name: ctx.user.name ?? input.companyName,
+            companyName: input.companyName,
+            segment: input.segment,
+          }).catch((e) => console.warn("[Email] welcome company failed:", e));
+        }
         return { success: true };
       }),
   }),
@@ -846,7 +866,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           llmAnalysis,
         });
 
-        // Notificar owner sobre nova candidatura
+        // Notificar owner + enviar e-mails (não bloqueante)
         try {
           const company = await getCompanyById(job.companyId);
           if (company) {
@@ -855,6 +875,35 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
               title: `Nova Candidatura${scoreTag}`,
               content: `${rep.fullName} se candidatou à vaga "${job.title}" (${company.companyName}) com score ${totalScore}/100`,
             });
+            // E-mail de confirmação para o representante
+            if (ctx.user.email) {
+              const { sendApplicationConfirmationEmail } = await import("./email");
+              sendApplicationConfirmationEmail({
+                to: ctx.user.email,
+                repName: rep.fullName,
+                jobTitle: job.title,
+                companyName: company.companyName,
+                region: job.region ?? "",
+                segment: job.segment ?? "",
+                totalScore,
+              }).catch((e) => console.warn("[Email] application confirmation failed:", e));
+            }
+            // E-mail de notificação para a empresa
+            const db = await getDb();
+            const [companyUser] = await db!.select({ email: users.email }).from(users).where(eq(users.id, company.userId)).limit(1);
+            if (companyUser?.email) {
+              const { sendNewApplicationToCompanyEmail } = await import("./email");
+              sendNewApplicationToCompanyEmail({
+                to: companyUser.email,
+                companyName: company.companyName,
+                repName: rep.fullName,
+                repRegion: rep.region ?? "",
+                repSegment: rep.segment ?? "",
+                repExperience: rep.experienceYears ?? 0,
+                jobTitle: job.title,
+                totalScore,
+              }).catch((e) => console.warn("[Email] new application to company failed:", e));
+            }
           }
         } catch (e) { /* notificação não crítica */ }
 

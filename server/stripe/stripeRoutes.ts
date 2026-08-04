@@ -166,6 +166,27 @@ stripeRouter.post("/webhook", async (req: Request, res: Response) => {
             stripePaymentId: session.payment_intent?.toString() ?? session.id,
           });
           console.log(`[Webhook] Contact unlocked: company ${company.id} → rep ${repId}`);
+
+          // Send confirmation email to company
+          try {
+            const { users, representatives } = await import("../../drizzle/schema");
+            const [companyUser] = await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+            const [repData] = await db.select({ fullName: representatives.fullName, phone: representatives.phone, region: representatives.region, segment: representatives.segment }).from(representatives).where(eq(representatives.id, repId)).limit(1);
+            const [repUser] = await db.select({ email: users.email }).from(users).where(eq(users.id, repData ? (await db.select({ userId: representatives.userId }).from(representatives).where(eq(representatives.id, repId)).limit(1))[0]?.userId : 0)).limit(1);
+            if (companyUser?.email && repData) {
+              const { sendContactUnlockedEmail } = await import("../email");
+              sendContactUnlockedEmail({
+                to: companyUser.email,
+                companyName: companyUser.name ?? "Empresa",
+                repName: repData.fullName,
+                repPhone: repData.phone ?? undefined,
+                repEmail: repUser?.email ?? undefined,
+                repRegion: repData.region ?? "",
+                repSegment: repData.segment ?? "",
+                amountPaid: "29,00",
+              }).catch((e) => console.warn("[Email] contact unlocked email failed:", e));
+            }
+          } catch (e) { console.warn("[Webhook] email for UNLOCK_CONTACT failed:", e); }
         } else {
           console.log(`[Webhook] Contact already unlocked: company ${company.id} → rep ${repId}`);
         }
@@ -224,11 +245,43 @@ stripeRouter.post("/webhook", async (req: Request, res: Response) => {
           .set({ subscriptionTier: product.tier as "free" | "bronze" | "prata" | "ouro" })
           .where(eq(representatives.userId, userId));
         console.log(`[Webhook] Rep ${userId} upgraded to ${product.tier}`);
+        // Send subscription confirmation email
+        try {
+          const { users: usersTable } = await import("../../drizzle/schema");
+          const [u] = await db.select({ email: usersTable.email, name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+          if (u?.email) {
+            const { sendSubscriptionConfirmedEmail } = await import("../email");
+            const tierPrices: Record<string, string> = { bronze: "9,99", prata: "19,90", ouro: "29,90" };
+            sendSubscriptionConfirmedEmail({
+              to: u.email,
+              name: u.name ?? "Representante",
+              planName: product.tier!.charAt(0).toUpperCase() + product.tier!.slice(1),
+              planPrice: tierPrices[product.tier!] ?? "--",
+              userType: "representative",
+            }).catch((e) => console.warn("[Email] subscription rep email failed:", e));
+          }
+        } catch (e) { console.warn("[Webhook] subscription rep email error:", e); }
       } else if (product.userType === "company") {
         await db.update(companies)
           .set({ subscriptionTier: product.tier as "starter" | "pro" | "enterprise" })
           .where(eq(companies.userId, userId));
         console.log(`[Webhook] Company ${userId} upgraded to ${product.tier}`);
+        // Send subscription confirmation email
+        try {
+          const { users: usersTable } = await import("../../drizzle/schema");
+          const [u] = await db.select({ email: usersTable.email, name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+          if (u?.email) {
+            const { sendSubscriptionConfirmedEmail } = await import("../email");
+            const tierPrices: Record<string, string> = { starter: "99,00", pro: "299,00", enterprise: "999,00" };
+            sendSubscriptionConfirmedEmail({
+              to: u.email,
+              name: u.name ?? "Empresa",
+              planName: product.tier!.charAt(0).toUpperCase() + product.tier!.slice(1),
+              planPrice: tierPrices[product.tier!] ?? "--",
+              userType: "company",
+            }).catch((e) => console.warn("[Email] subscription company email failed:", e));
+          }
+        } catch (e) { console.warn("[Webhook] subscription company email error:", e); }
       }
     }
 

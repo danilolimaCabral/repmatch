@@ -725,3 +725,14 @@
 - [x] Melhorar index.html: adicionar DNS prefetch para Stripe e MercadoPago
 - [x] Melhorar index.html: atualizar FAQ Schema.org com pergunta sobre CORE
 - [x] Melhorar index.html: adicionar Blog no BreadcrumbList Schema.org
+
+## E-mails Transacionais (04/08/2026)
+
+- [x] Template base HTML profissional com header/footer/hero/CTA
+- [x] E-mail de boas-vindas para representante (após completeRepProfile)
+- [x] E-mail de boas-vindas para empresa (após completeCompanyProfile)
+- [x] E-mail de confirmação de candidatura para o representante (após submit)
+- [x] E-mail de notificação para empresa quando recebe nova candidatura
+- [x] E-mail de confirmação de desbloqueio de contato (após pagamento Stripe)
+- [x] E-mail de confirmação de assinatura de plano (rep e empresa)
+- [x] Templates adicionais: match notification rep/empresa, finalizar cadastro (legado)
