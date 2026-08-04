@@ -854,7 +854,13 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3 font-medium">{u.name ?? "—"}</td>
                           <td className="px-4 py-3 text-muted-foreground">{u.email ?? "—"}</td>
                           <td className="px-4 py-3">
-                            <Badge variant="outline" className="text-xs capitalize">{(u as Record<string, unknown> & { userType?: string }).userType ?? "pending"}</Badge>
+                            {(() => {
+                              const ut = (u as Record<string, unknown> & { userType?: string }).userType ?? "pending";
+                              if (ut === "manager") return <Badge className="bg-purple-900/30 text-purple-300 border border-purple-700/40 text-xs">Gerente</Badge>;
+                              if (ut === "company") return <Badge className="bg-blue-900/30 text-blue-300 border border-blue-700/40 text-xs">Empresa</Badge>;
+                              if (ut === "representative") return <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs">Representante</Badge>;
+                              return <Badge variant="outline" className="text-xs text-muted-foreground">Pendente</Badge>;
+                            })()}
                           </td>
                           <td className="px-4 py-3">
                             {u.role === "admin" ? (
