@@ -759,3 +759,13 @@
 - [x] Criar função sendManagerCreditReceiptEmail no email.ts com template HTML de recibo detalhado
 - [x] Disparar e-mail no webhook do MercadoPago após pagamento aprovado de pacote MANAGER_*
 - [x] Recibo deve incluir: número do pedido, pacote adquirido, créditos, valor pago, data/hora, saldo atual
+
+## Seleção Múltipla + Validação CNPJA para Gerente (04/08/2026)
+
+- [ ] Backend: procedure manager.unlockRepsBatch — desbloqueio em lote com validação CNPJA
+- [ ] Backend: validar CNPJ de cada representante via API CNPJA antes de liberar contatos
+- [ ] Frontend: checkboxes nos cards de representantes no ManagerDashboard
+- [ ] Frontend: barra de seleção flutuante mostrando quantos selecionados e custo em créditos
+- [ ] Frontend: botão "Desbloquear X representantes (X créditos)" com confirmação
+- [ ] Frontend: modal de resultado mostrando quais foram validados/rejeitados pelo CNPJA
+- [ ] Frontend: redirecionar para compra de créditos se não tiver saldo suficiente

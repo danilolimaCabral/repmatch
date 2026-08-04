@@ -2172,6 +2172,106 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         return { success: true, alreadyUnlocked: false, rep };
       }),
 
+    // Desbloquear múltiplos representantes em lote com validação CNPJA
+    unlockRepsBatch: protectedProcedure
+      .input(z.object({ repIds: z.array(z.number()).min(1).max(50) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        // Check credits
+        const [credits] = await db.select().from(managerCredits).where(eq(managerCredits.userId, ctx.user.id)).limit(1);
+        const isUnlimitedActive = credits?.isUnlimited && (!credits.unlimitedExpiresAt || new Date(credits.unlimitedExpiresAt) > new Date());
+
+        // Filter out already unlocked
+        const existingUnlocks = await db.select()
+          .from(managerUnlocks)
+          .where(and(eq(managerUnlocks.managerId, ctx.user.id), inArray(managerUnlocks.representativeId, input.repIds)));
+        const alreadyUnlockedIds = new Set(existingUnlocks.map(u => u.representativeId));
+        const toUnlock = input.repIds.filter(id => !alreadyUnlockedIds.has(id));
+
+        if (toUnlock.length === 0) {
+          return { success: true, results: [], creditsUsed: 0, creditsRemaining: credits?.credits ?? 0 };
+        }
+
+        // Check if enough credits
+        if (!isUnlimitedActive) {
+          const available = credits?.credits ?? 0;
+          if (available < toUnlock.length) {
+            throw new TRPCError({
+              code: "PAYMENT_REQUIRED",
+              message: `Créditos insuficientes. Você tem ${available} crédito(s) mas tentou desbloquear ${toUnlock.length} representante(s).`,
+            });
+          }
+        }
+
+        // Fetch rep data for CNPJA validation
+        const reps = await db.select().from(representatives).where(inArray(representatives.id, toUnlock));
+        const { consultarCnpj } = await import("./cnpja");
+
+        const results: Array<{
+          repId: number;
+          name: string;
+          cnpj: string | null;
+          cnpjaStatus: string | null;
+          isAtivo: boolean | null;
+          unlocked: boolean;
+          reason?: string;
+        }> = [];
+
+        let creditsUsed = 0;
+
+        for (const rep of reps) {
+          const repCnpj = rep.cnpj ?? rep.cpf ?? null;
+          let cnpjaStatus: string | null = null;
+          let isAtivo: boolean | null = null;
+
+          // Validate CNPJ via CNPJA API if available
+          if (repCnpj && repCnpj.replace(/\D/g, "").length === 14) {
+            const cnpjaData = await consultarCnpj(repCnpj);
+            if (cnpjaData) {
+              cnpjaStatus = cnpjaData.situacao;
+              isAtivo = cnpjaData.isAtivo;
+            }
+          }
+
+          // Record unlock regardless of CNPJA status (validation is informational)
+          await db.insert(managerUnlocks).values({
+            managerId: ctx.user.id,
+            representativeId: rep.id,
+            productKey: isUnlimitedActive ? "MANAGER_ILIMITADO" : "MANAGER_AVULSO",
+          });
+
+          if (!isUnlimitedActive) creditsUsed++;
+
+          results.push({
+            repId: rep.id,
+            name: rep.fullName ?? "Representante",
+            cnpj: repCnpj,
+            cnpjaStatus,
+            isAtivo,
+            unlocked: true,
+          });
+        }
+
+        // Deduct credits in bulk
+        if (!isUnlimitedActive && creditsUsed > 0) {
+          await db.update(managerCredits)
+            .set({ credits: (credits?.credits ?? 0) - creditsUsed })
+            .where(eq(managerCredits.userId, ctx.user.id));
+        }
+
+        const remaining = isUnlimitedActive ? 9999 : (credits?.credits ?? 0) - creditsUsed;
+
+        return {
+          success: true,
+          results,
+          creditsUsed,
+          creditsRemaining: remaining,
+          alreadyUnlocked: Array.from(alreadyUnlockedIds),
+        };
+      }),
+
     // List all unlocked reps for this manager
     listUnlockedReps: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
