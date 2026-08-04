@@ -10,7 +10,7 @@ function getResend(): Resend {
   return _resend;
 }
 
-const FROM_EMAIL = "RepMatch <onboarding@resend.dev>";
+const FROM_EMAIL = "RepMatch <noreply@itskilltech.com.br>";
 const SITE_URL = "https://repmatch.com.br";
 
 // ─── Base Template ────────────────────────────────────────────────────────────
