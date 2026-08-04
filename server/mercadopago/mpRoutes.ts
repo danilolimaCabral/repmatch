@@ -150,7 +150,7 @@ mpRouter.post("/unlock-pix", async (req: Request, res: Response) => {
 // ─── Criar preferência de pagamento (Checkout Pro — cartão + Pix) ─────────────
 mpRouter.post("/preference", async (req: Request, res: Response) => {
   try {
-    const { planKey, userId, userEmail, userName, annual, repId, jobId } = req.body as {
+        const { planKey, userId, userEmail, userName, annual, repId, jobId } = req.body as {
       planKey: MPPlanKey;
       userId: number;
       userEmail: string;
@@ -159,15 +159,24 @@ mpRouter.post("/preference", async (req: Request, res: Response) => {
       repId?: number;
       jobId?: number;
     };
-
     const plan = MP_PLANS[planKey];
     if (!plan) return res.status(400).json({ error: "Plano inválido" });
 
-    const origin = req.headers.origin ?? "http://localhost:3000";
+    // Usar origin do request ou fallback para URL de produção
+    const rawOrigin = req.headers.origin ?? "";
+    const isLocalhost = rawOrigin.includes("localhost") || rawOrigin.includes("127.0.0.1");
+    const origin = isLocalhost ? "https://repmatch.com.br" : rawOrigin;
+
     let amount: number = plan.amount;
     if (annual && plan.interval === "monthly") {
       amount = parseFloat((plan.amount * 0.8 * 12).toFixed(2));
     }
+
+    // Determinar URL de sucesso baseado no tipo de usuário
+    const isManager = plan.userType === "manager";
+    const successUrl = isManager
+      ? `${origin}/dashboard/manager?payment=success`
+      : `${origin}/dashboard/company?payment=success`;
 
     const preference = new Preference(mp);
     const pref = await preference.create({
@@ -191,7 +200,7 @@ mpRouter.post("/preference", async (req: Request, res: Response) => {
           job_id: jobId ?? null,
         },
         back_urls: {
-          success: `${origin}/dashboard/company?payment=success`,
+          success: successUrl,
           failure: `${origin}/planos?payment=failed`,
           pending: `${origin}/planos?payment=pending`,
         },
