@@ -888,10 +888,47 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
                 totalScore,
               }).catch((e) => console.warn("[Email] application confirmation failed:", e));
             }
-            // E-mail de notificação para a empresa
+            // E-mail de notificação para a empresa (com resumo IA dos pontos fortes)
             const db = await getDb();
             const [companyUser] = await db!.select({ email: users.email }).from(users).where(eq(users.id, company.userId)).limit(1);
             if (companyUser?.email) {
+              // Gerar resumo IA dos pontos fortes do representante (não bloqueante)
+              let aiSummary: string | undefined;
+              try {
+                const summaryResponse = await invokeLLM({
+                  messages: [
+                    {
+                      role: "system",
+                      content: "Você é um especialista em recrutamento de representantes comerciais. Analise o perfil do representante e gere um resumo conciso (máximo 3 pontos fortes, cada um com até 15 palavras) destacando os diferenciais mais relevantes para a empresa contratante. Retorne um JSON com campo 'points' (array de strings) e 'summary' (string de até 80 caracteres com a impressão geral).",
+                    },
+                    {
+                      role: "user",
+                      content: `Representante: ${rep.fullName}\nRegião: ${rep.region ?? "não informada"}\nSegmento: ${rep.segment ?? "não informado"}\nExperiência: ${rep.experienceYears ?? 0} anos\nBio: ${rep.bio ?? "não informada"}\nDisponibilidade: ${rep.availability ?? "não informada"}\nModelo de trabalho: ${rep.workModel ?? "não informado"}\nCidades: ${rep.cities ?? "não informadas"}\nSegmentos adicionais: ${rep.additionalSegments ?? "nenhum"}\nVaga: ${job.title} (${job.segment ?? ""}, ${job.region ?? ""})\nScore de match: ${totalScore}/100\nAnálise LLM anterior: ${llmAnalysis || "não disponível"}`,
+                    },
+                  ],
+                  response_format: {
+                    type: "json_schema",
+                    json_schema: {
+                      name: "rep_strengths",
+                      strict: true,
+                      schema: {
+                        type: "object",
+                        properties: {
+                          points: { type: "array", items: { type: "string" } },
+                          summary: { type: "string" },
+                        },
+                        required: ["points", "summary"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                });
+                const rawContent = summaryResponse.choices[0]?.message?.content;
+                const parsed = JSON.parse(typeof rawContent === "string" ? rawContent : "{}");
+                aiSummary = JSON.stringify({ points: parsed.points ?? [], summary: parsed.summary ?? "" });
+              } catch (e) {
+                console.warn("[Email] AI summary generation failed:", e);
+              }
               const { sendNewApplicationToCompanyEmail } = await import("./email");
               sendNewApplicationToCompanyEmail({
                 to: companyUser.email,
@@ -902,6 +939,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
                 repExperience: rep.experienceYears ?? 0,
                 jobTitle: job.title,
                 totalScore,
+                aiSummary,
               }).catch((e) => console.warn("[Email] new application to company failed:", e));
             }
           }

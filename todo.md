@@ -736,3 +736,9 @@
 - [x] E-mail de confirmação de desbloqueio de contato (após pagamento Stripe)
 - [x] E-mail de confirmação de assinatura de plano (rep e empresa)
 - [x] Templates adicionais: match notification rep/empresa, finalizar cadastro (legado)
+
+## Resumo IA no E-mail de Candidatura para Empresa (04/08/2026)
+
+- [x] Gerar resumo IA dos pontos fortes do representante no backend (routers.ts, candidaturas.submit)
+- [x] Passar o resumo IA como parâmetro para sendNewApplicationToCompanyEmail
+- [x] Atualizar template HTML do e-mail com seção visual "Análise IA" destacando os pontos fortes

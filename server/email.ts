@@ -300,12 +300,33 @@ export async function sendNewApplicationToCompanyEmail(params: {
   repExperience: number;
   jobTitle: string;
   totalScore: number;
+  aiSummary?: string; // JSON string: { points: string[], summary: string }
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const resend = getResend();
     const firstName = params.companyName?.split(" ")[0] || "Gestor";
     const scoreColor = params.totalScore >= 70 ? "#16a34a" : params.totalScore >= 50 ? "#d97706" : "#dc2626";
     const scoreLabel = params.totalScore >= 70 ? "⭐ Alto" : params.totalScore >= 50 ? "Médio" : "Baixo";
+
+    // Parse AI summary if available
+    let aiPoints: string[] = [];
+    let aiOverallSummary = "";
+    if (params.aiSummary) {
+      try {
+        const parsed = JSON.parse(params.aiSummary);
+        aiPoints = Array.isArray(parsed.points) ? parsed.points.slice(0, 3) : [];
+        aiOverallSummary = typeof parsed.summary === "string" ? parsed.summary : "";
+      } catch { /* ignore parse errors */ }
+    }
+
+    const aiSummaryBlock = aiPoints.length > 0 ? `
+        <div style="background: linear-gradient(135deg, #052e16 0%, #14532d 100%); border-radius: 12px; padding: 20px 24px; margin: 20px 0;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+            <span style="background: rgba(74,222,128,0.2); border: 1px solid rgba(74,222,128,0.4); color: #4ade80; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Gerado por IA</span>
+          </div>
+          <div style="color: #d1fae5; font-size: 14px; font-weight: 600; margin-bottom: 12px; line-height: 1.5;">${aiOverallSummary}</div>
+          ${aiPoints.map(point => `<div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px;"><span style="color: #4ade80; font-size: 16px; line-height: 1; flex-shrink: 0; margin-top: 1px;">&#10003;</span><span style="color: rgba(255,255,255,0.85); font-size: 13px; line-height: 1.6;">${point}</span></div>`).join("")}
+        </div>` : "";
 
     const content = `
       <div class="hero">
@@ -323,6 +344,7 @@ export async function sendNewApplicationToCompanyEmail(params: {
           <div class="row">📅 Experiência: <strong>${params.repExperience} ano${params.repExperience !== 1 ? "s" : ""}</strong></div>
           <div class="row">🎯 Score de match: <strong style="color:${scoreColor};">${params.totalScore}/100 (${scoreLabel})</strong></div>
         </div>
+        ${aiSummaryBlock}
         <p>Acesse o painel para ver o perfil completo, histórico e desbloquear o contato direto do representante por R$29.</p>
         <div class="cta-wrapper">
           <a href="${SITE_URL}/dashboard/company" class="cta">Ver candidatura →</a>
