@@ -890,17 +890,17 @@ export default function AdminDashboard() {
                             {(() => {
                               const uTyped = u as Record<string, unknown> & { profileStatus?: string; userType?: string };
                               const ps = uTyped.profileStatus ?? "incomplete";
-                              if (ps === "complete") return <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs font-semibold">Completo</Badge>;
+                              if (ps === "complete") return <Badge className="bg-green-100 text-gray-900 border border-green-300 text-xs font-semibold">Completo</Badge>;
                               if (ps === "partial") return (
                                 <button onClick={() => setProfileModal({ userId: u.id, userName: u.name ?? `#${u.id}` })} className="flex items-center gap-1">
-                                  <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 text-xs font-semibold hover:bg-amber-900/50 cursor-pointer">Parcial</Badge>
-                                  <Eye className="w-3 h-3 text-amber-400" />
+                                  <Badge className="bg-amber-100 text-gray-900 border border-amber-300 text-xs font-semibold hover:bg-amber-200 cursor-pointer">Parcial</Badge>
+                                  <Eye className="w-3 h-3 text-amber-600" />
                                 </button>
                               );
                               return (
                                 <button onClick={() => setProfileModal({ userId: u.id, userName: u.name ?? `#${u.id}` })} className="flex items-center gap-1">
-                                  <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 text-xs font-semibold hover:bg-red-900/50 cursor-pointer">Incompleto</Badge>
-                                  <Eye className="w-3 h-3 text-red-400" />
+                                  <Badge className="bg-red-100 text-gray-900 border border-red-300 text-xs font-semibold hover:bg-red-200 cursor-pointer">Incompleto</Badge>
+                                  <Eye className="w-3 h-3 text-red-500" />
                                 </button>
                               );
                             })()}
@@ -908,9 +908,9 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
                           <td className="px-4 py-3">
                             {(u as Record<string, unknown> & { isActive?: boolean }).isActive !== false ? (
-                              <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs font-semibold">Ativo</Badge>
+                              <Badge className="bg-green-100 text-gray-900 border border-green-300 text-xs font-semibold">Ativo</Badge>
                             ) : (
-                              <Badge className="bg-zinc-700/50 text-zinc-400 border border-zinc-600/40 text-xs font-semibold">Inativo</Badge>
+                              <Badge className="bg-gray-100 text-gray-700 border border-gray-300 text-xs font-semibold">Inativo</Badge>
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -1686,33 +1686,37 @@ export default function AdminDashboard() {
       </Dialog>
       {/* Modal: Perfil Incompleto + Comunicação */}
       {profileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="bg-zinc-900 border border-border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-border flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:"rgba(0,0,0,0.55)",backdropFilter:"blur(4px)"}}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-slate-800 to-slate-700 rounded-t-2xl">
               <div>
-                <h2 className="font-bold text-lg text-foreground">Perfil de {profileModal.userName}</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">Detalhes do cadastro e ferramentas de comunicação</p>
+                <h2 className="font-bold text-base text-white">{profileModal.userName}</h2>
+                <p className="text-xs text-slate-300 mt-0.5">Detalhes do perfil e comunicação</p>
               </div>
-              <button onClick={() => setProfileModal(null)} className="text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">×</button>
+              <button onClick={() => setProfileModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors text-lg leading-none">×</button>
             </div>
 
             {profileDetailsQuery.isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-7 h-7 animate-spin text-slate-400" />
               </div>
             ) : profileDetailsQuery.data ? (
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-5">
                 {/* Barra de progresso */}
-                <div>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-foreground">Completude do perfil</span>
-                    <span className="text-sm font-bold text-foreground">{profileDetailsQuery.data.completionPct}%</span>
+                    <span className="text-sm font-semibold text-gray-700">Completude do perfil</span>
+                    <span className={`text-sm font-bold ${
+                      profileDetailsQuery.data.completionPct >= 80 ? "text-green-600" :
+                      profileDetailsQuery.data.completionPct >= 40 ? "text-amber-600" : "text-red-600"
+                    }`}>{profileDetailsQuery.data.completionPct}%</span>
                   </div>
-                  <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden">
+                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
                         profileDetailsQuery.data.completionPct >= 80 ? "bg-green-500" :
-                        profileDetailsQuery.data.completionPct >= 40 ? "bg-amber-500" : "bg-red-500"
+                        profileDetailsQuery.data.completionPct >= 40 ? "bg-amber-400" : "bg-red-500"
                       }`}
                       style={{ width: `${profileDetailsQuery.data.completionPct}%` }}
                     />
@@ -1721,14 +1725,14 @@ export default function AdminDashboard() {
 
                 {/* Campos faltando */}
                 {profileDetailsQuery.data.missingFields.length > 0 && (
-                  <div className="bg-red-900/10 border border-red-700/30 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-2">
                       <AlertCircle className="w-4 h-4" /> Campos faltando ({profileDetailsQuery.data.missingFields.length})
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
                       {profileDetailsQuery.data.missingFields.map(f => (
-                        <div key={f} className="flex items-center gap-2 text-sm text-red-300">
-                          <XCircle className="w-3.5 h-3.5 shrink-0" />{f}
+                        <div key={f} className="flex items-center gap-2 text-sm text-red-600">
+                          <XCircle className="w-3.5 h-3.5 shrink-0 text-red-400" />{f}
                         </div>
                       ))}
                     </div>
@@ -1737,14 +1741,14 @@ export default function AdminDashboard() {
 
                 {/* Campos preenchidos */}
                 {profileDetailsQuery.data.filledFields.length > 0 && (
-                  <div className="bg-green-900/10 border border-green-700/30 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-green-400 mb-3 flex items-center gap-2">
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-green-700 mb-3 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4" /> Campos preenchidos ({profileDetailsQuery.data.filledFields.length})
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
                       {profileDetailsQuery.data.filledFields.map(f => (
-                        <div key={f} className="flex items-center gap-2 text-sm text-green-300">
-                          <CheckCircle className="w-3.5 h-3.5 shrink-0" />{f}
+                        <div key={f} className="flex items-center gap-2 text-sm text-green-700">
+                          <CheckCircle className="w-3.5 h-3.5 shrink-0 text-green-500" />{f}
                         </div>
                       ))}
                     </div>
@@ -1752,33 +1756,33 @@ export default function AdminDashboard() {
                 )}
 
                 {/* Comunicação direta */}
-                <div className="border border-border rounded-xl p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-blue-400" /> Enviar mensagem direta
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                    <Mail className="w-4 h-4" /> Enviar mensagem direta
                   </h3>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Assunto</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Assunto</label>
                     <input
                       type="text"
                       value={customEmailSubject}
                       onChange={e => setCustomEmailSubject(e.target.value)}
                       placeholder="Ex: Complete seu cadastro no RepMatch"
-                      className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Mensagem</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Mensagem</label>
                     <textarea
                       value={customEmailMessage}
                       onChange={e => setCustomEmailMessage(e.target.value)}
                       placeholder="Escreva sua mensagem aqui..."
                       rows={4}
-                      className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                      className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                    <button
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-colors"
                       disabled={!customEmailSubject.trim() || !customEmailMessage.trim() || sendingCustomEmail}
                       onClick={() => {
                         setSendingCustomEmail(true);
@@ -1790,12 +1794,11 @@ export default function AdminDashboard() {
                         });
                       }}
                     >
-                      {sendingCustomEmail ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Mail className="w-4 h-4 mr-1" />}
+                      {sendingCustomEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                       {sendingCustomEmail ? "Enviando..." : "Enviar e-mail"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="text-sm"
+                    </button>
+                    <button
+                      className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-700 text-sm font-medium py-2.5 px-4 rounded-lg border border-gray-300 transition-colors"
                       disabled={sendingEmailId === profileModal.userId && sendCadastroEmailMutation.isPending}
                       onClick={() => {
                         setSendingEmailId(profileModal.userId);
@@ -1803,19 +1806,19 @@ export default function AdminDashboard() {
                       }}
                     >
                       {sendingEmailId === profileModal.userId && sendCadastroEmailMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                        <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <RefreshCw className="w-4 h-4 mr-1" />
+                        <RefreshCw className="w-4 h-4" />
                       )}
                       E-mail padrão
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="p-6 text-center text-muted-foreground">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                <p>Não foi possível carregar os detalhes do perfil.</p>
+              <div className="p-6 text-center">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-gray-500 text-sm">Não foi possível carregar os detalhes do perfil.</p>
               </div>
             )}
           </div>
