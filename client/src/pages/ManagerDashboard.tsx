@@ -11,8 +11,6 @@ import {
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
@@ -47,13 +45,6 @@ export default function ManagerDashboard() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"overview" | "search" | "team">("overview");
   const [unlockingRepId, setUnlockingRepId] = useState<number | null>(null);
-  const [selectedRepIds, setSelectedRepIds] = useState<Set<number>>(new Set());
-  const [batchUnlocking, setBatchUnlocking] = useState(false);
-  const [batchResultModal, setBatchResultModal] = useState<null | {
-    results: Array<{ repId: number; name: string; cnpj: string | null; cnpjaStatus: string | null; isAtivo: boolean | null; unlocked: boolean }>;
-    creditsUsed: number;
-    creditsRemaining: number;
-  }>(null);
 
   // Search filters
   const [searchRegion, setSearchRegion] = useState("Todos");
@@ -83,42 +74,6 @@ export default function ManagerDashboard() {
       });
     }
   }, [isAuthenticated, creditsQuery.data, user?.name]);
-
-  const batchUnlockMutation = trpc.manager.unlockRepsBatch.useMutation({
-    onSuccess: (data) => {
-      setBatchUnlocking(false);
-      setSelectedRepIds(new Set());
-      creditsQuery.refetch();
-      unlockedRepsQuery.refetch();
-      setBatchResultModal(data);
-    },
-    onError: (err) => {
-      setBatchUnlocking(false);
-      if (err.data?.code === "PAYMENT_REQUIRED") {
-        toast.error(err.message, {
-          action: { label: "Comprar créditos", onClick: () => navigate("/planos-gerente") },
-          duration: 6000,
-        });
-      } else {
-        toast.error(err.message || "Erro ao desbloquear em lote.");
-      }
-    },
-  });
-
-  const handleBatchUnlock = () => {
-    const ids = Array.from(selectedRepIds);
-    if (ids.length === 0) return;
-    setBatchUnlocking(true);
-    batchUnlockMutation.mutate({ repIds: ids });
-  };
-
-  const toggleSelectRep = (repId: number) => {
-    setSelectedRepIds(prev => {
-      const next = new Set(prev);
-      if (next.has(repId)) next.delete(repId); else next.add(repId);
-      return next;
-    });
-  };
 
   const unlockMutation = trpc.manager.unlockRepContact.useMutation({
     onSuccess: (data) => {
@@ -475,29 +430,12 @@ export default function ManagerDashboard() {
                   <p className="text-sm text-muted-foreground">
                     {repsQuery.data?.total?.toLocaleString("pt-BR") ?? 0} representantes encontrados
                   </p>
-                  {selectedRepIds.size > 0 && (
-                    <button
-                      onClick={() => setSelectedRepIds(new Set())}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Limpar seleção
-                    </button>
-                  )}
                 </div>
                 {(repsQuery.data?.reps ?? []).map((rep) => {
                   const isUnlocked = unlockedRepIds.has(rep.id);
                   const isUnlocking = unlockingRepId === rep.id;
-                  const isSelected = selectedRepIds.has(rep.id);
                   return (
-                    <div
-                      key={rep.id}
-                      className={`bg-card border rounded-xl p-5 transition-colors cursor-pointer ${
-                        isUnlocked ? "border-green-500/40" :
-                        isSelected ? "border-blue-400 bg-blue-400/5" :
-                        "border-border hover:border-blue-400/40"
-                      }`}
-                      onClick={() => { if (!isUnlocked) toggleSelectRep(rep.id); }}
-                    >
+                    <div key={rep.id} className={`bg-card border rounded-xl p-5 transition-colors ${isUnlocked ? "border-green-500/40" : "border-border hover:border-blue-400/40"}`}>
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-4 flex-1 min-w-0">
                           <div className="w-11 h-11 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0 text-blue-400 font-bold text-lg">
@@ -541,15 +479,7 @@ export default function ManagerDashboard() {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2 shrink-0 items-start">
-                          {!isUnlocked && (
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleSelectRep(rep.id)}
-                              onClick={(e) => e.stopPropagation()}
-                              className="mt-1 border-blue-400/50 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                            />
-                          )}
+                        <div className="flex gap-2 shrink-0">
                           {isUnlocked ? (
                             <Button
                               size="sm"
@@ -658,108 +588,6 @@ export default function ManagerDashboard() {
           </div>
         )}
       </main>
-
-      {/* Floating batch unlock bar */}
-      {selectedRepIds.size > 0 && activeTab === "search" && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-zinc-900 border border-blue-400/40 rounded-2xl px-5 py-3 shadow-2xl shadow-black/50">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
-              {selectedRepIds.size}
-            </div>
-            <span className="text-sm font-medium">
-              {selectedRepIds.size === 1 ? "1 representante selecionado" : `${selectedRepIds.size} representantes selecionados`}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              ({credits?.isUnlimited ? "ilimitado" : `${selectedRepIds.size} crédito(s)`})
-            </span>
-          </div>
-          <div className="w-px h-5 bg-border" />
-          <Button
-            size="sm"
-            className="bg-blue-500 hover:bg-blue-600 text-white text-xs"
-            disabled={batchUnlocking}
-            onClick={handleBatchUnlock}
-          >
-            {batchUnlocking ? (
-              <><div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin mr-1" />Desbloqueando...</>
-            ) : (
-              <><Unlock className="w-3 h-3 mr-1" />Desbloquear {selectedRepIds.size} representante{selectedRepIds.size > 1 ? "s" : ""}</>
-            )}
-          </Button>
-          <button
-            onClick={() => setSelectedRepIds(new Set())}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Cancelar
-          </button>
-        </div>
-      )}
-
-      {/* Batch result modal */}
-      {batchResultModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="bg-zinc-900 border border-border rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
-            <div className="p-6 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-lg">Desbloqueio concluído!</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {batchResultModal.creditsUsed} crédito(s) usados • {batchResultModal.creditsRemaining} restantes
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 space-y-3">
-              {batchResultModal.results.map((r) => (
-                <div key={r.repId} className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3">
-                  <div>
-                    <div className="font-medium text-sm">{r.name}</div>
-                    {r.cnpj && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        CNPJ: {r.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {r.cnpjaStatus && (
-                      <Badge
-                        className={`text-xs ${
-                          r.isAtivo
-                            ? "bg-green-900/30 text-green-300 border-green-700/40"
-                            : "bg-red-900/30 text-red-300 border-red-700/40"
-                        }`}
-                      >
-                        {r.cnpjaStatus}
-                      </Badge>
-                    )}
-                    <Badge className="bg-green-900/30 text-green-300 border-green-700/40 text-xs">
-                      <CheckCircle className="w-3 h-3 mr-1" /> Desbloqueado
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="p-6 pt-0 flex gap-3">
-              <Button
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
-                onClick={() => { setBatchResultModal(null); setActiveTab("team"); }}
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Ver Minha Equipe
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setBatchResultModal(null)}
-              >
-                Fechar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -280,16 +280,6 @@ export const appRouter = router({
           title: "👤 Novo Representante Cadastrado",
           content: `${input.fullName} (${input.region} • ${input.segment}) acabou de completar o cadastro. Telefone: ${input.phone ?? "não informado"}. Plano: Pendente.`,
         });
-        // Send welcome email (non-blocking)
-        if (ctx.user.email) {
-          const { sendWelcomeRepEmail } = await import("./email");
-          sendWelcomeRepEmail({
-            to: ctx.user.email,
-            name: input.fullName,
-            region: input.region,
-            segment: input.segment,
-          }).catch((e) => console.warn("[Email] welcome rep failed:", e));
-        }
         return { success: true };
       }),
 
@@ -317,16 +307,6 @@ export const appRouter = router({
           title: "🏢 Nova Empresa Cadastrada",
           content: `${input.companyName} (${input.segment} • ${input.region ?? "região não informada"}) acabou de completar o cadastro. CNPJ: ${input.cnpj ?? "não informado"}. Telefone: ${input.phone ?? "não informado"}.`,
         });
-        // Send welcome email (non-blocking)
-        if (ctx.user.email) {
-          const { sendWelcomeCompanyEmail } = await import("./email");
-          sendWelcomeCompanyEmail({
-            to: ctx.user.email,
-            name: ctx.user.name ?? input.companyName,
-            companyName: input.companyName,
-            segment: input.segment,
-          }).catch((e) => console.warn("[Email] welcome company failed:", e));
-        }
         return { success: true };
       }),
   }),
@@ -866,7 +846,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           llmAnalysis,
         });
 
-        // Notificar owner + enviar e-mails (não bloqueante)
+        // Notificar owner sobre nova candidatura
         try {
           const company = await getCompanyById(job.companyId);
           if (company) {
@@ -875,73 +855,6 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
               title: `Nova Candidatura${scoreTag}`,
               content: `${rep.fullName} se candidatou à vaga "${job.title}" (${company.companyName}) com score ${totalScore}/100`,
             });
-            // E-mail de confirmação para o representante
-            if (ctx.user.email) {
-              const { sendApplicationConfirmationEmail } = await import("./email");
-              sendApplicationConfirmationEmail({
-                to: ctx.user.email,
-                repName: rep.fullName,
-                jobTitle: job.title,
-                companyName: company.companyName,
-                region: job.region ?? "",
-                segment: job.segment ?? "",
-                totalScore,
-              }).catch((e) => console.warn("[Email] application confirmation failed:", e));
-            }
-            // E-mail de notificação para a empresa (com resumo IA dos pontos fortes)
-            const db = await getDb();
-            const [companyUser] = await db!.select({ email: users.email }).from(users).where(eq(users.id, company.userId)).limit(1);
-            if (companyUser?.email) {
-              // Gerar resumo IA dos pontos fortes do representante (não bloqueante)
-              let aiSummary: string | undefined;
-              try {
-                const summaryResponse = await invokeLLM({
-                  messages: [
-                    {
-                      role: "system",
-                      content: "Você é um especialista em recrutamento de representantes comerciais. Analise o perfil do representante e gere um resumo conciso (máximo 3 pontos fortes, cada um com até 15 palavras) destacando os diferenciais mais relevantes para a empresa contratante. Retorne um JSON com campo 'points' (array de strings) e 'summary' (string de até 80 caracteres com a impressão geral).",
-                    },
-                    {
-                      role: "user",
-                      content: `Representante: ${rep.fullName}\nRegião: ${rep.region ?? "não informada"}\nSegmento: ${rep.segment ?? "não informado"}\nExperiência: ${rep.experienceYears ?? 0} anos\nBio: ${rep.bio ?? "não informada"}\nDisponibilidade: ${rep.availability ?? "não informada"}\nModelo de trabalho: ${rep.workModel ?? "não informado"}\nCidades: ${rep.cities ?? "não informadas"}\nSegmentos adicionais: ${rep.additionalSegments ?? "nenhum"}\nVaga: ${job.title} (${job.segment ?? ""}, ${job.region ?? ""})\nScore de match: ${totalScore}/100\nAnálise LLM anterior: ${llmAnalysis || "não disponível"}`,
-                    },
-                  ],
-                  response_format: {
-                    type: "json_schema",
-                    json_schema: {
-                      name: "rep_strengths",
-                      strict: true,
-                      schema: {
-                        type: "object",
-                        properties: {
-                          points: { type: "array", items: { type: "string" } },
-                          summary: { type: "string" },
-                        },
-                        required: ["points", "summary"],
-                        additionalProperties: false,
-                      },
-                    },
-                  },
-                });
-                const rawContent = summaryResponse.choices[0]?.message?.content;
-                const parsed = JSON.parse(typeof rawContent === "string" ? rawContent : "{}");
-                aiSummary = JSON.stringify({ points: parsed.points ?? [], summary: parsed.summary ?? "" });
-              } catch (e) {
-                console.warn("[Email] AI summary generation failed:", e);
-              }
-              const { sendNewApplicationToCompanyEmail } = await import("./email");
-              sendNewApplicationToCompanyEmail({
-                to: companyUser.email,
-                companyName: company.companyName,
-                repName: rep.fullName,
-                repRegion: rep.region ?? "",
-                repSegment: rep.segment ?? "",
-                repExperience: rep.experienceYears ?? 0,
-                jobTitle: job.title,
-                totalScore,
-                aiSummary,
-              }).catch((e) => console.warn("[Email] new application to company failed:", e));
-            }
           }
         } catch (e) { /* notificação não crítica */ }
 
@@ -1501,6 +1414,137 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error ?? "Falha ao enviar email" });
         }
         return { success: true, email: user.email };
+      }),
+
+    // Admin: buscar detalhes do perfil incompleto de um usuário
+    getUserProfileDetails: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [user] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND" });
+
+        const missingFields: string[] = [];
+        const filledFields: string[] = [];
+        let profileData: Record<string, unknown> = {};
+
+        if (user.userType === "representative") {
+          const [rep] = await db.select().from(representatives).where(eq(representatives.userId, input.userId)).limit(1);
+          if (!rep) {
+            missingFields.push("Perfil de representante não criado");
+          } else {
+            profileData = rep as unknown as Record<string, unknown>;
+            const checks = [
+              { field: "fullName", label: "Nome completo", value: rep.fullName },
+              { field: "phone", label: "Telefone", value: rep.phone },
+              { field: "region", label: "Região de atuação", value: rep.region },
+              { field: "segment", label: "Segmento", value: rep.segment },
+              { field: "experienceYears", label: "Anos de experiência", value: rep.experienceYears },
+              { field: "bio", label: "Bio/Apresentação", value: rep.bio },
+              { field: "cnpj", label: "CNPJ ou CPF", value: rep.cnpj ?? rep.cpf },
+              { field: "cities", label: "Cidades de atuação", value: rep.cities },
+              { field: "availability", label: "Disponibilidade", value: rep.availability },
+            ];
+            checks.forEach(c => {
+              if (c.value) filledFields.push(c.label);
+              else missingFields.push(c.label);
+            });
+          }
+        } else if (user.userType === "company") {
+          const [company] = await db.select().from(companies).where(eq(companies.userId, input.userId)).limit(1);
+          if (!company) {
+            missingFields.push("Perfil de empresa não criado");
+          } else {
+            profileData = company as unknown as Record<string, unknown>;
+            const checks = [
+              { field: "companyName", label: "Nome da empresa", value: company.companyName },
+              { field: "cnpj", label: "CNPJ", value: company.cnpj },
+              { field: "phone", label: "Telefone", value: company.phone },
+              { field: "segment", label: "Segmento", value: company.segment },
+              { field: "description", label: "Descrição da empresa", value: company.description },
+              { field: "region", label: "Região", value: company.region },
+              { field: "address", label: "Endereço", value: company.address },
+            ];
+            checks.forEach(c => {
+              if (c.value) filledFields.push(c.label);
+              else missingFields.push(c.label);
+            });
+          }
+        } else if (user.userType === "manager") {
+          const { managers: managersTable } = await import("../drizzle/schema");
+          const [manager] = await db.select().from(managersTable).where(eq(managersTable.userId, input.userId)).limit(1);
+          if (!manager) {
+            missingFields.push("Perfil de gerente não criado");
+          } else {
+            profileData = manager as unknown as Record<string, unknown>;
+            const checks = [
+              { field: "fullName", label: "Nome completo", value: manager.fullName },
+              { field: "phone", label: "Telefone", value: manager.phone },
+              { field: "company", label: "Empresa", value: (manager as Record<string, unknown>).company as string | null },
+              { field: "segment", label: "Segmento", value: (manager as Record<string, unknown>).segment as string | null },
+            ];
+            checks.forEach(c => {
+              if (c.value) filledFields.push(c.label);
+              else missingFields.push(c.label);
+            });
+          }
+        }
+
+        const completionPct = filledFields.length + missingFields.length > 0
+          ? Math.round((filledFields.length / (filledFields.length + missingFields.length)) * 100)
+          : 0;
+
+        return {
+          user: { id: user.id, name: user.name, email: user.email, userType: user.userType },
+          missingFields,
+          filledFields,
+          completionPct,
+          profileData,
+        };
+      }),
+
+    // Admin: enviar e-mail personalizado para qualquer usuário
+    sendCustomEmail: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        subject: z.string().min(1).max(200),
+        message: z.string().min(1).max(2000),
+        includeCompleteProfileCTA: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [user] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+        if (!user?.email) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário sem e-mail" });
+
+        const { getResend, FROM_EMAIL, baseTemplate } = await import("./email");
+        const resend = getResend();
+        if (!resend) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Serviço de e-mail indisponível" });
+
+        const ctaHtml = input.includeCompleteProfileCTA ? `
+          <div style="text-align:center;margin:28px 0;">
+            <a href="https://repmatch.com.br/dashboard" style="display:inline-block;background:#16a34a;color:#fff;padding:14px 32px;border-radius:8px;font-weight:700;font-size:15px;text-decoration:none;">Completar meu cadastro →</a>
+          </div>` : "";
+
+        const html = baseTemplate(`
+            <h2 style="color:#111827;font-size:22px;font-weight:700;margin:0 0 16px;">Olá, ${user.name ?? "usuário"}!</h2>
+            <div style="color:#374151;font-size:15px;line-height:1.7;white-space:pre-wrap;">${input.message.replace(/\n/g, "<br/>")}</div>
+            ${ctaHtml}
+            <p style="color:#6b7280;font-size:13px;margin-top:24px;">Atenciosamente,<br/><strong style="color:#374151;">Equipe RepMatch</strong></p>
+          `);
+
+        const { data, error } = await resend.emails.send({
+          from: FROM_EMAIL,
+          to: user.email,
+          subject: input.subject,
+          html,
+        });
+
+        if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+        return { success: true, email: user.email, messageId: data?.id };
       }),
 
     // Admin: corrigir dados dos representantes de teste
@@ -2170,106 +2214,6 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         // Get rep details to return
         const [rep] = await db.select().from(representatives).where(eq(representatives.id, input.repId)).limit(1);
         return { success: true, alreadyUnlocked: false, rep };
-      }),
-
-    // Desbloquear múltiplos representantes em lote com validação CNPJA
-    unlockRepsBatch: protectedProcedure
-      .input(z.object({ repIds: z.array(z.number()).min(1).max(50) }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-        // Check credits
-        const [credits] = await db.select().from(managerCredits).where(eq(managerCredits.userId, ctx.user.id)).limit(1);
-        const isUnlimitedActive = credits?.isUnlimited && (!credits.unlimitedExpiresAt || new Date(credits.unlimitedExpiresAt) > new Date());
-
-        // Filter out already unlocked
-        const existingUnlocks = await db.select()
-          .from(managerUnlocks)
-          .where(and(eq(managerUnlocks.managerId, ctx.user.id), inArray(managerUnlocks.representativeId, input.repIds)));
-        const alreadyUnlockedIds = new Set(existingUnlocks.map(u => u.representativeId));
-        const toUnlock = input.repIds.filter(id => !alreadyUnlockedIds.has(id));
-
-        if (toUnlock.length === 0) {
-          return { success: true, results: [], creditsUsed: 0, creditsRemaining: credits?.credits ?? 0 };
-        }
-
-        // Check if enough credits
-        if (!isUnlimitedActive) {
-          const available = credits?.credits ?? 0;
-          if (available < toUnlock.length) {
-            throw new TRPCError({
-              code: "PAYMENT_REQUIRED",
-              message: `Créditos insuficientes. Você tem ${available} crédito(s) mas tentou desbloquear ${toUnlock.length} representante(s).`,
-            });
-          }
-        }
-
-        // Fetch rep data for CNPJA validation
-        const reps = await db.select().from(representatives).where(inArray(representatives.id, toUnlock));
-        const { consultarCnpj } = await import("./cnpja");
-
-        const results: Array<{
-          repId: number;
-          name: string;
-          cnpj: string | null;
-          cnpjaStatus: string | null;
-          isAtivo: boolean | null;
-          unlocked: boolean;
-          reason?: string;
-        }> = [];
-
-        let creditsUsed = 0;
-
-        for (const rep of reps) {
-          const repCnpj = rep.cnpj ?? rep.cpf ?? null;
-          let cnpjaStatus: string | null = null;
-          let isAtivo: boolean | null = null;
-
-          // Validate CNPJ via CNPJA API if available
-          if (repCnpj && repCnpj.replace(/\D/g, "").length === 14) {
-            const cnpjaData = await consultarCnpj(repCnpj);
-            if (cnpjaData) {
-              cnpjaStatus = cnpjaData.situacao;
-              isAtivo = cnpjaData.isAtivo;
-            }
-          }
-
-          // Record unlock regardless of CNPJA status (validation is informational)
-          await db.insert(managerUnlocks).values({
-            managerId: ctx.user.id,
-            representativeId: rep.id,
-            productKey: isUnlimitedActive ? "MANAGER_ILIMITADO" : "MANAGER_AVULSO",
-          });
-
-          if (!isUnlimitedActive) creditsUsed++;
-
-          results.push({
-            repId: rep.id,
-            name: rep.fullName ?? "Representante",
-            cnpj: repCnpj,
-            cnpjaStatus,
-            isAtivo,
-            unlocked: true,
-          });
-        }
-
-        // Deduct credits in bulk
-        if (!isUnlimitedActive && creditsUsed > 0) {
-          await db.update(managerCredits)
-            .set({ credits: (credits?.credits ?? 0) - creditsUsed })
-            .where(eq(managerCredits.userId, ctx.user.id));
-        }
-
-        const remaining = isUnlimitedActive ? 9999 : (credits?.credits ?? 0) - creditsUsed;
-
-        return {
-          success: true,
-          results,
-          creditsUsed,
-          creditsRemaining: remaining,
-          alreadyUnlocked: Array.from(alreadyUnlockedIds),
-        };
       }),
 
     // List all unlocked reps for this manager

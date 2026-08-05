@@ -1,10 +1,9 @@
 import { Router, Request, Response } from "express";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
-import { representatives, companies, users, unlockRequests, unlockedContacts, cnpjRepresentatives, managerCredits } from "../../drizzle/schema";
+import { representatives, companies, users, unlockRequests, unlockedContacts, cnpjRepresentatives } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { consultarCnpj, isRepresentanteComercial } from "../cnpja";
-import { sendManagerCreditReceiptEmail } from "../email";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -150,7 +149,7 @@ mpRouter.post("/unlock-pix", async (req: Request, res: Response) => {
 // ─── Criar preferência de pagamento (Checkout Pro — cartão + Pix) ─────────────
 mpRouter.post("/preference", async (req: Request, res: Response) => {
   try {
-        const { planKey, userId, userEmail, userName, annual, repId, jobId } = req.body as {
+    const { planKey, userId, userEmail, userName, annual, repId, jobId } = req.body as {
       planKey: MPPlanKey;
       userId: number;
       userEmail: string;
@@ -159,24 +158,15 @@ mpRouter.post("/preference", async (req: Request, res: Response) => {
       repId?: number;
       jobId?: number;
     };
+
     const plan = MP_PLANS[planKey];
     if (!plan) return res.status(400).json({ error: "Plano inválido" });
 
-    // Usar origin do request ou fallback para URL de produção
-    const rawOrigin = req.headers.origin ?? "";
-    const isLocalhost = rawOrigin.includes("localhost") || rawOrigin.includes("127.0.0.1");
-    const origin = isLocalhost ? "https://repmatch.com.br" : rawOrigin;
-
+    const origin = req.headers.origin ?? "http://localhost:3000";
     let amount: number = plan.amount;
     if (annual && plan.interval === "monthly") {
       amount = parseFloat((plan.amount * 0.8 * 12).toFixed(2));
     }
-
-    // Determinar URL de sucesso baseado no tipo de usuário
-    const isManager = plan.userType === "manager";
-    const successUrl = isManager
-      ? `${origin}/dashboard/manager?payment=success`
-      : `${origin}/dashboard/company?payment=success`;
 
     const preference = new Preference(mp);
     const pref = await preference.create({
@@ -200,7 +190,7 @@ mpRouter.post("/preference", async (req: Request, res: Response) => {
           job_id: jobId ?? null,
         },
         back_urls: {
-          success: successUrl,
+          success: `${origin}/dashboard/company?payment=success`,
           failure: `${origin}/planos?payment=failed`,
           pending: `${origin}/planos?payment=pending`,
         },
@@ -384,76 +374,6 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
               await db.update(companies)
                 .set({ subscriptionTier: plan.tier as any })
                 .where(eq(companies.userId, userId));
-            } else if (plan.userType === "manager") {
-              // ── Créditos de gerente ──────────────────────────────────────────
-              const managerPlan = plan as { credits: number; interval: string | null };
-              const creditsToAdd = managerPlan.credits;
-              const isUnlimited = managerPlan.interval === "monthly" && creditsToAdd >= 9999;
-
-              const [existing] = await db.select().from(managerCredits)
-                .where(eq(managerCredits.userId, userId)).limit(1);
-
-              if (!existing) {
-                await db.insert(managerCredits).values({
-                  userId: userId,
-                  credits: isUnlimited ? 0 : creditsToAdd,
-                  totalPurchased: isUnlimited ? 0 : creditsToAdd,
-                  isUnlimited: isUnlimited,
-                  unlimitedExpiresAt: isUnlimited ? new Date(Date.now() + 30 * 24 * 3600 * 1000) : null,
-                });
-              } else {
-                if (isUnlimited) {
-                  await db.update(managerCredits)
-                    .set({
-                      isUnlimited: true,
-                      unlimitedExpiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
-                    })
-                    .where(eq(managerCredits.userId, userId));
-                } else {
-                  await db.update(managerCredits)
-                    .set({
-                      credits: existing.credits + creditsToAdd,
-                      totalPurchased: existing.totalPurchased + creditsToAdd,
-                    })
-                    .where(eq(managerCredits.userId, userId));
-                }
-              }
-              console.log(`[MP Webhook] Manager credits: +${creditsToAdd} (unlimited=${isUnlimited}) for user ${userId}`);
-
-              // Buscar e-mail e nome do gerente para enviar recibo
-              try {
-                const [managerUser] = await db.select({ email: users.email, name: users.name })
-                  .from(users).where(eq(users.id, userId)).limit(1);
-
-                if (managerUser?.email) {
-                  // Calcular saldo atual após crédito
-                  const [updatedCredits] = await db.select({ credits: managerCredits.credits, isUnlimited: managerCredits.isUnlimited })
-                    .from(managerCredits).where(eq(managerCredits.userId, userId)).limit(1);
-
-                  const planLabels: Record<string, string> = {
-                    MANAGER_AVULSO: "Avulso — 1 Crédito",
-                    MANAGER_STARTER: "Pacote Starter — 5 Créditos",
-                    MANAGER_PRO: "Pacote Pro — 15 Créditos",
-                    MANAGER_ILIMITADO: "Pacote Ilimitado",
-                  };
-
-                  await sendManagerCreditReceiptEmail({
-                    to: managerUser.email,
-                    managerName: managerUser.name ?? "Gerente",
-                    planName: planLabels[planKey] ?? planKey,
-                    credits: creditsToAdd,
-                    isUnlimited,
-                    amountPaid: result.transaction_amount ?? 0,
-                    paymentId: result.id ?? "",
-                    paymentMethod: result.payment_method_id === "pix" ? "pix" : "card",
-                    newBalance: updatedCredits?.credits ?? creditsToAdd,
-                    paidAt: result.date_approved ? new Date(result.date_approved) : new Date(),
-                  });
-                  console.log(`[MP Webhook] Receipt email sent to ${managerUser.email}`);
-                }
-              } catch (emailErr: any) {
-                console.error("[MP Webhook] Failed to send receipt email:", emailErr?.message);
-              }
             }
 
             console.log(`[MP Webhook] Activated plan ${planKey} for user ${userId}`);

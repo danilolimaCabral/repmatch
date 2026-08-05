@@ -105,6 +105,29 @@ export default function AdminDashboard() {
     onError: () => toast.error("Erro ao alterar status do usuário"),
   });
   const [sendingEmailId, setSendingEmailId] = useState<number | null>(null);
+  const [profileModal, setProfileModal] = useState<{ userId: number; userName: string } | null>(null);
+  const [customEmailSubject, setCustomEmailSubject] = useState("");
+  const [customEmailMessage, setCustomEmailMessage] = useState("");
+  const [sendingCustomEmail, setSendingCustomEmail] = useState(false);
+
+  const profileDetailsQuery = trpc.admin.getUserProfileDetails.useQuery(
+    { userId: profileModal?.userId ?? 0 },
+    { enabled: !!profileModal }
+  );
+
+  const sendCustomEmailMutation = trpc.admin.sendCustomEmail.useMutation({
+    onSuccess: (data) => {
+      toast.success(`E-mail enviado para ${data.email}!`);
+      setSendingCustomEmail(false);
+      setCustomEmailSubject("");
+      setCustomEmailMessage("");
+    },
+    onError: (e) => {
+      toast.error(`Erro ao enviar: ${e.message}`);
+      setSendingCustomEmail(false);
+    },
+  });
+
   const sendCadastroEmailMutation = trpc.admin.sendCadastroEmail.useMutation({
     onSuccess: (data) => { toast.success(`Email enviado para ${data.email}!`); setSendingEmailId(null); },
     onError: (e) => { toast.error(`Erro ao enviar email: ${e.message}`); setSendingEmailId(null); },
@@ -835,32 +858,26 @@ export default function AdminDashboard() {
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-border bg-secondary/30">
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">ID</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Email</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Tipo</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Papel</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Perfil</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Cadastro</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ações</th>
+                      <tr className="border-b border-border bg-secondary/40">
+                        <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">ID</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">Nome</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">Email</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">Tipo</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">Papel</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">Perfil</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">Cadastro</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">Status</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       {allUsers.map((u) => (
-                        <tr key={u.id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                          <td className="px-4 py-3 text-muted-foreground">#{u.id}</td>
-                          <td className="px-4 py-3 font-medium">{u.name ?? "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{u.email ?? "—"}</td>
+                        <tr key={u.id} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
+                          <td className="px-4 py-3 text-xs font-mono text-muted-foreground">#{u.id}</td>
+                          <td className="px-4 py-3 font-semibold text-foreground">{u.name ?? "—"}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{u.email ?? "—"}</td>
                           <td className="px-4 py-3">
-                            {(() => {
-                              const ut = (u as Record<string, unknown> & { userType?: string }).userType ?? "pending";
-                              if (ut === "manager") return <Badge className="bg-purple-900/30 text-purple-300 border border-purple-700/40 text-xs">Gerente</Badge>;
-                              if (ut === "company") return <Badge className="bg-blue-900/30 text-blue-300 border border-blue-700/40 text-xs">Empresa</Badge>;
-                              if (ut === "representative") return <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs">Representante</Badge>;
-                              return <Badge variant="outline" className="text-xs text-muted-foreground">Pendente</Badge>;
-                            })()}
+                            <Badge variant="outline" className="text-xs capitalize">{(u as Record<string, unknown> & { userType?: string }).userType ?? "pending"}</Badge>
                           </td>
                           <td className="px-4 py-3">
                             {u.role === "admin" ? (
@@ -873,17 +890,27 @@ export default function AdminDashboard() {
                             {(() => {
                               const uTyped = u as Record<string, unknown> & { profileStatus?: string; userType?: string };
                               const ps = uTyped.profileStatus ?? "incomplete";
-                              if (ps === "complete") return <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs">Completo</Badge>;
-                              if (ps === "partial") return <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 text-xs">Parcial</Badge>;
-                              return <Badge className="bg-zinc-700 text-zinc-300 text-xs">Incompleto</Badge>;
+                              if (ps === "complete") return <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs font-semibold">Completo</Badge>;
+                              if (ps === "partial") return (
+                                <button onClick={() => setProfileModal({ userId: u.id, userName: u.name ?? `#${u.id}` })} className="flex items-center gap-1">
+                                  <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 text-xs font-semibold hover:bg-amber-900/50 cursor-pointer">Parcial</Badge>
+                                  <Eye className="w-3 h-3 text-amber-400" />
+                                </button>
+                              );
+                              return (
+                                <button onClick={() => setProfileModal({ userId: u.id, userName: u.name ?? `#${u.id}` })} className="flex items-center gap-1">
+                                  <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 text-xs font-semibold hover:bg-red-900/50 cursor-pointer">Incompleto</Badge>
+                                  <Eye className="w-3 h-3 text-red-400" />
+                                </button>
+                              );
                             })()}
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
                           <td className="px-4 py-3">
                             {(u as Record<string, unknown> & { isActive?: boolean }).isActive !== false ? (
-                              <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs">Ativo</Badge>
+                              <Badge className="bg-green-900/30 text-green-300 border border-green-700/40 text-xs font-semibold">Ativo</Badge>
                             ) : (
-                              <Badge className="bg-zinc-700 text-zinc-300 text-xs">Inativo</Badge>
+                              <Badge className="bg-zinc-700/50 text-zinc-400 border border-zinc-600/40 text-xs font-semibold">Inativo</Badge>
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -1657,6 +1684,143 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Modal: Perfil Incompleto + Comunicação */}
+      {profileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-zinc-900 border border-border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-lg text-foreground">Perfil de {profileModal.userName}</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">Detalhes do cadastro e ferramentas de comunicação</p>
+              </div>
+              <button onClick={() => setProfileModal(null)} className="text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">×</button>
+            </div>
+
+            {profileDetailsQuery.isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : profileDetailsQuery.data ? (
+              <div className="p-6 space-y-6">
+                {/* Barra de progresso */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-foreground">Completude do perfil</span>
+                    <span className="text-sm font-bold text-foreground">{profileDetailsQuery.data.completionPct}%</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        profileDetailsQuery.data.completionPct >= 80 ? "bg-green-500" :
+                        profileDetailsQuery.data.completionPct >= 40 ? "bg-amber-500" : "bg-red-500"
+                      }`}
+                      style={{ width: `${profileDetailsQuery.data.completionPct}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Campos faltando */}
+                {profileDetailsQuery.data.missingFields.length > 0 && (
+                  <div className="bg-red-900/10 border border-red-700/30 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" /> Campos faltando ({profileDetailsQuery.data.missingFields.length})
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {profileDetailsQuery.data.missingFields.map(f => (
+                        <div key={f} className="flex items-center gap-2 text-sm text-red-300">
+                          <XCircle className="w-3.5 h-3.5 shrink-0" />{f}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Campos preenchidos */}
+                {profileDetailsQuery.data.filledFields.length > 0 && (
+                  <div className="bg-green-900/10 border border-green-700/30 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-green-400 mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" /> Campos preenchidos ({profileDetailsQuery.data.filledFields.length})
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {profileDetailsQuery.data.filledFields.map(f => (
+                        <div key={f} className="flex items-center gap-2 text-sm text-green-300">
+                          <CheckCircle className="w-3.5 h-3.5 shrink-0" />{f}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Comunicação direta */}
+                <div className="border border-border rounded-xl p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-blue-400" /> Enviar mensagem direta
+                  </h3>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Assunto</label>
+                    <input
+                      type="text"
+                      value={customEmailSubject}
+                      onChange={e => setCustomEmailSubject(e.target.value)}
+                      placeholder="Ex: Complete seu cadastro no RepMatch"
+                      className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Mensagem</label>
+                    <textarea
+                      value={customEmailMessage}
+                      onChange={e => setCustomEmailMessage(e.target.value)}
+                      placeholder="Escreva sua mensagem aqui..."
+                      rows={4}
+                      className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                      disabled={!customEmailSubject.trim() || !customEmailMessage.trim() || sendingCustomEmail}
+                      onClick={() => {
+                        setSendingCustomEmail(true);
+                        sendCustomEmailMutation.mutate({
+                          userId: profileModal.userId,
+                          subject: customEmailSubject,
+                          message: customEmailMessage,
+                          includeCompleteProfileCTA: profileDetailsQuery.data!.missingFields.length > 0,
+                        });
+                      }}
+                    >
+                      {sendingCustomEmail ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Mail className="w-4 h-4 mr-1" />}
+                      {sendingCustomEmail ? "Enviando..." : "Enviar e-mail"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="text-sm"
+                      disabled={sendingEmailId === profileModal.userId && sendCadastroEmailMutation.isPending}
+                      onClick={() => {
+                        setSendingEmailId(profileModal.userId);
+                        sendCadastroEmailMutation.mutate({ userId: profileModal.userId });
+                      }}
+                    >
+                      {sendingEmailId === profileModal.userId && sendCadastroEmailMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                      )}
+                      E-mail padrão
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-muted-foreground">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p>Não foi possível carregar os detalhes do perfil.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -726,46 +726,11 @@
 - [x] Melhorar index.html: atualizar FAQ Schema.org com pergunta sobre CORE
 - [x] Melhorar index.html: adicionar Blog no BreadcrumbList Schema.org
 
-## E-mails Transacionais (04/08/2026)
+## Melhorias Painel Admin — Tabela de Usuários (05/08/2026)
 
-- [x] Template base HTML profissional com header/footer/hero/CTA
-- [x] E-mail de boas-vindas para representante (após completeRepProfile)
-- [x] E-mail de boas-vindas para empresa (após completeCompanyProfile)
-- [x] E-mail de confirmação de candidatura para o representante (após submit)
-- [x] E-mail de notificação para empresa quando recebe nova candidatura
-- [x] E-mail de confirmação de desbloqueio de contato (após pagamento Stripe)
-- [x] E-mail de confirmação de assinatura de plano (rep e empresa)
-- [x] Templates adicionais: match notification rep/empresa, finalizar cadastro (legado)
-
-## Resumo IA no E-mail de Candidatura para Empresa (04/08/2026)
-
-- [x] Gerar resumo IA dos pontos fortes do representante no backend (routers.ts, candidaturas.submit)
-- [x] Passar o resumo IA como parâmetro para sendNewApplicationToCompanyEmail
-- [x] Atualizar template HTML do e-mail com seção visual "Análise IA" destacando os pontos fortes
-
-## Créditos por Unidade para Gerente Comercial (04/08/2026)
-
-- [x] Auditar schema: verificar se gerentes já têm campo de créditos
-- [x] Adicionar campo credits na tabela managers (se não existir) e migrar
-- [x] Criar procedure tRPC manager.buyCredits com checkout MercadoPago
-- [x] Criar procedure tRPC manager.getCredits para consultar saldo
-- [x] Webhook MercadoPago: creditar ao gerente após pagamento confirmado
-- [x] Atualizar ManagerDashboard.tsx: exibir saldo de créditos e botão "Comprar créditos"
-- [x] Modal de compra de créditos com pacotes (ex: 5, 10, 20 créditos)
-- [x] Integrar desbloqueio de contato usando créditos do gerente
-
-## E-mail de Recibo para Gerente Comercial (04/08/2026)
-
-- [x] Criar função sendManagerCreditReceiptEmail no email.ts com template HTML de recibo detalhado
-- [x] Disparar e-mail no webhook do MercadoPago após pagamento aprovado de pacote MANAGER_*
-- [x] Recibo deve incluir: número do pedido, pacote adquirido, créditos, valor pago, data/hora, saldo atual
-
-## Seleção Múltipla + Validação CNPJA para Gerente (04/08/2026)
-
-- [ ] Backend: procedure manager.unlockRepsBatch — desbloqueio em lote com validação CNPJA
-- [ ] Backend: validar CNPJ de cada representante via API CNPJA antes de liberar contatos
-- [ ] Frontend: checkboxes nos cards de representantes no ManagerDashboard
-- [ ] Frontend: barra de seleção flutuante mostrando quantos selecionados e custo em créditos
-- [ ] Frontend: botão "Desbloquear X representantes (X créditos)" com confirmação
-- [ ] Frontend: modal de resultado mostrando quais foram validados/rejeitados pelo CNPJA
-- [ ] Frontend: redirecionar para compra de créditos se não tiver saldo suficiente
+- [ ] Melhorar visual da tabela: texto legível, badges com cores e texto visível, colunas espaçadas
+- [ ] Botão "Ver o que falta" nos cadastros incompletos — modal mostrando campos ausentes
+- [ ] Botão "Enviar e-mail" para completar cadastro com mensagem personalizada
+- [ ] Template de e-mail "Complete seu cadastro" com lista dos campos faltantes
+- [ ] Backend: procedure admin.getUserProfileDetails — retorna campos preenchidos/faltantes por tipo
+- [ ] Backend: procedure admin.sendCustomEmail — envia e-mail personalizado para qualquer usuário
