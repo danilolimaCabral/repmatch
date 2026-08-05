@@ -890,16 +890,16 @@ export default function AdminDashboard() {
                             {(() => {
                               const uTyped = u as Record<string, unknown> & { profileStatus?: string; userType?: string };
                               const ps = uTyped.profileStatus ?? "incomplete";
-                              if (ps === "complete") return <Badge className="bg-green-100 text-gray-900 border border-green-300 text-xs font-semibold">Completo</Badge>;
+                              if (ps === "complete") return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-gray-900 border border-green-300">Completo</span>;
                               if (ps === "partial") return (
                                 <button onClick={() => setProfileModal({ userId: u.id, userName: u.name ?? `#${u.id}` })} className="flex items-center gap-1">
-                                  <Badge className="bg-amber-100 text-gray-900 border border-amber-300 text-xs font-semibold hover:bg-amber-200 cursor-pointer">Parcial</Badge>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-gray-900 border border-amber-300 hover:bg-amber-200 cursor-pointer">Parcial</span>
                                   <Eye className="w-3 h-3 text-amber-600" />
                                 </button>
                               );
                               return (
                                 <button onClick={() => setProfileModal({ userId: u.id, userName: u.name ?? `#${u.id}` })} className="flex items-center gap-1">
-                                  <Badge className="bg-red-100 text-gray-900 border border-red-300 text-xs font-semibold hover:bg-red-200 cursor-pointer">Incompleto</Badge>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-red-100 text-gray-900 border border-red-300 hover:bg-red-200 cursor-pointer">Incompleto</span>
                                   <Eye className="w-3 h-3 text-red-500" />
                                 </button>
                               );
@@ -908,9 +908,9 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
                           <td className="px-4 py-3">
                             {(u as Record<string, unknown> & { isActive?: boolean }).isActive !== false ? (
-                              <Badge className="bg-green-100 text-gray-900 border border-green-300 text-xs font-semibold">Ativo</Badge>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-gray-900 border border-green-300">Ativo</span>
                             ) : (
-                              <Badge className="bg-gray-100 text-gray-700 border border-gray-300 text-xs font-semibold">Inativo</Badge>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">Inativo</span>
                             )}
                           </td>
                           <td className="px-4 py-3">
