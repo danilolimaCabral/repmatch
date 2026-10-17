@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw, Mail, AlertCircle, Menu, X } from "lucide-react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw, Mail, AlertCircle, Menu, X, ArrowUpRight } from "lucide-react";
 import { useState, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -167,6 +167,19 @@ export default function AdminDashboard() {
     { days: analyticsDays },
     { enabled: activeTab === "analytics" }
   );
+
+  function openIndicator(tab: typeof activeTab, userTypeFilterValue?: string) {
+    if (tab === "users") {
+      setUserTypeFilter(userTypeFilterValue ?? "");
+      setUserPage(0);
+    }
+    if (tab === "representantes") {
+      setRepOffset(0);
+      setRepSearch("");
+      setRepEstado("");
+    }
+    setActiveTab(tab);
+  }
 
   // KYC/Documents queries
   const { data: docStats, refetch: refetchDocStats } = trpc.kyc.documentStats.useQuery();
@@ -639,23 +652,33 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* KPIs rápidos */}
-                <div className="rounded-xl border border-border bg-card p-6">
+                <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
                   <h2 className="font-bold mb-1 text-sm uppercase tracking-wide text-muted-foreground">Indicadores Gerais</h2>
                   <p className="text-xs text-muted-foreground/60 mb-5">Totais acumulados da plataforma</p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     {[
-                      { label: "Total de Usuários", value: (conversionFunnel?.[0]?.value ?? 0).toLocaleString(), icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
-                      { label: "Representantes", value: (conversionFunnel?.[1]?.value ?? 0).toLocaleString(), icon: UserCheck, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-                      { label: "Empresas", value: (conversionFunnel?.[2]?.value ?? 0).toLocaleString(), icon: Building2, color: "text-amber-400", bg: "bg-amber-400/10" },
-                      { label: "Planos Pagos", value: (conversionFunnel?.[3]?.value ?? 0).toLocaleString(), icon: CreditCard, color: "text-purple-400", bg: "bg-purple-400/10" },
+                      { label: "Total de Usuários", value: (conversionFunnel?.[0]?.value ?? 0).toLocaleString(), icon: Users, color: "text-blue-400", bg: "bg-blue-400/10", tab: "users" as const, destination: "lista de usuários" },
+                      { label: "Representantes", value: (conversionFunnel?.[1]?.value ?? 0).toLocaleString(), icon: UserCheck, color: "text-emerald-400", bg: "bg-emerald-400/10", tab: "representantes" as const, destination: "representantes" },
+                      { label: "Empresas", value: (conversionFunnel?.[2]?.value ?? 0).toLocaleString(), icon: Building2, color: "text-amber-400", bg: "bg-amber-400/10", tab: "users" as const, userType: "company", destination: "empresas cadastradas" },
+                      { label: "Planos Pagos", value: (conversionFunnel?.[3]?.value ?? 0).toLocaleString(), icon: CreditCard, color: "text-purple-400", bg: "bg-purple-400/10", tab: "pagamentos" as const, destination: "pagamentos" },
                     ].map((kpi) => (
-                      <div key={kpi.label} className="rounded-lg border border-border p-4">
-                        <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center mb-2`}>
+                      <button
+                        key={kpi.label}
+                        type="button"
+                        onClick={() => openIndicator(kpi.tab, kpi.userType)}
+                        aria-label={`Acessar ${kpi.destination}`}
+                        className="group min-h-36 min-w-0 rounded-xl border border-border p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:bg-secondary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:translate-y-0 sm:p-4"
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-2">
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${kpi.bg}`}>
                           <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
+                          </div>
+                          <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
                         </div>
                         <div className="text-2xl font-black text-foreground">{kpi.value}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{kpi.label}</div>
-                      </div>
+                        <div className="mt-0.5 text-xs leading-snug text-muted-foreground [text-wrap:balance]">{kpi.label}</div>
+                        <div className="mt-3 text-xs font-semibold text-primary">Acessar</div>
+                      </button>
                     ))}
                   </div>
                 </div>

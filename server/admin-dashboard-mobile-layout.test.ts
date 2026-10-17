@@ -18,4 +18,12 @@ describe("AdminDashboard mobile layout", () => {
     expect(dashboardSource).toContain("mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4");
     expect(dashboardSource).toContain("min-w-0 rounded-lg border border-border p-3 sm:p-4");
   });
+
+  it("turns general indicators into accessible navigation shortcuts", () => {
+    expect(dashboardSource).toContain("function openIndicator(tab: typeof activeTab");
+    expect(dashboardSource).toContain('aria-label={`Acessar ${kpi.destination}`}');
+    expect(dashboardSource).toContain('tab: "representantes" as const');
+    expect(dashboardSource).toContain('tab: "pagamentos" as const');
+    expect(dashboardSource).toContain('userType: "company"');
+  });
 });
