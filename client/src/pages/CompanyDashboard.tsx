@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Moon, Sun } from "lucide-react";
+import { CONTACT_UNLOCK_PRICE, CONTACT_UNLOCK_PRICE_LABEL } from "@shared/const";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -267,10 +268,7 @@ export default function CompanyDashboard() {
   // ─── Cart state (desbloqueio em lote) ─────────────────────────────────────
   const [cart, setCart] = useState<Array<{ id: number; name: string }>>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [cartStep, setCartStep] = useState<"summary" | "pix_form" | "pix_qr" | "card_redirect" | "done">("summary");
-  const [pixProofFile, setPixProofFile] = useState<File | null>(null);
-  const [pixProofUploading, setPixProofUploading] = useState(false);
-  const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
+  const [cartStep, setCartStep] = useState<"summary" | "pix_form" | "pix_qr">("summary");
   const [pixCountdown, setPixCountdown] = useState(300); // 5 min
   const pixCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [cpfInput, setCpfInput] = useState("");
@@ -281,6 +279,7 @@ export default function CompanyDashboard() {
   // Query para pedidos de desbloqueio pendentes
   const { data: myUnlockRequests } = trpc.unlockRequests.myRequests.useQuery(undefined, {
     refetchOnWindowFocus: false,
+    refetchInterval: 15_000,
   });
   const pendingUnlockRequests = (myUnlockRequests ?? []).filter(
     r => r.status === "pending_payment" || r.status === "pending_approval"
@@ -289,9 +288,6 @@ export default function CompanyDashboard() {
   const createUnlockRequest = trpc.unlockRequests.create.useMutation({
     onError: (e) => toast.error(e.message),
   });
-  const uploadPixProof = trpc.unlockRequests.uploadPixProof.useMutation({
-    onError: (e) => { setPixProofUploading(false); toast.error(e.message); },
-  });
 
   const addToCart = (repId: number, repName: string) => {
     if (cart.some(c => c.id === repId)) { toast.info("Já está no carrinho"); return; }
@@ -299,61 +295,6 @@ export default function CompanyDashboard() {
     toast.success(`${repName} adicionado ao carrinho`);
   };
   const removeFromCart = (repId: number) => setCart(prev => prev.filter(c => c.id !== repId));
-
-  const handleCheckoutCart = async () => {
-    if (cart.length === 0) return;
-    setCheckoutLoading(true);
-    try {
-      // 1. Create the unlock request in DB
-      const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "pix" });
-      if (!res) return;
-      setCurrentRequestId(res.requestId);
-
-      // 2. Create MP Checkout Pro preference (cartão)
-      const prefRes = await fetch("/api/mp/unlock-preference", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Origin": window.location.origin },
-        body: JSON.stringify({
-          requestId: res.requestId,
-          repIds: cart.map(c => c.id),
-          userId: user?.id,
-          userEmail: user?.email ?? "",
-          userName: user?.name ?? "",
-        }),
-      });
-      const prefData = await prefRes.json();
-      if (!prefRes.ok) throw new Error(prefData.error ?? "Erro ao criar pagamento");
-
-      // 3. Open MP Checkout in new tab and show redirect step
-      toast.info("Redirecionando para o Mercado Pago...");
-      window.open(prefData.initPoint, "_blank");
-      setCartStep("card_redirect");
-    } catch (e: any) {
-      toast.error(e.message ?? "Erro ao processar pagamento");
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const handlePixProofUpload = async () => {
-    if (!pixProofFile || !currentRequestId) return;
-    setPixProofUploading(true);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = (e.target?.result as string).split(",")[1];
-      await uploadPixProof.mutateAsync({
-        requestId: currentRequestId,
-        fileBase64: base64,
-        fileName: pixProofFile.name,
-        mimeType: pixProofFile.type,
-      });
-      setPixProofUploading(false);
-      setCartStep("done");
-      setCart([]);
-      toast.success("Comprovante enviado! Aguarde a aprovação do admin.");
-    };
-    reader.readAsDataURL(pixProofFile);
-  };
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewRepId, setReviewRepId] = useState<number | null>(null);
@@ -728,9 +669,9 @@ export default function CompanyDashboard() {
                   <Clock className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-blue-800">⏳ Pagamento em análise</p>
+                  <p className="text-sm font-bold text-blue-800">⏳ PIX confirmado — aguardando liberação</p>
                   <p className="text-xs text-blue-700 mt-0.5">
-                    Seu pagamento está sendo processado. Os contatos serão liberados automaticamente em instantes.
+                    O pagamento foi identificado. O administrador irá liberar seus contatos pelo painel em breve.
                   </p>
                 </div>
               </div>
@@ -1274,8 +1215,11 @@ export default function CompanyDashboard() {
                           )}
                           {/* Action */}
                           <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
-                            onClick={() => user && startCheckout("UNLOCK_CONTACT", user.id, user.email ?? "", user.name ?? "", { repId: rep.id })}>
-                            🔓 Desbloquear contato completo — R$29
+                            onClick={() => {
+                              addToCart(rep.id, rep.fullName ?? "Representante");
+                              setCartOpen(true);
+                            }}>
+                            <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {CONTACT_UNLOCK_PRICE_LABEL}
                           </Button>
                         </div>
                       );
@@ -1297,7 +1241,6 @@ export default function CompanyDashboard() {
           setCartOpen(o);
           if (!o) {
             setCartStep("summary");
-            setPixProofFile(null);
             setPixData(null);
             setCpfInput("");
             setPixCountdown(300);
@@ -1310,8 +1253,6 @@ export default function CompanyDashboard() {
                 {cartStep === "summary" && <><ShoppingCart className="w-5 h-5 text-emerald-600" /> Carrinho de Desbloqueios</>}
                 {cartStep === "pix_form" && <><QrCode className="w-5 h-5 text-emerald-600" /> Pagar via PIX</>}
                 {cartStep === "pix_qr" && <><QrCode className="w-5 h-5 text-emerald-600" /> QR Code PIX</>}
-                {cartStep === "card_redirect" && <><ShoppingCart className="w-5 h-5 text-blue-500" /> Pagamento Iniciado</>}
-                {cartStep === "done" && <><CheckCircle className="w-5 h-5 text-emerald-600" /> Pagamento Confirmado!</>}
               </DialogTitle>
             </DialogHeader>
 
@@ -1333,7 +1274,7 @@ export default function CompanyDashboard() {
                             <span className="text-sm text-slate-700 font-medium">{c.name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500">R$29</span>
+                            <span className="text-xs text-slate-500">{CONTACT_UNLOCK_PRICE_LABEL}</span>
                             <button onClick={() => removeFromCart(c.id)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         </div>
@@ -1341,30 +1282,19 @@ export default function CompanyDashboard() {
                     </div>
                     <div className="flex items-center justify-between border-t border-slate-200 pt-3">
                       <span className="font-semibold text-slate-700">{cart.length} representante{cart.length > 1 ? "s" : ""}</span>
-                      <span className="text-lg font-bold text-emerald-700">R${cart.length * 29}</span>
+                      <span className="text-lg font-bold text-emerald-700">{(cart.length * CONTACT_UNLOCK_PRICE).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                     </div>
-                    <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-3">
-                      Após o pagamento aprovado, os contatos serão liberados automaticamente.
+                    <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 leading-relaxed">
+                      Pague o total por PIX. Assim que o Mercado Pago confirmar o pagamento, o pedido aparecerá no painel do administrador para liberação manual dos contatos.
                     </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2"
-                        onClick={() => setCartStep("pix_form")}
-                        disabled={createUnlockRequest.isPending || checkoutLoading}
-                      >
-                        <QrCode className="w-4 h-4" />
-                        Pagar via PIX
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-slate-200 text-slate-700 font-semibold flex items-center justify-center gap-2 hover:bg-slate-50"
-                        onClick={() => handleCheckoutCart()}
-                        disabled={createUnlockRequest.isPending || checkoutLoading}
-                      >
-                        {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="text-base">💳</span>}
-                        Cartão
-                      </Button>
-                    </div>
+                    <Button
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2"
+                      onClick={() => setCartStep("pix_form")}
+                      disabled={createUnlockRequest.isPending || checkoutLoading}
+                    >
+                      <QrCode className="w-4 h-4" />
+                      Gerar QR Code PIX
+                    </Button>
                   </>
                 )}
               </div>
@@ -1405,7 +1335,6 @@ export default function CompanyDashboard() {
                       try {
                         const res = await createUnlockRequest.mutateAsync({ repIds: cart.map(c => c.id), paymentMethod: "pix" });
                         if (!res) return;
-                        setCurrentRequestId(res.requestId);
                         const pixRes = await fetch("/api/mp/unlock-pix", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
@@ -1484,7 +1413,7 @@ export default function CompanyDashboard() {
                   </div>
                 </div>
                 <div className="text-xs text-center text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                  ⚡ Após o pagamento, seus contatos serão liberados automaticamente em segundos.
+                  Após a confirmação do Mercado Pago, seu pedido ficará visível para o administrador liberar os contatos manualmente.
                 </div>
                 <Button variant="outline" className="w-full border-slate-200" onClick={() => {
                   setCartOpen(false);
@@ -1492,40 +1421,9 @@ export default function CompanyDashboard() {
                   setPixData(null);
                   setCart([]);
                   if (pixCountdownRef.current) clearInterval(pixCountdownRef.current);
+                  utils.unlockRequests.myRequests.invalidate();
+                  toast.success("Pagamento enviado. Aguarde a confirmação e a liberação do administrador.");
                 }}>Fechar — já paguei</Button>
-              </div>
-            )}
-
-            {/* ─── Card Redirect Step ─── */}
-            {cartStep === "card_redirect" && (
-              <div className="text-center space-y-4 py-4">
-                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto">
-                  <svg className="w-8 h-8 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-800">Checkout Aberto</h3>
-                  <p className="text-sm text-slate-500 mt-1">Uma nova aba foi aberta com o checkout do Mercado Pago. Complete o pagamento lá e seus contatos serão liberados automaticamente.</p>
-                </div>
-                <Button variant="outline" className="w-full border-slate-200" onClick={() => { setCartOpen(false); setCartStep("summary"); }}>Fechar</Button>
-              </div>
-            )}
-
-            {/* ─── Done Step ─── */}
-            {cartStep === "done" && (
-              <div className="text-center py-6 space-y-3">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-8 h-8 text-emerald-600" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800">Pagamento Confirmado!</h3>
-                <p className="text-sm text-slate-500">Seus contatos foram liberados com sucesso.</p>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => {
-                  setCartOpen(false);
-                  setCartStep("summary");
-                  setCart([]);
-                  utils.representatives.listForCompany.invalidate();
-                }}>
-                  Ver Representantes
-                </Button>
               </div>
             )}
           </DialogContent>
@@ -1567,7 +1465,7 @@ export default function CompanyDashboard() {
             {freeUnlockStatus?.used && (
               <div className="mb-5 flex items-center gap-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl px-5 py-3">
                 <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
-                <p className="text-sm">Você já usou seu desbloqueio gratuito. Para ver mais contatos, desbloqueie por <strong>R$29 cada</strong>.</p>
+                <p className="text-sm">Você já usou seu desbloqueio gratuito. Para ver mais contatos, desbloqueie por <strong>{CONTACT_UNLOCK_PRICE_LABEL} cada</strong>.</p>
               </div>
             )}
 
@@ -1811,13 +1709,13 @@ export default function CompanyDashboard() {
                               </Button>
                               <Button size="sm" variant="outline" className="w-full text-xs border-slate-200 text-slate-500"
                                 onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
-                                <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — R$29
+                                <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {CONTACT_UNLOCK_PRICE_LABEL}
                               </Button>
                             </div>
                           ) : (
                             <Button size="sm" className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
                               onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
-                              <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — R$29
+                              <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {CONTACT_UNLOCK_PRICE_LABEL}
                             </Button>
                           )}
                         </div>

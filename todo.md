@@ -734,3 +734,12 @@
 - [ ] Template de e-mail "Complete seu cadastro" com lista dos campos faltantes
 - [ ] Backend: procedure admin.getUserProfileDetails — retorna campos preenchidos/faltantes por tipo
 - [ ] Backend: procedure admin.sendCustomEmail — envia e-mail personalizado para qualquer usuário
+
+## Desbloqueios por PIX — R$ 9,90 e Aprovação Manual (17/10/2026)
+- [x] Padronizar o valor de desbloqueio de contato em R$ 9,90 no carrinho, backend e Mercado Pago
+- [x] Converter qualquer desbloqueio individual em adição ao carrinho PIX
+- [x] Gerar QR Code PIX pelo Mercado Pago para o total do carrinho
+- [x] Marcar o pedido como aguardando aprovação após confirmação do PIX, sem liberar contatos automaticamente
+- [x] Destacar no painel admin os pedidos PIX confirmados para aprovação manual
+- [x] Atualizar textos de preço e mensagens de acompanhamento para R$ 9,90 e liberação manual
+- [x] Cobrir a nova regra de preço e aprovação manual com testes

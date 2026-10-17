@@ -1,8 +1,8 @@
 import Stripe from "stripe";
 import { Router, Request, Response } from "express";
 import { getDb } from "../db";
-import { representatives, companies, unlockedContacts, jobs, managerCredits, managerUnlocks } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { representatives, companies, jobs, managerCredits, managerUnlocks } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { STRIPE_PRODUCTS, ProductKey } from "./products";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-04-22.dahlia" });
@@ -25,14 +25,14 @@ stripeRouter.post("/checkout", async (req: Request, res: Response) => {
     if (!product) {
       return res.status(400).json({ error: "Produto inválido" });
     }
+    if (productKey === "UNLOCK_CONTACT") {
+      return res.status(400).json({ error: "Use o carrinho de desbloqueios e pague via PIX para solicitar a liberação manual dos contatos." });
+    }
 
     const origin = req.headers.origin ?? "http://localhost:3000";
 
-    // Build success URL — include rep_id for UNLOCK_CONTACT so frontend can show the contact
+    // Build success URL for the product dashboard.
     let successPath = `/dashboard/${product.userType === "company" ? "company" : product.userType === "manager" ? "manager" : "rep"}?payment=success`;
-    if (productKey === "UNLOCK_CONTACT" && repId) {
-      successPath += `&rep_id=${repId}`;
-    }
     if (productKey === "FEATURED_JOB" && jobId) {
       successPath += `&job_id=${jobId}`;
     }
@@ -128,48 +128,9 @@ stripeRouter.post("/webhook", async (req: Request, res: Response) => {
       const product = STRIPE_PRODUCTS[productKey];
       if (!product) return res.json({ received: true });
 
-      // ── Handle UNLOCK_CONTACT ────────────────────────────────────────────────
+      // ── Legacy UNLOCK_CONTACT ─────────────────────────────────────────────────
       if (productKey === "UNLOCK_CONTACT") {
-        const repId = parseInt(session.metadata?.rep_id ?? "0");
-        if (!repId) {
-          console.warn("[Webhook] UNLOCK_CONTACT missing rep_id in metadata");
-          return res.json({ received: true });
-        }
-
-        // Find the company for this user
-        const [company] = await db
-          .select({ id: companies.id })
-          .from(companies)
-          .where(eq(companies.userId, userId))
-          .limit(1);
-
-        if (!company) {
-          console.warn(`[Webhook] No company found for userId ${userId}`);
-          return res.json({ received: true });
-        }
-
-        // Check if already unlocked to avoid duplicates
-        const [existing] = await db
-          .select({ id: unlockedContacts.id })
-          .from(unlockedContacts)
-          .where(and(
-            eq(unlockedContacts.companyId, company.id),
-            eq(unlockedContacts.representativeId, repId)
-          ))
-          .limit(1);
-
-        if (!existing) {
-          await db.insert(unlockedContacts).values({
-            companyId: company.id,
-            representativeId: repId,
-            pricePaid: "29.00",
-            stripePaymentId: session.payment_intent?.toString() ?? session.id,
-          });
-          console.log(`[Webhook] Contact unlocked: company ${company.id} → rep ${repId}`);
-        } else {
-          console.log(`[Webhook] Contact already unlocked: company ${company.id} → rep ${repId}`);
-        }
-
+        console.warn("[Webhook] Legacy direct contact unlock received; no automatic release is performed.");
         return res.json({ received: true });
       }
 

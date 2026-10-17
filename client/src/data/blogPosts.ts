@@ -149,7 +149,7 @@ O RepMatch é uma plataforma especializada que conecta empresas a representantes
 - **Filtrar por região** com precisão (estado, cidade ou território)
 - **Filtrar por segmento** de atuação
 - **Ver perfis verificados** com histórico real de representação
-- **Desbloquear contato direto** por apenas R$29 por perfil
+- **Desbloquear contato direto** por apenas R$ 9,90 por perfil
 - **Contratar sem intermediários** e sem taxas de sucesso
 
 O processo é simples: busque, filtre, desbloqueie e entre em contato direto com o representante. Sem burocracia, sem contrato de exclusividade com a plataforma.

@@ -324,7 +324,7 @@ function AntesDepois() {
   const after_items = [
     { text: "Representantes qualificados em menos de 48 horas" },
     { text: "Score de compatibilidade por região, segmento e experiência" },
-    { text: "Desbloqueio de contato por R$29 — sem mensalidade" },
+    { text: "Desbloqueio de contato por R$ 9,90 — sem mensalidade" },
     { text: "Filtros automáticos — você vê apenas quem faz sentido" },
     { text: "Chat integrado e histórico de candidaturas na plataforma" },
   ];
@@ -395,7 +395,7 @@ function AntesDepois() {
             </ul>
             <div className="mt-6 pt-5 border-t border-primary/20 relative">
               <div className="text-xs text-primary/70 font-semibold uppercase tracking-widest">Custo médio por contratação</div>
-              <div className="text-2xl font-black text-primary mt-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$29 por contato</div>
+              <div className="text-2xl font-black text-primary mt-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>R$ 9,90 por contato</div>
             </div>
           </div>
         </div>
@@ -492,7 +492,7 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <SEO
         title="Contratar Representante Comercial — Marketplace #1 do Brasil"
-        description="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e experiência. Base com +173 mil representantes verificados. Desbloqueie contatos a partir de R$29."
+        description="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e experiência. Base com +173 mil representantes verificados. Desbloqueie contatos a partir de R$ 9,90."
         canonical="/"
         keywords="contratar representante comercial, representante comercial, marketplace representantes, vagas representante comercial, buscar representante, representação comercial, vendas externas, agente comercial, plataforma representantes, encontrar representante brasil"
       />
@@ -615,7 +615,7 @@ export default function Home() {
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
             Mais de 173 mil representantes comerciais verificados, filtráveis por estado, segmento e anos de experiência.
-            Desbloqueie o contato direto por R$29 — sem mensalidade, sem contrato, sem burocracia.
+            Desbloqueie o contato direto por R$ 9,90 — sem mensalidade, sem contrato, sem burocracia.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14 flex-wrap">
@@ -646,7 +646,7 @@ export default function Home() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-            {["Sem taxa de contratação", "Contato desbloqueado por R$29", "Conexão em menos de 48h"].map((item) => (
+            {["Sem taxa de contratação", "Contato desbloqueado por R$ 9,90", "Conexão em menos de 48h"].map((item) => (
               <div key={item} className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-primary" />
                 {item}
@@ -800,7 +800,7 @@ export default function Home() {
                   { icon: UserPlus, label: "Cria conta e escolhe plano" },
                   { icon: FileText, label: "Publica vaga com região e comissão" },
                   { icon: Search, label: "Busca representantes por filtro" },
-                  { icon: LockOpen, label: "Desbloqueia contato por R$29" },
+                  { icon: LockOpen, label: "Desbloqueia contato por R$ 9,90" },
                 ].map(({ icon: Icon, label }, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
@@ -1034,7 +1034,7 @@ export default function Home() {
             <span className="text-gradient-green">em grupo de WhatsApp.</span>
           </h2>
           <p className="text-muted-foreground text-lg mb-12 max-w-xl mx-auto">
-            Mais de 173 mil representantes qualificados, filtráveis por região e segmento. Desbloqueie o contato direto por R$29 — sem mensalidade.
+            Mais de 173 mil representantes qualificados, filtráveis por região e segmento. Desbloqueie o contato direto por R$ 9,90 — sem mensalidade.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap">
             <button
@@ -1078,8 +1078,8 @@ export default function Home() {
               { q: "Posso cancelar minha assinatura a qualquer momento?", a: "Sim. Não há fidelidade ou multa. Você cancela quando quiser diretamente pelo painel, e o acesso permanece até o fim do período pago." },
               { q: "O que é o ranking Bronze, Silver, Gold e Platinum?", a: "É a classificação das empresas dentro da plataforma, baseada em histórico de vagas publicadas, avaliações dos representantes, taxa de resposta e comissão oferecida. Empresas bem ranqueadas atraem representantes mais qualificados e experientes." },
               { q: "Representantes precisam pagar para usar a plataforma?", a: "Não! O cadastro e uso da plataforma é totalmente gratuito para representantes. Você cria seu perfil, aparece nas buscas das empresas e recebe propostas sem pagar nada." },
-              { q: "Quanto custa para empresas?", a: "O cadastro é gratuito. Quando quiser ver o contato completo de um representante (telefone, e-mail, LinkedIn), você paga R$29 por representante — uma única vez, sem mensalidade ou recorrência." },
-              { q: "Como funciona o desbloqueio de contato (R$29)?", a: "Os contatos dos representantes ficam ocultos para proteger a privacidade. Quando a empresa quiser negociar diretamente, paga R$29 por representante — uma cobrança única, sem mensalidade. O pagamento é feito pelo Mercado Pago e o contato é liberado automaticamente." },
+              { q: "Quanto custa para empresas?", a: "O cadastro é gratuito. Quando quiser ver o contato completo de um representante (telefone, e-mail, LinkedIn), você paga R$ 9,90 por representante — uma única vez, sem mensalidade ou recorrência." },
+              { q: "Como funciona o desbloqueio de contato (R$ 9,90)?", a: "Os contatos dos representantes ficam ocultos para proteger a privacidade. A empresa adiciona os perfis ao carrinho, paga R$ 9,90 por representante via PIX e a liberação é feita pelo administrador após a confirmação do pagamento." },
               { q: "Posso importar minha base de clientes/representantes?", a: "Sim. O painel Admin permite importação em massa via planilha Excel. A plataforma valida CNPJs automaticamente via BrasilAPI e normaliza todos os telefones durante a importação." },
             ].map(({ q, a }, i) => (
               <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">

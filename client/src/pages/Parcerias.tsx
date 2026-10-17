@@ -93,7 +93,7 @@ const STATS = [
   { icon: Users, value: "173k+", label: "Representantes na base" },
   { icon: Building2, value: "9.200+", label: "Empresas cadastradas" },
   { icon: Globe, value: "27", label: "Estados cobertos" },
-  { icon: BarChart3, value: "R$29", label: "Custo por conexão" },
+  { icon: BarChart3, value: "R$ 9,90", label: "Custo por conexão" },
 ];
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────

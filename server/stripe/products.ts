@@ -69,7 +69,7 @@ export const STRIPE_PRODUCTS = {
   UNLOCK_CONTACT: {
     name: "Contato Desbloqueado",
     description: "Desbloqueie o contato completo de um representante",
-    priceAmount: 2900, // R$ 29,00
+    priceAmount: 990, // R$ 9,90
     currency: "brl",
     interval: null,
     tier: null,
@@ -88,7 +88,7 @@ export const STRIPE_PRODUCTS = {
   MANAGER_AVULSO: {
     name: "RepMatch Gerente — Contato Avulso",
     description: "Desbloqueie o contato completo de 1 representante",
-    priceAmount: 2990,  // R$ 29,90
+    priceAmount: 990,  // R$ 9,90
     currency: "brl",
     interval: null,
     credits: 1,
@@ -98,7 +98,7 @@ export const STRIPE_PRODUCTS = {
   MANAGER_STARTER: {
     name: "RepMatch Gerente — Pacote Starter (5 créditos)",
     description: "Desbloqueie 5 contatos de representantes. Ideal para montar uma equipe pequena.",
-    priceAmount: 9990,  // R$ 99,90
+    priceAmount: 4950,  // R$ 49,50
     currency: "brl",
     interval: null,
     credits: 5,
@@ -108,7 +108,7 @@ export const STRIPE_PRODUCTS = {
   MANAGER_PRO: {
     name: "RepMatch Gerente — Pacote Pro (15 créditos)",
     description: "Desbloqueie 15 contatos de representantes. Para gerentes que precisam de mais opções.",
-    priceAmount: 24990, // R$ 249,90
+    priceAmount: 14850, // R$ 148,50
     currency: "brl",
     interval: null,
     credits: 15,

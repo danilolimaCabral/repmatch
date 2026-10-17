@@ -266,7 +266,7 @@ export default function Blog() {
           </div>
           <h3 className="text-2xl font-black mb-2">Pronto para encontrar seu representante ideal?</h3>
           <p className="text-muted-foreground mb-6 max-w-lg mx-auto text-sm">
-            O RepMatch conecta empresas com mais de 9.000 representantes verificados em todo o Brasil. Desbloqueie contatos a partir de R$29.
+            O RepMatch conecta empresas com mais de 9.000 representantes verificados em todo o Brasil. Desbloqueie contatos a partir de R$ 9,90.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" className="bg-primary text-primary-foreground font-bold px-8" onClick={() => navigate("/register")}>

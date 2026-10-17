@@ -146,7 +146,10 @@ export default function AdminDashboard() {
     onError: (e) => { toast.error(`Erro ao enviar email: ${e.message}`); setSendingEmailId(null); },
   });
   // Unlock requests queries
-  const { data: unlockRequestsRaw, refetch: refetchUnlockRequests, isLoading: unlockLoading } = trpc.unlockRequests.adminList.useQuery();
+  const { data: unlockRequestsRaw, refetch: refetchUnlockRequests, isLoading: unlockLoading } = trpc.unlockRequests.adminList.useQuery(undefined, {
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
+  });
   const unlockRequests = (unlockRequestsRaw ?? []).filter(r => {
     const matchStatus = unlockStatusFilter === "all" || r.status === unlockStatusFilter;
     const q = unlockSearch.toLowerCase();
@@ -1283,7 +1286,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h1 className="text-2xl font-black">Solicitações de Desbloqueio</h1>
-                  <p className="text-muted-foreground text-sm mt-1">Aprove ou rejeite solicitações de desbloqueio de contato via Pix</p>
+                  <p className="text-muted-foreground text-sm mt-1">PIX confirmado pelo Mercado Pago aparece aqui para você liberar os contatos manualmente</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 px-3 py-1">
@@ -1313,8 +1316,8 @@ export default function AdminDashboard() {
                   className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground focus:outline-none"
                 >
                   <option value="all">Todos os status</option>
-                  <option value="pending_payment">Aguardando comprovante</option>
-                  <option value="pending_approval">Aguardando aprovação</option>
+                  <option value="pending_payment">Aguardando pagamento PIX</option>
+                  <option value="pending_approval">PIX confirmado — liberar</option>
                   <option value="approved">Aprovados</option>
                   <option value="rejected">Rejeitados</option>
                 </select>
@@ -1344,18 +1347,21 @@ export default function AdminDashboard() {
                               req.status === "rejected" ? "bg-red-900/30 text-red-300 border-red-700/40" :
                               "bg-secondary text-muted-foreground border-border"
                             } border`}>
-                              {req.status === "pending_payment" && "Aguardando comprovante"}
+                              {req.status === "pending_payment" && "Aguardando pagamento PIX"}
                               {req.status === "cancelled" && "Cancelado"}
-                              {req.status === "pending_approval" && "Aguardando aprovação"}
+                              {req.status === "pending_approval" && "PIX confirmado — liberar"}
                               {req.status === "approved" && "Aprovado"}
                               {req.status === "rejected" && "Rejeitado"}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
-                              {req.paymentMethod === "pix" ? "Pix" : "Cartão"} • R${req.totalAmount}
+                              {req.paymentMethod === "pix" ? "Pix" : "Cartão"} • {Number(req.totalAmount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(req.createdAt).toLocaleDateString("pt-BR")}
                             </span>
+                            {req.paymentId && (
+                              <span className="text-xs font-medium text-emerald-500">Pagamento Mercado Pago confirmado</span>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -1373,7 +1379,7 @@ export default function AdminDashboard() {
                                 onClick={() => approveUnlockMutation.mutate({ requestId: req.id })}
                               >
                                 {approveUnlockMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <ThumbsUp className="w-3 h-3 mr-1" />}
-                                Aprovar
+                                Liberar contatos
                               </Button>
                               <Button
                                 size="sm"

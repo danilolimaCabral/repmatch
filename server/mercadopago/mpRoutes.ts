@@ -1,9 +1,10 @@
 import { Router, Request, Response } from "express";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
-import { representatives, companies, users, unlockRequests, unlockedContacts, cnpjRepresentatives } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
-import { consultarCnpj, isRepresentanteComercial } from "../cnpja";
+import { representatives, companies, users, unlockRequests, unlockRequestItems } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
+import { CONTACT_UNLOCK_PRICE } from "@shared/const";
+import { notifyOwner } from "../_core/notification";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -23,12 +24,12 @@ export const MP_PLANS = {
   COMPANY_PRO:        { name: "Empresa Pro",         amount: 149, interval: "monthly" as const, tier: "pro",        userType: "company" as const },
   COMPANY_ENTERPRISE: { name: "Empresa Enterprise",  amount: 399, interval: "monthly" as const, tier: "enterprise", userType: "company" as const },
   // Avulsos
-  UNLOCK_CONTACT: { name: "Desbloquear Contato", amount: 29.00, interval: null, tier: null, userType: "company" as const },
+  UNLOCK_CONTACT: { name: "Desbloquear Contato", amount: CONTACT_UNLOCK_PRICE, interval: null, tier: null, userType: "company" as const },
   FEATURED_JOB:   { name: "Vaga em Destaque",    amount: 49.00, interval: null, tier: null, userType: "company" as const },
   // Gerente
-  MANAGER_AVULSO:   { name: "Gerente — 1 Crédito",         amount: 29.90,  interval: null,           credits: 1,    tier: null, userType: "manager" as const },
-  MANAGER_STARTER:  { name: "Gerente — 5 Créditos",        amount: 99.90,  interval: null,           credits: 5,    tier: null, userType: "manager" as const },
-  MANAGER_PRO:      { name: "Gerente — 15 Créditos",       amount: 249.90, interval: null,           credits: 15,   tier: null, userType: "manager" as const },
+  MANAGER_AVULSO:   { name: "Gerente — 1 Crédito",         amount: CONTACT_UNLOCK_PRICE,  interval: null,           credits: 1,    tier: null, userType: "manager" as const },
+  MANAGER_STARTER:  { name: "Gerente — 5 Créditos",        amount: 49.50,  interval: null,           credits: 5,    tier: null, userType: "manager" as const },
+  MANAGER_PRO:      { name: "Gerente — 15 Créditos",       amount: 148.50, interval: null,           credits: 15,   tier: null, userType: "manager" as const },
   MANAGER_ILIMITADO:{ name: "Gerente — Ilimitado/mês",     amount: 499.90, interval: "monthly" as const, credits: 9999, tier: null, userType: "manager" as const },
 } as const;
 
@@ -47,8 +48,14 @@ mpRouter.post("/unlock-preference", async (req: Request, res: Response) => {
 
     if (!requestId || !repIds?.length) return res.status(400).json({ error: "Dados inválidos" });
 
-    const PRICE_PER_REP = 29;
-    const totalAmount = repIds.length * PRICE_PER_REP;
+    const db = await getDb();
+    if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
+    const [unlockRequest] = await db.select({ totalAmount: unlockRequests.totalAmount })
+      .from(unlockRequests)
+      .where(eq(unlockRequests.id, requestId))
+      .limit(1);
+    if (!unlockRequest) return res.status(404).json({ error: "Solicitação não encontrada" });
+    const totalAmount = Number(unlockRequest.totalAmount);
     const origin = req.headers.origin ?? "http://localhost:3000";
 
     const preference = new Preference(mp);
@@ -105,8 +112,14 @@ mpRouter.post("/unlock-pix", async (req: Request, res: Response) => {
 
     if (!requestId || !repIds?.length) return res.status(400).json({ error: "Dados inválidos" });
 
-    const PRICE_PER_REP = 29;
-    const totalAmount = repIds.length * PRICE_PER_REP;
+    const db = await getDb();
+    if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
+    const [unlockRequest] = await db.select({ totalAmount: unlockRequests.totalAmount })
+      .from(unlockRequests)
+      .where(eq(unlockRequests.id, requestId))
+      .limit(1);
+    if (!unlockRequest) return res.status(404).json({ error: "Solicitação não encontrada" });
+    const totalAmount = Number(unlockRequest.totalAmount);
 
     const payment = new Payment(mp);
     const result = await payment.create({
@@ -301,61 +314,33 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
         const db = await getDb();
         if (!db) return res.json({ received: true });
 
-        // ── Desbloqueio em lote ──────────────────────────────────────────────
+        // ── Desbloqueio em lote: pagamento confirmado, liberação manual ───────
         if (meta?.type === "unlock_batch") {
           const requestId = Number(meta.request_id);
-          const repIds = meta.rep_ids as number[];
 
-          if (requestId && repIds?.length) {
-            const [unlockReq] = await db.select({ companyId: unlockRequests.companyId })
+          if (requestId) {
+            const [unlockReq] = await db.select({ id: unlockRequests.id, status: unlockRequests.status, companyId: unlockRequests.companyId, totalAmount: unlockRequests.totalAmount })
               .from(unlockRequests).where(eq(unlockRequests.id, requestId)).limit(1);
 
-            if (unlockReq) {
-              let unlockedCount = 0;
-              let inactiveCount = 0;
-
-              for (const repId of repIds) {
-                // Validate CNPJ status via CNPJA API for cnpj_representatives
-                // (negative IDs are from cnpj_representatives table)
-                let cnpjAtivo = true;
-                if (repId < 0) {
-                  const cnpjRep = await db.select({ cnpj: cnpjRepresentatives.cnpj })
-                    .from(cnpjRepresentatives)
-                    .where(eq(cnpjRepresentatives.id, Math.abs(repId)))
-                    .limit(1);
-                  if (cnpjRep[0]?.cnpj) {
-                    const status = await consultarCnpj(cnpjRep[0].cnpj);
-                    if (status && !status.isAtivo) {
-                      console.warn(`[MP Webhook] CNPJ ${cnpjRep[0].cnpj} inativo (${status.situacao}), skipping unlock`);
-                      cnpjAtivo = false;
-                      inactiveCount++;
-                    }
-                  }
-                }
-
-                if (cnpjAtivo) {
-                  const [existing] = await db.select({ id: unlockedContacts.id })
-                    .from(unlockedContacts)
-                    .where(and(
-                      eq(unlockedContacts.companyId, unlockReq.companyId),
-                      eq(unlockedContacts.representativeId, repId),
-                    )).limit(1);
-                  if (!existing) {
-                    await db.insert(unlockedContacts).values({
-                      companyId: unlockReq.companyId,
-                      representativeId: repId,
-                      pricePaid: "29",
-                    });
-                    unlockedCount++;
-                  }
-                }
-              }
+            if (unlockReq && unlockReq.status === "pending_payment") {
+              const items = await db.select({ id: unlockRequestItems.id })
+                .from(unlockRequestItems)
+                .where(eq(unlockRequestItems.unlockRequestId, requestId));
 
               await db.update(unlockRequests)
-                .set({ status: "approved", reviewedAt: new Date(), inactiveCount })
+                .set({
+                  status: "pending_approval",
+                  stripePaymentId: String(result.id),
+                  adminNotes: "PIX confirmado pelo Mercado Pago — aguardando liberação manual.",
+                })
                 .where(eq(unlockRequests.id, requestId));
 
-              console.log(`[MP Webhook] Unlocked ${unlockedCount} reps (${inactiveCount} inactive/skipped) for company ${unlockReq.companyId} (request #${requestId})`);
+              void notifyOwner({
+                title: `PIX confirmado — liberar pedido #${requestId}`,
+                content: `O Mercado Pago confirmou R$ ${Number(unlockReq.totalAmount).toFixed(2)} para ${items.length} contato(s). Acesse Admin > Desbloqueios para liberar manualmente.`,
+              }).catch((error) => console.error("[MP Webhook] owner notification error:", error));
+
+              console.log(`[MP Webhook] PIX approved for request #${requestId}; awaiting manual approval for ${items.length} contact(s)`);
             }
           }
         } else {

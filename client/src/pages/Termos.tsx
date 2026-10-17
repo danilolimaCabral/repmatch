@@ -122,7 +122,7 @@ export default function Termos() {
             <ul className="list-disc pl-6 space-y-1">
               <li>Reembolso integral em até <strong>7 dias</strong> após a primeira contratação (CDC — Art. 49)</li>
               <li>Após 7 dias, não há reembolso proporcional por período não utilizado</li>
-              <li>Desbloqueios avulsos de contato (R$29) e vagas em destaque (R$49) não são reembolsáveis</li>
+              <li>Desbloqueios avulsos de contato (R$ 9,90) e vagas em destaque (R$49) não são reembolsáveis</li>
               <li>Em caso de falha técnica comprovada da plataforma, analisamos caso a caso</li>
             </ul>
 

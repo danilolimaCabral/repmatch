@@ -48,6 +48,7 @@ import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
 import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews } from "../drizzle/schema";
 import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count } from "drizzle-orm";
+import { CONTACT_UNLOCK_PRICE, CONTACT_UNLOCK_PRICE_LABEL } from "@shared/const";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -935,20 +936,10 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         if (!company) throw new TRPCError({ code: "NOT_FOUND" });
         const alreadyUnlocked = await isContactUnlocked(company.id, input.representativeId);
         if (alreadyUnlocked) return { success: true, alreadyUnlocked: true };
-        // In production, Stripe payment would be triggered here
-        await unlockContact({ companyId: company.id, representativeId: input.representativeId, pricePaid: "29.00" });
-
-        // Notificar owner sobre desbloqueio de contato
-        try {
-          const db = await getDb();
-          const rep = db ? (await db.select({ fullName: representatives.fullName }).from(representatives).where(eq(representatives.id, input.representativeId)).limit(1))[0] : null;
-          await notifyOwner({
-            title: "Contato Desbloqueado",
-            content: `${company.companyName} desbloqueou o contato de ${rep?.fullName ?? "representante #" + input.representativeId} (R$ 29,00)`,
-          });
-        } catch (e) { /* notificação não crítica */ }
-
-        return { success: true, alreadyUnlocked: false };
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `Adicione o representante ao carrinho e pague via PIX (${CONTACT_UNLOCK_PRICE_LABEL}) para solicitar a liberação.`,
+        });
       }),
 
     // Promoção: 1 contato grátis por empresa
@@ -960,7 +951,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
 
         // Verificar se já usou o free unlock
         if (company.freeUnlockUsed) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Você já usou seu desbloqueio gratuito. Desbloqueie mais contatos por R$29 cada." });
+          throw new TRPCError({ code: "FORBIDDEN", message: `Você já usou seu desbloqueio gratuito. Desbloqueie mais contatos por ${CONTACT_UNLOCK_PRICE_LABEL} cada.` });
         }
 
         // Verificar se já está desbloqueado
@@ -2481,13 +2472,13 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }),
   }),
 
-  // ─── Unlock Requests (Carrinho de desbloqueios via Pix ou Stripe) ───────────────
+  // ─── Unlock Requests (Carrinho de desbloqueios via PIX) ───────────────────────
   unlockRequests: router({
     // Empresa cria um pedido de desbloqueio (carrinho)
     create: protectedProcedure
       .input(z.object({
-        repIds: z.array(z.number()).min(1),
-        paymentMethod: z.enum(["pix", "stripe"]),
+        repIds: z.array(z.number()).min(1).max(50),
+        paymentMethod: z.literal("pix"),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
@@ -2499,9 +2490,20 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           .from(companies).where(eq(companies.userId, ctx.user.id)).limit(1);
         if (!company) throw new Error("Empresa não encontrada");
 
-        // Price: R$29 per rep
-        const PRICE_PER_REP = 29;
-        const totalAmount = input.repIds.length * PRICE_PER_REP;
+        const selectedRepIds = Array.from(new Set(input.repIds));
+        const alreadyUnlocked = await db.select({ representativeId: unlockedContacts.representativeId })
+          .from(unlockedContacts)
+          .where(and(
+            eq(unlockedContacts.companyId, company.id),
+            inArray(unlockedContacts.representativeId, selectedRepIds),
+          ));
+        const unlockedIds = new Set(alreadyUnlocked.map((item) => item.representativeId));
+        const repIds = selectedRepIds.filter((repId) => !unlockedIds.has(repId));
+        if (repIds.length === 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Os representantes selecionados já estão liberados para sua empresa." });
+        }
+
+        const totalAmount = Number((repIds.length * CONTACT_UNLOCK_PRICE).toFixed(2));
 
         // Create the request - pass numeric string without currency symbol for MySQL decimal
         const [result] = await db.insert(unlockRequests).values({
@@ -2514,26 +2516,20 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
 
         // Fetch rep names
         const reps = await db.select({ id: representatives.id, fullName: representatives.fullName })
-          .from(representatives).where(inArray(representatives.id, input.repIds));
+          .from(representatives).where(inArray(representatives.id, repIds));
         const repMap = Object.fromEntries(reps.map(r => [r.id, r.fullName]));
 
         // Insert items
         await db.insert(unlockRequestItems).values(
-          input.repIds.map(repId => ({
+          repIds.map(repId => ({
             unlockRequestId: requestId,
             representativeId: repId,
             repName: repMap[repId] ?? "Representante",
-            priceUnit: String(PRICE_PER_REP),
+            priceUnit: CONTACT_UNLOCK_PRICE.toFixed(2),
           }))
         );
 
-        // Notify admin
-        await notifyOwner({
-          title: `🛒 Nova solicitação de desbloqueio (#${requestId})`,
-          content: `Empresa ID ${company.id} solicitou desbloqueio de ${input.repIds.length} representante(s) via ${input.paymentMethod.toUpperCase()}. Total: R$${totalAmount}.`,
-        });
-
-        return { requestId, totalAmount };
+        return { requestId, totalAmount, repIds };
       }),
 
     // Empresa faz upload do comprovante Pix
@@ -2612,14 +2608,15 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (!db) return [];
       const { unlockRequests, unlockRequestItems, companies, users } = await import('../drizzle/schema');
 
-      const requests = await db.select({
-        id: unlockRequests.id,
-        companyId: unlockRequests.companyId,
-        paymentMethod: unlockRequests.paymentMethod,
-        status: unlockRequests.status,
-        totalAmount: unlockRequests.totalAmount,
-        pixProofUrl: unlockRequests.pixProofUrl,
-        adminNotes: unlockRequests.adminNotes,
+        const requests = await db.select({
+          id: unlockRequests.id,
+          companyId: unlockRequests.companyId,
+          paymentMethod: unlockRequests.paymentMethod,
+          status: unlockRequests.status,
+          totalAmount: unlockRequests.totalAmount,
+          paymentId: unlockRequests.stripePaymentId,
+          pixProofUrl: unlockRequests.pixProofUrl,
+          adminNotes: unlockRequests.adminNotes,
         createdAt: unlockRequests.createdAt,
         updatedAt: unlockRequests.updatedAt,
         companyName: companies.companyName,
@@ -2653,6 +2650,9 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         const [req] = await db.select().from(unlockRequests)
           .where(eq(unlockRequests.id, input.requestId)).limit(1);
         if (!req) throw new Error("Solicitação não encontrada");
+        if (req.status !== "pending_approval") {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A liberação só pode ocorrer após a confirmação do PIX." });
+        }
 
         const items = await db.select().from(unlockRequestItems)
           .where(eq(unlockRequestItems.unlockRequestId, input.requestId));

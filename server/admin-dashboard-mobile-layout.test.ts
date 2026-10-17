@@ -4,6 +4,9 @@ import { describe, expect, it } from "vitest";
 
 const dashboardPath = path.resolve(process.cwd(), "client/src/pages/AdminDashboard.tsx");
 const dashboardSource = fs.readFileSync(dashboardPath, "utf8");
+const companyDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/CompanyDashboard.tsx"), "utf8");
+const mpRoutesSource = fs.readFileSync(path.resolve(process.cwd(), "server/mercadopago/mpRoutes.ts"), "utf8");
+const sharedConstantsSource = fs.readFileSync(path.resolve(process.cwd(), "shared/const.ts"), "utf8");
 
 describe("AdminDashboard mobile layout", () => {
   it("uses an overlay drawer on mobile instead of reserving the desktop sidebar width", () => {
@@ -25,5 +28,19 @@ describe("AdminDashboard mobile layout", () => {
     expect(dashboardSource).toContain('tab: "representantes" as const');
     expect(dashboardSource).toContain('tab: "pagamentos" as const');
     expect(dashboardSource).toContain('userType: "company"');
+  });
+
+  it("keeps contact unlocks at R$ 9,90 in the PIX cart", () => {
+    expect(sharedConstantsSource).toContain("CONTACT_UNLOCK_PRICE = 9.9");
+    expect(companyDashboardSource).toContain("Gerar QR Code PIX");
+    expect(companyDashboardSource).toContain("CONTACT_UNLOCK_PRICE_LABEL");
+  });
+
+  it("queues a Mercado Pago PIX confirmation for manual admin release", () => {
+    expect(mpRoutesSource).toContain('status: "pending_approval"');
+    expect(mpRoutesSource).toContain("awaiting manual approval");
+    expect(mpRoutesSource).not.toContain('status: "approved", reviewedAt');
+    expect(dashboardSource).toContain("PIX confirmado — liberar");
+    expect(dashboardSource).toContain("Liberar contatos");
   });
 });
