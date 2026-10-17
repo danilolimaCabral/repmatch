@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw, Mail, AlertCircle } from "lucide-react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw, Mail, AlertCircle, Menu, X } from "lucide-react";
 import { useState, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -21,6 +21,18 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
+
+const ADMIN_NAV_ITEMS = [
+  { id: "stats", label: "Dashboard", icon: TrendingUp },
+  { id: "analytics", label: "Analytics", icon: BarChart2 },
+  { id: "pagamentos", label: "Pagamentos PIX", icon: CreditCard },
+  { id: "desbloqueios", label: "Desbloqueios", icon: ShieldCheck },
+  { id: "documentos", label: "Documentos", icon: FileText },
+  { id: "jobs", label: "Vagas", icon: Briefcase },
+  { id: "import", label: "Importar Dados", icon: Upload },
+  { id: "users", label: "Usuários", icon: Users },
+  { id: "representantes", label: "Representantes", icon: UserCheck },
+] as const;
 
 function normalizePhone(raw: string): string | null {
   if (!raw) return null;
@@ -34,6 +46,7 @@ export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"stats" | "analytics" | "import" | "users" | "jobs" | "pagamentos" | "documentos" | "desbloqueios" | "representantes">("stats");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [repSearch, setRepSearch] = useState("");
   const [repEstado, setRepEstado] = useState("");
   const [repOffset, setRepOffset] = useState(0);
@@ -275,29 +288,48 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <div className="flex h-screen">
-        <aside className="w-64 border-r border-border bg-card flex flex-col">
+    <div className="min-h-screen overflow-hidden bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="flex h-dvh min-h-screen overflow-hidden lg:h-screen">
+        {mobileMenuOpen && (
+          <button
+            type="button"
+            aria-label="Fechar menu"
+            className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        <aside
+          aria-label="Menu administrativo"
+          className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-2.5rem))] flex-col border-r border-border bg-card shadow-2xl transition-transform duration-200 lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:shadow-none ${
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
           <div className="p-6 border-b border-border">
-            <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-4" />
+            <div className="flex items-start justify-between gap-3">
+              <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
+              <button
+                type="button"
+                className="-mt-1 inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:hidden"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Fechar menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-4">
             <div className="font-semibold text-sm">{user?.name}</div>
             <Badge className="mt-1 bg-red-900 text-red-300 text-xs">Admin</Badge>
+            </div>
           </div>
           <nav className="flex-1 p-4 space-y-1">
-            {[
-              { id: "stats", label: "Dashboard", icon: TrendingUp },
-              { id: "analytics", label: "Analytics", icon: BarChart2 },
-              { id: "pagamentos", label: "Pagamentos PIX", icon: CreditCard },
-              { id: "desbloqueios", label: "Desbloqueios", icon: ShieldCheck },
-              { id: "documentos", label: "Documentos", icon: FileText },
-              { id: "jobs", label: "Vagas", icon: Briefcase },
-              { id: "import", label: "Importar Dados", icon: Upload },
-              { id: "users", label: "Usuários", icon: Users },
-              { id: "representantes", label: "Representantes", icon: UserCheck },
-            ].map((item) => (
+            {ADMIN_NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id as typeof activeTab)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setMobileMenuOpen(false);
+                }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === item.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
@@ -335,7 +367,23 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-        <main className="flex-1 overflow-auto p-8">
+        <main className="min-w-0 flex-1 overflow-auto">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur lg:hidden">
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Abrir menu administrativo"
+              aria-expanded={mobileMenuOpen}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-foreground">Admin RepMatch</p>
+              <p className="truncate text-xs text-muted-foreground">{ADMIN_NAV_ITEMS.find((item) => item.id === activeTab)?.label}</p>
+            </div>
+          </header>
+          <div className="min-w-0 p-4 sm:p-6 lg:p-8">
           {activeTab === "stats" && (
             <div>
               <div className="flex items-center justify-between mb-8">
@@ -457,25 +505,25 @@ export default function AdminDashboard() {
 
           {activeTab === "analytics" && (
             <div>
-              <div className="flex items-center justify-between mb-8">
+              <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-black">Analytics da Plataforma</h1>
                   <p className="text-muted-foreground text-sm mt-1">Crescimento semanal de cadastros e funil de conversão</p>
                 </div>
-                <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 px-3 py-1">Admin</Badge>
+                <Badge className="w-fit bg-red-900/30 text-red-300 border border-red-700/40 px-3 py-1">Admin</Badge>
               </div>
 
               {/* Visitas ao Site (Umami) */}
-              <div className="rounded-xl border border-border bg-card p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="mb-6 min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6">
+                <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="font-bold text-sm uppercase tracking-wide text-muted-foreground">Visitas ao Site</h2>
                     <p className="text-xs text-muted-foreground/60 mt-0.5">Pageviews e visitantes únicos</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto">
                     {[7, 30, 90].map(d => (
                       <button key={d} onClick={() => setAnalyticsDays(d)}
-                        className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                        className={`w-full whitespace-nowrap rounded-full border px-2 py-2 text-xs transition-colors sm:w-auto sm:px-3 sm:py-1 ${
                           analyticsDays === d
                             ? "bg-primary text-primary-foreground border-primary"
                             : "border-border text-muted-foreground hover:border-primary/50"
@@ -489,16 +537,16 @@ export default function AdminDashboard() {
                   <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                    <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
                       {[
                         { label: "Pageviews", value: (siteAnalytics?.pageviews ?? 0).toLocaleString("pt-BR"), color: "text-blue-400", bg: "bg-blue-400/10" },
                         { label: "Visitantes Únicos", value: (siteAnalytics?.visitors ?? 0).toLocaleString("pt-BR"), color: "text-emerald-400", bg: "bg-emerald-400/10" },
                         { label: "Novos Cadastros", value: (siteAnalytics?.newUsers ?? 0).toLocaleString("pt-BR"), color: "text-amber-400", bg: "bg-amber-400/10" },
                         { label: "Conversão", value: siteAnalytics && siteAnalytics.visitors > 0 ? `${Math.round((siteAnalytics.newUsers / siteAnalytics.visitors) * 100)}%` : "0%", color: "text-purple-400", bg: "bg-purple-400/10" },
                       ].map(kpi => (
-                        <div key={kpi.label} className={`rounded-lg border border-border p-4 ${kpi.bg}`}>
-                          <div className={`text-2xl font-black ${kpi.color}`}>{kpi.value}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">{kpi.label}</div>
+                        <div key={kpi.label} className={`min-w-0 rounded-lg border border-border p-3 sm:p-4 ${kpi.bg}`}>
+                          <div className={`text-xl font-black sm:text-2xl ${kpi.color}`}>{kpi.value}</div>
+                          <div className="mt-1 text-xs leading-snug text-muted-foreground [text-wrap:balance]">{kpi.label}</div>
                         </div>
                       ))}
                     </div>
@@ -1645,6 +1693,7 @@ export default function AdminDashboard() {
               )}
             </div>
           )}
+          </div>
         </main>
       </div>
 
