@@ -803,3 +803,8 @@
 - [x] Separar pedidos prontos para liberar, aguardando PIX e histórico
 - [x] Manter o botão de confirmação PIX visível e utilizável nos cards mobile
 - [x] Validar o layout e a fila com TypeScript e testes automatizados
+
+## Ficha comercial antes do desbloqueio (18/10/2026)
+- [x] Exibir segmento, atividade principal, porte e tempo de atuação como dados públicos
+- [x] Manter telefone, e-mail, cidade, CNPJ e apresentação completa bloqueados até o pagamento
+- [x] Validar a nova prévia comercial com TypeScript e testes automatizados

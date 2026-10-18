@@ -150,7 +150,9 @@ describe("AdminDashboard mobile layout", () => {
     expect(companyDashboardSource).toContain('const previewName = String(rep.fullName');
     expect(companyDashboardSource).toContain("Contato protegido");
     expect(companyDashboardSource).toContain("Desbloquear contato");
-    expect(companyDashboardSource).toContain("Prévia do perfil");
+    expect(companyDashboardSource).toContain("Dados públicos do perfil");
+    expect(companyDashboardSource).toContain("Atividade principal");
+    expect(companyDashboardSource).toContain("Informações verificadas");
     expect(companyDashboardSource).toContain("Você libera telefone, e-mail, cidade e apresentação profissional");
   });
 

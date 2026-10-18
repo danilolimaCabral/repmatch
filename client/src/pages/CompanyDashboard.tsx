@@ -1608,6 +1608,16 @@ export default function CompanyDashboard() {
                     const workModelLabels: Record<string, string> = { exclusivo: "Atuação exclusiva", multiplas: "Multimarcas", indifferente: "Modelo flexível" };
                     const availabilityLabel = availabilityLabels[rep.availability ?? "negociavel"] ?? "Disponibilidade a combinar";
                     const workModelLabel = workModelLabels[rep.workModel ?? "multiplas"] ?? "Modelo comercial flexível";
+                    const publicCnae = String((rep as any).cnaeDescricao ?? "").trim();
+                    const rawBusinessSize = String((rep as any).porte ?? "").trim();
+                    const businessSize = (rep as any).isMei ? "MEI" : rawBusinessSize;
+                    const openedYear = String((rep as any).dataAbertura ?? "").match(/\d{4}/)?.[0] ?? null;
+                    const publicProfileFacts = [
+                      { label: "Segmento", value: segmentLabel, icon: "💼" },
+                      ...(publicCnae ? [{ label: "Atividade principal", value: publicCnae, icon: "◈" }] : []),
+                      ...(businessSize ? [{ label: "Porte", value: businessSize, icon: "▦" }] : []),
+                      ...(openedYear ? [{ label: "Atuação desde", value: openedYear, icon: "◷" }] : []),
+                    ].slice(0, 4);
                     return (
                       <div key={rep.id} className={`rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 ${isUnlocked ? "border-emerald-200 ring-1 ring-emerald-100" : "border-slate-200"}`}>
                         {/* Card header strip */}
@@ -1655,26 +1665,30 @@ export default function CompanyDashboard() {
                               <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Experiência</p>
                               <p className="mt-0.5 text-sm font-bold text-slate-800">{yearsExperience > 0 ? `${yearsExperience}+ anos` : "Perfil comercial"}</p>
                             </div>
-                            <div className={`rounded-xl border p-2.5 ${coreActive ? "border-emerald-200 bg-emerald-50" : "border-slate-100 bg-slate-50"}`}>
-                              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Registro CORE</p>
-                              <p className={`mt-0.5 text-sm font-bold ${coreActive ? "text-emerald-700" : "text-slate-700"}`}>{coreActive ? "Ativo" : "Consulta disponível"}</p>
+                            <div className={`rounded-xl border p-2.5 ${coreActive || (rep as any).situacaoCadastral === "Ativa" ? "border-emerald-200 bg-emerald-50" : "border-slate-100 bg-slate-50"}`}>
+                              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Situação</p>
+                              <p className={`mt-0.5 text-sm font-bold ${coreActive || (rep as any).situacaoCadastral === "Ativa" ? "text-emerald-700" : "text-slate-700"}`}>{coreActive ? "CORE ativo" : (rep as any).situacaoCadastral === "Ativa" ? "Cadastro ativo" : "Em análise"}</p>
                             </div>
                           </div>
 
-                          {/* Segment */}
-                          <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-4">
-                            <Briefcase className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">Especialista em {segmentLabel}</span>
-                          </div>
-
                           {!isUnlocked && (
-                            <div className="mb-4 rounded-xl border border-slate-100 bg-white p-3">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Prévia do perfil</p>
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">{availabilityLabel}</span>
-                                <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">{workModelLabel}</span>
-                                {rep.portfolioSize && <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">Carteira: {rep.portfolioSize}</span>}
-                                {coreActive && <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">CORE ativo</span>}
+                            <div className="mb-4 overflow-hidden rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50/80 to-white">
+                              <div className="flex items-center justify-between border-b border-emerald-100 px-3 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Dados públicos do perfil</p>
+                                <span className="text-[10px] font-medium text-emerald-600">Informações verificadas</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-px bg-emerald-100">
+                                {publicProfileFacts.map((fact) => (
+                                  <div key={fact.label} className="min-w-0 bg-white px-3 py-2.5">
+                                    <p className="text-[10px] font-medium text-slate-400">{fact.icon} {fact.label}</p>
+                                    <p className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-slate-700">{fact.value}</p>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex flex-wrap gap-1.5 px-3 py-2.5">
+                                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm">{availabilityLabel}</span>
+                                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm">{workModelLabel}</span>
+                                {rep.portfolioSize && <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-emerald-700 shadow-sm">Carteira: {rep.portfolioSize}</span>}
                               </div>
                             </div>
                           )}
