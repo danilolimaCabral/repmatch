@@ -46,7 +46,7 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings } from "../drizzle/schema";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings, leadPackageOrders } from "../drizzle/schema";
 import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { notifyOwner } from "./_core/notification";
@@ -58,10 +58,20 @@ import { systemRouter } from "./_core/systemRouter";
 /// ─── Helpers ──────────────────────────────────────────────────────────────────
 const TIER_ORDER = { free: 0, bronze: 1, prata: 2, ouro: 3 } as const;
 const COMPANY_CONTACT_UNLOCK_PRICE_KEY = "company_contact_unlock_price";
+const LEAD_PACKAGE_B2B_PRICE_KEY = "lead_package_b2b_price";
+const LEAD_PACKAGE_B2C_PRICE_KEY = "lead_package_b2c_price";
+const DEFAULT_LEAD_PACKAGE_PRICES = { b2b: 1490, b2c: 990 } as const;
 
 function normalizeContactUnlockPrice(value: string | null | undefined): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0.5 && parsed <= 1000 ? Number(parsed.toFixed(2)) : CONTACT_UNLOCK_PRICE;
+}
+
+function normalizeLeadPackagePrice(value: string | null | undefined, audience: "b2b" | "b2c"): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 50 && parsed <= 100_000
+    ? Number(parsed.toFixed(2))
+    : DEFAULT_LEAD_PACKAGE_PRICES[audience];
 }
 
 function normalizePhone(raw: string | undefined | null): string | null {
@@ -1062,6 +1072,106 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }),
   }),
 
+  // ─── Pacotes de leads B2B / B2C ──────────────────────────────────────────────
+  leadPackages: router({
+    catalog: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return { b2b: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_PRICES.b2b }, b2c: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_PRICES.b2c } };
+      const settings = await db.select({ key: platformSettings.key, value: platformSettings.value })
+        .from(platformSettings)
+        .where(inArray(platformSettings.key, [LEAD_PACKAGE_B2B_PRICE_KEY, LEAD_PACKAGE_B2C_PRICE_KEY]));
+      const priceByKey = new Map(settings.map((setting) => [setting.key, setting.value]));
+      return {
+        b2b: { quantity: 2000, price: normalizeLeadPackagePrice(priceByKey.get(LEAD_PACKAGE_B2B_PRICE_KEY), "b2b") },
+        b2c: { quantity: 2000, price: normalizeLeadPackagePrice(priceByKey.get(LEAD_PACKAGE_B2C_PRICE_KEY), "b2c") },
+      };
+    }),
+
+    createOrder: protectedProcedure
+      .input(z.object({
+        audience: z.enum(["b2b", "b2c"]),
+        segment: z.string().trim().max(120).optional(),
+        region: z.string().trim().max(120).optional(),
+        notes: z.string().trim().max(1000).optional(),
+        legalConsent: z.literal(true),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const key = input.audience === "b2b" ? LEAD_PACKAGE_B2B_PRICE_KEY : LEAD_PACKAGE_B2C_PRICE_KEY;
+        const [setting] = await db.select({ value: platformSettings.value }).from(platformSettings).where(eq(platformSettings.key, key)).limit(1);
+        const price = normalizeLeadPackagePrice(setting?.value, input.audience);
+        const [result] = await db.insert(leadPackageOrders).values({
+          userId: ctx.user.id,
+          audience: input.audience,
+          quantity: 2000,
+          segment: input.segment || null,
+          region: input.region || null,
+          notes: input.notes || null,
+          legalConsent: true,
+          totalAmount: price.toFixed(2),
+          paymentMethod: "pix",
+          status: "pending_payment",
+        });
+        const orderId = Number((result as unknown as [{ insertId: number }])[0]?.insertId);
+        return { orderId, price, quantity: 2000 };
+      }),
+
+    myOrders: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(leadPackageOrders).where(eq(leadPackageOrders.userId, ctx.user.id)).orderBy(desc(leadPackageOrders.createdAt));
+    }),
+
+    adminList: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) return [];
+      return db.select({
+        id: leadPackageOrders.id,
+        audience: leadPackageOrders.audience,
+        quantity: leadPackageOrders.quantity,
+        segment: leadPackageOrders.segment,
+        region: leadPackageOrders.region,
+        notes: leadPackageOrders.notes,
+        legalConsent: leadPackageOrders.legalConsent,
+        status: leadPackageOrders.status,
+        totalAmount: leadPackageOrders.totalAmount,
+        mpPaymentId: leadPackageOrders.mpPaymentId,
+        adminNotes: leadPackageOrders.adminNotes,
+        createdAt: leadPackageOrders.createdAt,
+        reviewedAt: leadPackageOrders.reviewedAt,
+        deliveredAt: leadPackageOrders.deliveredAt,
+        buyerName: users.name,
+        buyerEmail: users.email,
+      }).from(leadPackageOrders).leftJoin(users, eq(leadPackageOrders.userId, users.id)).orderBy(desc(leadPackageOrders.createdAt));
+    }),
+
+    review: protectedProcedure
+      .input(z.object({ orderId: z.number().int().positive(), status: z.enum(["approved", "rejected", "delivered"]), notes: z.string().trim().max(1000).optional() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [order] = await db.select({ status: leadPackageOrders.status }).from(leadPackageOrders).where(eq(leadPackageOrders.id, input.orderId)).limit(1);
+        if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+        if (input.status === "approved" && order.status !== "pending_approval") {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A aprovação só é permitida após a confirmação do PIX." });
+        }
+        if (input.status === "delivered" && order.status !== "approved") {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "O pedido precisa ser aprovado antes da entrega." });
+        }
+        await db.update(leadPackageOrders).set({
+          status: input.status,
+          adminNotes: input.notes || null,
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+          deliveredAt: input.status === "delivered" ? new Date() : null,
+        }).where(eq(leadPackageOrders.id, input.orderId));
+        return { success: true };
+      }),
+  }),
+
   // ─── Precificação comercial ──────────────────────────────────────────────────
   pricing: router({
     contactUnlockPrice: publicProcedure.query(async () => {
@@ -1110,6 +1220,20 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           set: { value: price.toFixed(2), updatedAt: new Date() },
         });
         return { price };
+      }),
+
+    updateLeadPackagePrice: protectedProcedure
+      .input(z.object({ audience: z.enum(["b2b", "b2c"]), price: z.number().min(50).max(100_000) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const price = Number(input.price.toFixed(2));
+        const key = input.audience === "b2b" ? LEAD_PACKAGE_B2B_PRICE_KEY : LEAD_PACKAGE_B2C_PRICE_KEY;
+        await db.insert(platformSettings).values({ key, value: price.toFixed(2) }).onDuplicateKeyUpdate({
+          set: { value: price.toFixed(2), updatedAt: new Date() },
+        });
+        return { audience: input.audience, price };
       }),
 
     importLogs: protectedProcedure.query(async ({ ctx }) => {

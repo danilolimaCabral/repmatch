@@ -380,6 +380,33 @@ export const platformSettings = mysqlTable("platform_settings", {
 export type PlatformSetting = typeof platformSettings.$inferSelect;
 export type InsertPlatformSetting = typeof platformSettings.$inferInsert;
 
+// ─── Pacotes de leads B2B e B2C (entrega manual após PIX confirmado) ─────────
+export const leadPackageOrders = mysqlTable("lead_package_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  audience: mysqlEnum("audience", ["b2b", "b2c"]).notNull(),
+  quantity: int("quantity").default(2000).notNull(),
+  segment: varchar("segment", { length: 120 }),
+  region: varchar("region", { length: 120 }),
+  notes: text("notes"),
+  legalConsent: boolean("legalConsent").default(false).notNull(),
+  paymentMethod: mysqlEnum("paymentMethod", ["pix"]).default("pix").notNull(),
+  status: mysqlEnum("status", ["pending_payment", "pending_approval", "approved", "rejected", "delivered", "cancelled"]).default("pending_payment").notNull(),
+  totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }).notNull(),
+  mpPaymentId: varchar("mpPaymentId", { length: 100 }),
+  adminNotes: text("adminNotes"),
+  reviewedBy: int("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt"),
+  deliveredAt: timestamp("deliveredAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  userCreatedIdx: index("lead_order_user_created_idx").on(t.userId, t.createdAt),
+  statusCreatedIdx: index("lead_order_status_created_idx").on(t.status, t.createdAt),
+}));
+export type LeadPackageOrder = typeof leadPackageOrders.$inferSelect;
+export type InsertLeadPackageOrder = typeof leadPackageOrders.$inferInsert;
+
 // ─── Unlock Requests (Carrinho de desbloqueios via Pix ou Stripe) ───────────────
 export const unlockRequests = mysqlTable("unlock_requests", {
   id: int("id").autoincrement().primaryKey(),

@@ -56,6 +56,9 @@ export default function AdminDashboard() {
   const [unlockStatusFilter, setUnlockStatusFilter] = useState<"all" | "pending_payment" | "pending_approval" | "approved" | "rejected" | "abandoned">("all");
   const [contactUnlockPriceInput, setContactUnlockPriceInput] = useState("");
   const commercialPriceInitialized = useRef(false);
+  const [leadB2BPriceInput, setLeadB2BPriceInput] = useState("");
+  const [leadB2CPriceInput, setLeadB2CPriceInput] = useState("");
+  const leadPricesInitialized = useRef(false);
   const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
   const [docStatusFilter, setDocStatusFilter] = useState("all");
   const [docSearch, setDocSearch] = useState("");
@@ -189,6 +192,19 @@ export default function AdminDashboard() {
     },
     onError: (error) => toast.error(error.message),
   });
+  const { data: leadCatalog, refetch: refetchLeadCatalog } = trpc.leadPackages.catalog.useQuery();
+  const { data: leadOrders, refetch: refetchLeadOrders } = trpc.leadPackages.adminList.useQuery(undefined, { enabled: activeTab === "comercial", refetchInterval: 15_000 });
+  const updateLeadPackagePriceMutation = trpc.admin.updateLeadPackagePrice.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Pacote ${result.audience.toUpperCase()} atualizado para ${result.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`);
+      refetchLeadCatalog();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const reviewLeadOrderMutation = trpc.leadPackages.review.useMutation({
+    onSuccess: () => { toast.success("Status do pedido atualizado."); refetchLeadOrders(); },
+    onError: (error) => toast.error(error.message),
+  });
 
   useEffect(() => {
     if (commercialSettings && !commercialPriceInitialized.current) {
@@ -196,6 +212,14 @@ export default function AdminDashboard() {
       commercialPriceInitialized.current = true;
     }
   }, [commercialSettings]);
+
+  useEffect(() => {
+    if (leadCatalog && !leadPricesInitialized.current) {
+      setLeadB2BPriceInput(leadCatalog.b2b.price.toFixed(2).replace(".", ","));
+      setLeadB2CPriceInput(leadCatalog.b2c.price.toFixed(2).replace(".", ","));
+      leadPricesInitialized.current = true;
+    }
+  }, [leadCatalog]);
 
   function openIndicator(tab: typeof activeTab, userTypeFilterValue?: string) {
     if (tab === "users") {
@@ -885,6 +909,49 @@ export default function AdminDashboard() {
                   })()}
                 </section>
               </div>
+
+              <section className="mt-5 rounded-2xl border border-violet-200 bg-card p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="font-bold text-foreground">Pacotes de leads B2B e B2C</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Pacotes de 2.000 leads com segmentação, PIX e entrega manual após aprovação.</p>
+                  </div>
+                  <Button variant="outline" onClick={() => window.open("/pacotes-leads", "_blank")} className="w-fit"><ArrowUpRight className="mr-2 h-4 w-4" />Ver página de vendas</Button>
+                </div>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  {([
+                    { audience: "b2b" as const, label: "Pacote B2B", description: "Empresas e decisores", value: leadB2BPriceInput, setValue: setLeadB2BPriceInput, current: leadCatalog?.b2b.price },
+                    { audience: "b2c" as const, label: "Pacote B2C", description: "Público consumidor segmentado", value: leadB2CPriceInput, setValue: setLeadB2CPriceInput, current: leadCatalog?.b2c.price },
+                  ]).map((leadPackage) => (
+                    <div key={leadPackage.audience} className="rounded-xl border border-border bg-background p-4">
+                      <p className="font-bold text-foreground">{leadPackage.label} · 2.000 leads</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{leadPackage.description}</p>
+                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                        <div className="relative flex-1"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">R$</span><input inputMode="decimal" value={leadPackage.value} onChange={(event) => leadPackage.setValue(event.target.value.replace(/[^0-9,.]/g, ""))} className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/30" aria-label={`Preço do ${leadPackage.label}`} /></div>
+                        <Button size="sm" disabled={updateLeadPackagePriceMutation.isPending} onClick={() => {
+                          const price = Number(leadPackage.value.replace(",", "."));
+                          if (!Number.isFinite(price) || price < 50) { toast.error("Informe um valor de pelo menos R$ 50,00."); return; }
+                          updateLeadPackagePriceMutation.mutate({ audience: leadPackage.audience, price });
+                        }}>{updateLeadPackagePriceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}</Button>
+                      </div>
+                      {leadPackage.current !== undefined && <p className="mt-2 text-xs text-muted-foreground">Ativo: <strong className="text-foreground">{leadPackage.current.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></p>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="mt-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-bold text-foreground">Pedidos de pacotes de leads</h2><p className="mt-1 text-sm text-muted-foreground">Confirme o PIX, aprove o briefing e marque a entrega quando o lote for disponibilizado.</p></div><Button size="sm" variant="outline" onClick={() => refetchLeadOrders()}><RefreshCw className="mr-2 h-4 w-4" />Atualizar</Button></div>
+                <div className="mt-5 space-y-3">
+                  {!leadOrders?.length ? <p className="rounded-xl bg-secondary/40 p-6 text-center text-sm text-muted-foreground">Nenhum pedido de pacote de leads até o momento.</p> : leadOrders.map((order) => (
+                    <article key={order.id} className="rounded-xl border border-border bg-background p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><p className="font-bold text-foreground">#{order.id} · {order.quantity.toLocaleString("pt-BR")} leads {order.audience.toUpperCase()}</p><p className="mt-1 break-all text-xs text-muted-foreground">{order.buyerName || "Cliente"} · {order.buyerEmail || "E-mail não informado"}</p><p className="mt-2 text-xs text-muted-foreground">{order.segment || "Todos os segmentos"} · {order.region || "Nacional"}{order.notes ? ` · ${order.notes}` : ""}</p></div><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-foreground">{Number(order.totalAmount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${order.status === "pending_approval" ? "bg-amber-100 text-amber-800" : order.status === "delivered" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>{order.status === "pending_payment" ? "Aguardando PIX" : order.status === "pending_approval" ? "PIX confirmado" : order.status === "approved" ? "Em preparação" : order.status === "delivered" ? "Entregue" : order.status}</span></div></div>
+                      {order.status === "pending_approval" && <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "approved" })}><CheckCheck className="mr-1 h-3.5 w-3.5" />Aprovar briefing</Button><Button size="sm" variant="outline" className="border-red-300 text-red-700" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "rejected" })}>Rejeitar</Button></div>}
+                      {order.status === "approved" && <div className="mt-4"><Button size="sm" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "delivered" })}><CheckCircle className="mr-1 h-3.5 w-3.5" />Marcar como entregue</Button></div>}
+                    </article>
+                  ))}
+                </div>
+              </section>
 
               <section className="mt-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

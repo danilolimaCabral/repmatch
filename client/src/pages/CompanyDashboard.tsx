@@ -1586,8 +1586,8 @@ export default function CompanyDashboard() {
                   {(activeSearchData?.reps ?? []).map((rep) => {
                     const isUnlocked = activeSearchData?.unlockedIds.includes(rep.id as never);
                     const autoMatchScore = (rep as any).autoMatchScore as number | undefined;
-                    const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : rep.subscriptionTier === "bronze" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-sky-50 text-sky-700 border-sky-200";
-                    const tierLabel = rep.subscriptionTier === "ouro" ? "🏆 Ouro" : rep.subscriptionTier === "prata" ? "🥈 Prata" : rep.subscriptionTier === "bronze" ? "🥉 Bronze" : "Perfil ativo";
+                    const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-orange-100 text-orange-700 border-orange-200";
+                    const tierLabel = rep.subscriptionTier === "ouro" ? "🏆 Ouro" : rep.subscriptionTier === "prata" ? "🥈 Prata" : "🥉 Bronze";
                     const coreActive = (rep as any).coreStatus === 'active';
                     // Avatar color based on name initial
                     const avatarColors = [
@@ -1601,10 +1601,13 @@ export default function CompanyDashboard() {
                     const previewName = String(rep.fullName ?? (rep as any).nomeFantasia ?? "").trim() || "Representante Comercial";
                     const previewInitial = previewName.charAt(0).toUpperCase() || "R";
                     const avatarColor = avatarColors[(previewName.charCodeAt(0) || 0) % avatarColors.length];
-                    const rating = Number(rep.averageRating ?? 0);
-                    const hasRating = rating > 0;
                     const yearsExperience = Number(rep.experienceYears ?? 0);
                     const segmentLabel = rep.segment && rep.segment !== "Outros" ? rep.segment : "Atuação comercial diversa";
+                    const showAutoMatch = autoMatchScore !== undefined && autoMatchScore >= 50;
+                    const availabilityLabels: Record<string, string> = { imediata: "Disponível agora", "30dias": "Disponível em até 30 dias", "60dias": "Disponível em até 60 dias", negociavel: "Disponibilidade negociável" };
+                    const workModelLabels: Record<string, string> = { exclusivo: "Atuação exclusiva", multiplas: "Multimarcas", indifferente: "Modelo flexível" };
+                    const availabilityLabel = availabilityLabels[rep.availability ?? "negociavel"] ?? "Disponibilidade a combinar";
+                    const workModelLabel = workModelLabels[rep.workModel ?? "multiplas"] ?? "Modelo comercial flexível";
                     return (
                       <div key={rep.id} className={`rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 ${isUnlocked ? "border-emerald-200 ring-1 ring-emerald-100" : "border-slate-200"}`}>
                         {/* Card header strip */}
@@ -1616,7 +1619,7 @@ export default function CompanyDashboard() {
                               {previewInitial}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-bold text-sm text-slate-800 truncate">{previewName}</div>
+                              <div className="line-clamp-2 text-sm font-extrabold leading-snug text-slate-800">{previewName}</div>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {isUnlocked ? (
                                   <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
@@ -1632,7 +1635,7 @@ export default function CompanyDashboard() {
                                     🟢 Disponível
                                   </span>
                                 )}
-                                {autoMatchScore !== undefined && autoMatchScore > 0 && (
+                                {showAutoMatch && (
                                   <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                                     autoMatchScore >= 70 ? "bg-violet-100 text-violet-700 border-violet-200" :
                                     autoMatchScore >= 40 ? "bg-amber-50 text-amber-600 border-amber-200" :
@@ -1643,24 +1646,18 @@ export default function CompanyDashboard() {
                                 )}
                               </div>
                             </div>
-                            <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border flex-shrink-0 ${tierBadge}`}>{tierLabel}</span>
+                            {rep.subscriptionTier !== "free" && <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border flex-shrink-0 ${tierBadge}`}>{tierLabel}</span>}
                           </div>
 
-                          {/* Stats row */}
-                          <div className="grid grid-cols-3 gap-2 mb-4">
-                            <div className="bg-slate-50 rounded-xl p-2 text-center">
-                              <div className="text-xs font-bold text-slate-700">{yearsExperience > 0 ? `${yearsExperience}+` : "Perfil"}</div>
-                              <div className="text-[10px] text-slate-400">{yearsExperience > 0 ? "anos de experiência" : "comercial ativo"}</div>
+                          {/* Destaques reais do perfil */}
+                          <div className="mb-4 grid grid-cols-2 gap-2">
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5">
+                              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Experiência</p>
+                              <p className="mt-0.5 text-sm font-bold text-slate-800">{yearsExperience > 0 ? `${yearsExperience}+ anos` : "Perfil comercial"}</p>
                             </div>
-                            <div className="bg-slate-50 rounded-xl p-2 text-center">
-                              <div className={`text-xs font-bold ${hasRating ? "text-amber-600" : "text-emerald-600"}`}>{hasRating ? rating.toFixed(1) : "✓"}</div>
-                              <div className="text-[10px] text-slate-400">{hasRating ? "avaliação" : "perfil disponível"}</div>
-                            </div>
-                            <div className={`rounded-xl p-2 text-center ${coreActive ? "bg-emerald-50" : "bg-slate-50"}`}>
-                              <div className={`text-xs font-bold ${coreActive ? "text-emerald-600" : "text-slate-400"}`}>
-                                {coreActive ? "✓" : "–"}
-                              </div>
-                              <div className="text-[10px] text-slate-400">{coreActive ? "CORE ativo" : "dados a validar"}</div>
+                            <div className={`rounded-xl border p-2.5 ${coreActive ? "border-emerald-200 bg-emerald-50" : "border-slate-100 bg-slate-50"}`}>
+                              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Registro CORE</p>
+                              <p className={`mt-0.5 text-sm font-bold ${coreActive ? "text-emerald-700" : "text-slate-700"}`}>{coreActive ? "Ativo" : "Consulta disponível"}</p>
                             </div>
                           </div>
 
@@ -1669,6 +1666,18 @@ export default function CompanyDashboard() {
                             <Briefcase className="w-3 h-3 flex-shrink-0" />
                             <span className="truncate">Especialista em {segmentLabel}</span>
                           </div>
+
+                          {!isUnlocked && (
+                            <div className="mb-4 rounded-xl border border-slate-100 bg-white p-3">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Prévia do perfil</p>
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">{availabilityLabel}</span>
+                                <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">{workModelLabel}</span>
+                                {rep.portfolioSize && <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">Carteira: {rep.portfolioSize}</span>}
+                                {coreActive && <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">CORE ativo</span>}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Contact info — only visible after unlock */}
                           <div className="space-y-1.5 text-xs border-t border-slate-100 pt-3">
@@ -1713,8 +1722,8 @@ export default function CompanyDashboard() {
                                 <div className="flex items-start gap-2">
                                   <div className="mt-0.5 rounded-lg bg-emerald-100 p-1.5 text-emerald-700"><Lock className="h-3.5 w-3.5" /></div>
                                   <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-semibold text-emerald-800">Contato protegido</p>
-                                    <p className="mt-0.5 text-[11px] leading-relaxed text-emerald-700">Libere telefone, e-mail, cidade e apresentação profissional para iniciar a conversa.</p>
+                                    <p className="text-xs font-semibold text-emerald-800">Fale direto com este perfil</p>
+                                    <p className="mt-0.5 text-[11px] leading-relaxed text-emerald-700">Desbloqueie telefone, e-mail, cidade e apresentação profissional em um único pagamento.</p>
                                   </div>
                                   <span className="shrink-0 text-xs font-bold text-emerald-700">{contactUnlockPriceLabel}</span>
                                 </div>
@@ -1742,13 +1751,13 @@ export default function CompanyDashboard() {
                               </Button>
                               <Button size="sm" variant="outline" className="w-full text-xs border-slate-200 text-slate-500"
                                 onClick={() => addToCart(rep.id, previewName)}>
-                                <ShoppingCart className="w-3 h-3 mr-1" /> Quero falar com este perfil — {contactUnlockPriceLabel}
+                                <ShoppingCart className="w-3 h-3 mr-1" /> Desbloquear contato — {contactUnlockPriceLabel}
                               </Button>
                             </div>
                           ) : (
                             <Button size="sm" className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
                               onClick={() => addToCart(rep.id, previewName)}>
-                              <ShoppingCart className="w-3 h-3 mr-1" /> Quero falar com este perfil — {contactUnlockPriceLabel}
+                              <ShoppingCart className="w-3 h-3 mr-1" /> Desbloquear contato — {contactUnlockPriceLabel}
                             </Button>
                           )}
                         </div>

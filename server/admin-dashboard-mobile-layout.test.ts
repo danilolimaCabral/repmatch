@@ -16,6 +16,7 @@ const managerDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "clie
 const dashboardSkeletonSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/DashboardLayoutSkeleton.tsx"), "utf8");
 const roiCalculatorSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ROICalculator.tsx"), "utf8");
 const manusDialogSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ManusDialog.tsx"), "utf8");
+const leadPackagesSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/LeadPackages.tsx"), "utf8");
 const publicPageSources = Object.fromEntries(
   ["BuscarRepresentantes", "OportunidadesReps", "Blog", "BlogPost", "BaseCNPJ", "Planos", "ManagerPlans", "Parcerias", "Onboarding", "Login", "Register", "RedefinirSenha", "Perfil", "VerificacaoKYC"]
     .map((name) => [name, fs.readFileSync(path.resolve(process.cwd(), `client/src/pages/${name}.tsx`), "utf8")])
@@ -136,7 +137,20 @@ describe("AdminDashboard mobile layout", () => {
     expect(dbSource).toContain("String(row.fullName ?? row.nomeFantasia ?? '').trim() || 'Representante Comercial'");
     expect(companyDashboardSource).toContain('const previewName = String(rep.fullName');
     expect(companyDashboardSource).toContain("Contato protegido");
-    expect(companyDashboardSource).toContain("Quero falar com este perfil");
+    expect(companyDashboardSource).toContain("Desbloquear contato");
+    expect(companyDashboardSource).toContain("Prévia do perfil");
     expect(companyDashboardSource).toContain("Você libera telefone, e-mail, cidade e apresentação profissional");
+  });
+
+  it("provides compliant B2B and B2C lead packages with manual PIX fulfillment", () => {
+    expect(routersSource).toContain("leadPackages: router");
+    expect(routersSource).toContain("legalConsent: z.literal(true)");
+    expect(routersSource).toContain("lead_package_b2b_price");
+    expect(mpRoutesSource).toContain('mpRouter.post("/lead-package-pix"');
+    expect(mpRoutesSource).toContain('meta?.type === "lead_package"');
+    expect(serverSource).toContain("CREATE TABLE IF NOT EXISTS lead_package_orders");
+    expect(dashboardSource).toContain("Pacotes de leads B2B e B2C");
+    expect(leadPackagesSource).toContain("2.000 leads");
+    expect(leadPackagesSource).toContain("conformidade com a LGPD");
   });
 });

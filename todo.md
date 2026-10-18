@@ -777,3 +777,10 @@
 - [x] Tornar os cards bloqueados mais persuasivos sem mostrar telefone, e-mail ou localização
 - [x] Exibir preço e benefício do desbloqueio de forma clara no card e no carrinho
 - [x] Validar a experiência com TypeScript e testes automatizados
+
+## Pacotes de leads B2B e B2C (18/10/2026)
+- [x] Criar catálogo de pacotes de 2.000 leads com escolha entre público B2B e B2C
+- [x] Coletar segmentação, localidade e aceite de uso responsável/LGPD no pedido
+- [x] Criar pedido PIX com preço configurável pelo admin e aprovação manual após confirmação
+- [x] Incluir gestão de preços, pedidos e entrega no painel administrativo
+- [x] Validar o novo fluxo com TypeScript e testes automatizados

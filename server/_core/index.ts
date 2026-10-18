@@ -70,6 +70,31 @@ async function ensurePurchaseInterestTable() {
       PRIMARY KEY (\`key\`)
     )
   `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS lead_package_orders (
+      id int AUTO_INCREMENT NOT NULL,
+      userId int NOT NULL,
+      audience enum('b2b','b2c') NOT NULL,
+      quantity int NOT NULL DEFAULT 2000,
+      segment varchar(120),
+      region varchar(120),
+      notes text,
+      legalConsent boolean NOT NULL DEFAULT false,
+      paymentMethod enum('pix') NOT NULL DEFAULT 'pix',
+      status enum('pending_payment','pending_approval','approved','rejected','delivered','cancelled') NOT NULL DEFAULT 'pending_payment',
+      totalAmount decimal(10,2) NOT NULL,
+      mpPaymentId varchar(100),
+      adminNotes text,
+      reviewedBy int,
+      reviewedAt timestamp NULL,
+      deliveredAt timestamp NULL,
+      createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX lead_order_user_created_idx (userId, createdAt),
+      INDEX lead_order_status_created_idx (status, createdAt)
+    )
+  `));
   console.log("[db] representative_purchase_clicks ready");
 }
 

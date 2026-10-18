@@ -1,8 +1,8 @@
 import { Router, Request, Response } from "express";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
-import { representatives, companies, users, unlockRequests, unlockRequestItems } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { representatives, companies, users, unlockRequests, unlockRequestItems, leadPackageOrders } from "../../drizzle/schema";
+import { and, eq } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { notifyOwner } from "../_core/notification";
 
@@ -155,6 +155,44 @@ mpRouter.post("/unlock-pix", async (req: Request, res: Response) => {
     });
   } catch (e: any) {
     console.error("[MP] unlock-pix error:", e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Gerar PIX para pacote de leads B2B/B2C ───────────────────────────────────
+mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
+  try {
+    const { orderId, userId, userEmail, userName, cpf } = req.body as {
+      orderId: number; userId: number; userEmail: string; userName: string; cpf: string;
+    };
+    if (!orderId || !userId || !cpf?.replace(/\D/g, "")) return res.status(400).json({ error: "Dados inválidos" });
+    const db = await getDb();
+    if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
+    const [order] = await db.select({ id: leadPackageOrders.id, audience: leadPackageOrders.audience, quantity: leadPackageOrders.quantity, totalAmount: leadPackageOrders.totalAmount, status: leadPackageOrders.status })
+      .from(leadPackageOrders)
+      .where(and(eq(leadPackageOrders.id, orderId), eq(leadPackageOrders.userId, userId)))
+      .limit(1);
+    if (!order || order.status !== "pending_payment") return res.status(404).json({ error: "Pedido não disponível para pagamento" });
+    const audienceLabel = order.audience === "b2b" ? "B2B" : "B2C";
+    const payment = new Payment(mp);
+    const result = await payment.create({
+      body: {
+        transaction_amount: Number(order.totalAmount),
+        description: `Pacote ${audienceLabel} — ${order.quantity.toLocaleString("pt-BR")} leads | RepMatch`,
+        payment_method_id: "pix",
+        payer: {
+          email: userEmail,
+          first_name: userName.split(" ")[0],
+          last_name: userName.split(" ").slice(1).join(" ") || userName.split(" ")[0],
+          identification: { type: "CPF", number: cpf.replace(/\D/g, "") },
+        },
+        metadata: { type: "lead_package", order_id: orderId, user_id: userId, audience: order.audience },
+      },
+    });
+    const txInfo = result.point_of_interaction?.transaction_data;
+    return res.json({ paymentId: result.id, status: result.status, qrCode: txInfo?.qr_code, qrCodeBase64: txInfo?.qr_code_base64, expiresAt: result.date_of_expiration });
+  } catch (e: any) {
+    console.error("[MP] lead-package-pix error:", e.message);
     return res.status(500).json({ error: e.message });
   }
 });
@@ -314,8 +352,26 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
         const db = await getDb();
         if (!db) return res.json({ received: true });
 
+        // ── Pacote de leads: PIX confirmado, entrega manual ──────────────────
+        if (meta?.type === "lead_package") {
+          const orderId = Number(meta.order_id);
+          if (orderId) {
+            const [leadOrder] = await db.select({ id: leadPackageOrders.id, status: leadPackageOrders.status, audience: leadPackageOrders.audience, quantity: leadPackageOrders.quantity, totalAmount: leadPackageOrders.totalAmount })
+              .from(leadPackageOrders).where(eq(leadPackageOrders.id, orderId)).limit(1);
+            if (leadOrder && leadOrder.status === "pending_payment") {
+              await db.update(leadPackageOrders).set({
+                status: "pending_approval",
+                mpPaymentId: String(result.id),
+                adminNotes: "PIX confirmado pelo Mercado Pago — aguardando revisão e entrega manual.",
+              }).where(eq(leadPackageOrders.id, orderId));
+              void notifyOwner({
+                title: `PIX confirmado — pacote ${leadOrder.audience.toUpperCase()} #${orderId}`,
+                content: `Pagamento de R$ ${Number(leadOrder.totalAmount).toFixed(2)} para ${leadOrder.quantity.toLocaleString("pt-BR")} leads confirmado. Acesse Admin > Comercial para revisar e entregar manualmente.`,
+              }).catch((error) => console.error("[MP Webhook] lead order notification error:", error));
+            }
+          }
         // ── Desbloqueio em lote: pagamento confirmado, liberação manual ───────
-        if (meta?.type === "unlock_batch") {
+        } else if (meta?.type === "unlock_batch") {
           const requestId = Number(meta.request_id);
 
           if (requestId) {
