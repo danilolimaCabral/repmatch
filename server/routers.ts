@@ -2891,6 +2891,37 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }));
     }),
 
+    // Admin confirma manualmente o PIX consultado no Mercado Pago ou extrato bancário.
+    // A liberação de contatos continua sendo uma ação separada e explícita.
+    confirmPix: protectedProcedure
+      .input(z.object({ requestId: z.number(), notes: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new Error("Forbidden");
+        const db = await getDb();
+        if (!db) throw new Error("DB unavailable");
+        const { unlockRequests } = await import('../drizzle/schema');
+
+        const [request] = await db.select({ id: unlockRequests.id, status: unlockRequests.status })
+          .from(unlockRequests)
+          .where(eq(unlockRequests.id, input.requestId))
+          .limit(1);
+        if (!request) throw new TRPCError({ code: "NOT_FOUND", message: "Solicitação não encontrada" });
+        if (request.status !== "pending_payment") {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Este pedido já foi confirmado, liberado ou recusado." });
+        }
+
+        await db.update(unlockRequests)
+          .set({
+            status: "pending_approval",
+            adminNotes: input.notes ?? "PIX confirmado manualmente pelo administrador — pronto para liberar os contatos.",
+            reviewedBy: ctx.user.id,
+            reviewedAt: new Date(),
+          })
+          .where(eq(unlockRequests.id, input.requestId));
+
+        return { success: true };
+      }),
+
     // Admin aprova solicitação (desbloqueia todos os reps do pedido)
     approve: protectedProcedure
       .input(z.object({ requestId: z.number(), notes: z.string().optional() }))

@@ -167,6 +167,10 @@ export default function AdminDashboard() {
     onSuccess: () => { toast.success("Desbloqueio aprovado! Contatos liberados."); refetchUnlockRequests(); },
     onError: (e) => toast.error(e.message),
   });
+  const confirmUnlockPixMutation = trpc.unlockRequests.confirmPix.useMutation({
+    onSuccess: () => { toast.success("PIX confirmado. Agora você pode liberar os contatos."); refetchUnlockRequests(); },
+    onError: (e) => toast.error(e.message),
+  });
   const rejectUnlockMutation = trpc.unlockRequests.reject.useMutation({
     onSuccess: () => { toast.success("Solicitação rejeitada."); refetchUnlockRequests(); },
     onError: (e) => toast.error(e.message),
@@ -1530,6 +1534,34 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {(() => {
+                const pendingUnlocks = (unlockRequestsRaw ?? []).filter((request) => request.status === "pending_payment");
+                const readyUnlocks = (unlockRequestsRaw ?? []).filter((request) => request.status === "pending_approval");
+                const pendingTotal = pendingUnlocks.reduce((sum, request) => sum + Number(request.totalAmount), 0);
+                return (
+                  <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><ShoppingCart className="h-5 w-5" /></div>
+                        <div>
+                          <h2 className="font-bold text-amber-950">Desbloqueios de contatos por PIX</h2>
+                          <p className="mt-1 text-sm text-amber-800">
+                            {readyUnlocks.length > 0
+                              ? `${readyUnlocks.length} pedido(s) com PIX confirmado aguardando sua liberação.`
+                              : pendingUnlocks.length > 0
+                                ? `${pendingUnlocks.length} pedido(s) aguardando confirmação do Mercado Pago — ${pendingTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`
+                                : "Não há pedidos de contatos aguardando pagamento ou liberação."}
+                          </p>
+                        </div>
+                      </div>
+                      <Button size="sm" className="shrink-0" onClick={() => { setActiveTab("desbloqueios"); setUnlockStatusFilter(readyUnlocks.length > 0 ? "pending_approval" : "pending_payment"); }}>
+                        Ver solicitações <ArrowUpRight className="ml-1.5 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </section>
+                );
+              })()}
+
               {/* Search */}
               <div className="relative mb-5">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1747,10 +1779,22 @@ export default function AdminDashboard() {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
                           {req.pixProofUrl && (
                             <Button size="sm" variant="outline" className="border-border text-xs" onClick={() => setViewProofUrl(req.pixProofUrl!)}>
                               <Eye className="w-3 h-3 mr-1" /> Ver comprovante
+                            </Button>
+                          )}
+                          {req.status === "pending_payment" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 text-xs"
+                              disabled={confirmUnlockPixMutation.isPending}
+                              onClick={() => confirmUnlockPixMutation.mutate({ requestId: req.id })}
+                            >
+                              {confirmUnlockPixMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCheck className="w-3 h-3 mr-1" />}
+                              Confirmar PIX
                             </Button>
                           )}
                           {req.status === "pending_approval" && (

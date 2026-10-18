@@ -91,7 +91,7 @@ const ACTIVE_PARTNERS = [
 
 // ─── Números de impacto ───────────────────────────────────────────────────────
 const STATS = [
-  { icon: Users, value: "9 mil+", label: "Perfis comerciais na base" },
+  { icon: Users, value: "173 mil+", label: "Representantes na base" },
   { icon: Globe, value: "27", label: "Estados cobertos" },
   { icon: BarChart3, value: "R$ 9,90", label: "Custo por conexão" },
 ];
@@ -217,7 +217,7 @@ export default function Parcerias() {
           </h1>
 
           <p className="text-white/70 text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.6)" }}>
-            Mais de 9 mil perfis comerciais. Cobertura em 27 estados.
+            Mais de 173 mil representantes comerciais. Cobertura em 27 estados.
             Seja você uma associação, empresa de tecnologia ou distribuidora —
             temos um modelo de parceria feito para você.
           </p>

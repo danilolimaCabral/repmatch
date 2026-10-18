@@ -106,9 +106,9 @@ export default function BrazilMapSection() {
           <p className="text-white/50 text-lg max-w-xl mx-auto">
             Mais de{" "}
             <span className="text-emerald-400 font-bold">
-              <AnimatedCounter end={9680} />
+              <AnimatedCounter end={173987} />
             </span>{" "}
-            perfis comerciais na base, com cobertura em todos os 27 estados.
+            representantes comerciais na base, com cobertura em todos os 27 estados.
           </p>
         </div>
 
@@ -234,11 +234,11 @@ export default function BrazilMapSection() {
                 <div>
                   <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">Total nacional</p>
                   <p className="text-2xl font-black text-white tabular-nums leading-tight">
-                    <AnimatedCounter end={9680} />
+                    <AnimatedCounter end={173987} />
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-white/35 pl-12">perfis comerciais disponíveis em 27 estados</p>
+              <p className="text-xs text-white/35 pl-12">representantes comerciais na base nacional</p>
             </div>
 
             {/* Regiões — clicável para filtrar o mapa */}

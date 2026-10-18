@@ -62,6 +62,10 @@ describe("AdminDashboard mobile layout", () => {
     expect(mpRoutesSource).not.toContain('status: "approved", reviewedAt');
     expect(dashboardSource).toContain("PIX confirmado — liberar");
     expect(dashboardSource).toContain("Liberar contatos");
+    expect(routersSource).toContain("confirmPix: protectedProcedure");
+    expect(dashboardSource).toContain("Confirmar PIX");
+    expect(dashboardSource).toContain("Desbloqueios de contatos por PIX");
+    expect(dashboardSource).toContain("Ver solicitações");
   });
 
   it("uses cards instead of clipped tables in the principal mobile admin lists", () => {
@@ -166,9 +170,10 @@ describe("AdminDashboard mobile layout", () => {
     expect(sitemapSource).toContain("https://repmatch.com.br/pacotes-leads");
     expect(robotsSource).toContain("Allow: /pacotes-leads");
     expect(homeSource).toContain('href="/pacotes-leads"');
-    expect(homeSource).not.toContain("173 mil representantes");
+    expect(homeSource).toContain("trpc.cnpjBase.stats.useQuery()");
+    expect(homeSource).toContain("173 mil representantes comerciais");
     expect(publicPageSources.Parcerias).not.toContain("173k+");
-    expect(brazilMapSource).not.toContain("end={173987}");
+    expect(brazilMapSource).toContain("end={173987}");
     expect(indexHtmlSource).not.toContain('"@type": "JobPosting"');
     expect(indexHtmlSource).not.toContain('"aggregateRating"');
   });

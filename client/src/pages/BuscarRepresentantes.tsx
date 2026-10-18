@@ -49,7 +49,7 @@ export default function BuscarRepresentantes() {
     <div className="min-h-screen bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
       <SEO
         title="Buscar Representantes Comerciais | RepMatch"
-        description="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e disponibilidade. Base com mais de 9.000 perfis verificados."
+        description="Encontre representantes comerciais em todo o Brasil. Filtre por região, segmento e disponibilidade. Base nacional com mais de 173 mil perfis comerciais."
         keywords="buscar representante comercial, encontrar representante, representante por região, representante por segmento, representante verificado, contratar representante"
         canonical="/buscar"
       />

@@ -139,7 +139,7 @@ export default function Vagas() {
                 <div className="text-xs text-muted-foreground">vagas abertas</div>
               </div>
               <div className="text-center bg-background border border-border rounded-xl px-5 py-3">
-                <div className="text-2xl font-black">9.677</div>
+                <div className="text-2xl font-black">173.987</div>
                 <div className="text-xs text-muted-foreground">representantes</div>
               </div>
               <div className="text-center bg-background border border-border rounded-xl px-5 py-3">

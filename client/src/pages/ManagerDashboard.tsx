@@ -264,7 +264,7 @@ export default function ManagerDashboard() {
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 mb-8">
               {[
-                { label: "Reps na Plataforma", value: "9.677+", icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
+                { label: "Reps na Plataforma", value: "173.987+", icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
                 { label: "Disponíveis Agora", value: "1.240+", icon: Clock, color: "text-green-400", bg: "bg-green-400/10" },
                 { label: "Segmentos", value: "11", icon: Target, color: "text-purple-400", bg: "bg-purple-400/10" },
                 { label: "Estados Cobertos", value: "27", icon: MapPin, color: "text-orange-400", bg: "bg-orange-400/10" },

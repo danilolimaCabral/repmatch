@@ -791,3 +791,9 @@
 - [x] Remover marcações estruturadas genéricas que não representam uma oferta ou vaga individual real
 - [x] Concentrar indexação orgânica nas páginas públicas de aquisição, excluindo login e cadastro
 - [x] Validar metadados, sitemap e regressões com TypeScript e testes automatizados
+
+## Base nacional e confirmação manual de PIX (18/10/2026)
+- [x] Exibir a base nacional completa de representantes nos indicadores e atalhos públicos
+- [x] Exibir pedidos de desbloqueio PIX na tela de pagamentos e direcionar para a fila correta
+- [x] Permitir confirmação manual do PIX pelo administrador antes da liberação de contatos
+- [x] Validar as correções com TypeScript e testes automatizados

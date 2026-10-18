@@ -90,9 +90,9 @@ const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
 // ─── Live Counter Section ────────────────────────────────────────────────────
 function LiveCounterSection() {
-  const { data } = trpc.representatives.preview.useQuery({ region: "", segment: "" });
+  const { data: baseStats } = trpc.cnpjBase.stats.useQuery();
   const { data: jobsData } = trpc.jobs.listPublic.useQuery({ page: 1, limit: 1 });
-  const totalReps = data?.count ?? 9680;
+  const totalReps = baseStats?.total ?? 173987;
   const totalJobs = jobsData?.total ?? 0;
   const [pulse, setPulse] = useState(false);
   useEffect(() => {
@@ -101,7 +101,7 @@ function LiveCounterSection() {
   }, []);
 
   const stats = [
-    { value: totalReps, suffix: "+", label: "Representantes disponíveis", sublabel: "Perfis na base RepMatch", icon: Users, pulsed: pulse },
+    { value: totalReps, suffix: "+", label: "Representantes na base", sublabel: "Base comercial nacional", icon: Users, pulsed: pulse },
     { value: totalJobs, suffix: "", label: "Vagas abertas agora", sublabel: "Atualizado em tempo real", icon: Briefcase, pulsed: !pulse },
     { value: 12, suffix: "", label: "Segmentos cobertos", sublabel: "Do agro ao tech", icon: BarChart3, pulsed: pulse },
     { value: 27, suffix: "", label: "Estados atendidos", sublabel: "Cobertura nacional", icon: MapPin, pulsed: !pulse },
@@ -492,7 +492,7 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <SEO
         title="Contratar Representante Comercial — Marketplace #1 do Brasil"
-        description="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e experiência. Base com mais de 9 mil perfis comerciais. Desbloqueie contatos a partir de R$ 9,90."
+        description="Encontre representantes comerciais em todo o Brasil. Filtre por região, segmento e experiência. Base nacional com mais de 173 mil perfis comerciais. Desbloqueie contatos a partir de R$ 9,90."
         canonical="/"
         keywords="contratar representante comercial, representante comercial, marketplace representantes, vagas representante comercial, buscar representante, representação comercial, vendas externas, agente comercial, plataforma representantes, encontrar representante brasil"
       />
@@ -621,7 +621,7 @@ export default function Home() {
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-            Mais de 9 mil perfis comerciais na base, filtráveis por estado, segmento e anos de experiência.
+            Mais de 173 mil representantes comerciais na base, filtráveis por estado, segmento e anos de experiência.
             Desbloqueie o contato direto por R$ 9,90 — sem mensalidade, sem contrato, sem burocracia.
           </p>
 
@@ -757,7 +757,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             {[
-              { value: 9680, suffix: "+", label: "Representantes na base", icon: Users },
+              { value: 173987, suffix: "+", label: "Representantes na base", icon: Users },
               { value: 27, suffix: "", label: "Estados cobertos", icon: Building2 },
               { value: 12, suffix: "", label: "Segmentos de atuação", icon: Target },
               { value: 48, suffix: "h", label: "Tempo médio para conexão", icon: Clock },
@@ -915,7 +915,7 @@ export default function Home() {
               { icon: Shield, title: "Acesso por plano", desc: "Representantes Free acessam vagas Bronze e Silver. Premium acessa Gold. Elite acessa Platinum.", highlight: false },
               { icon: MessageSquare, title: "Chat dentro da plataforma", desc: "Negocie direto com o candidato sem sair do RepMatch. Contatos só revelados quando ambas as partes concordam.", highlight: false },
               { icon: BarChart3, title: "Painel de controle", desc: "Dashboard separado para empresas e representantes com histórico de candidaturas, vagas e performance.", highlight: false },
-              { icon: TrendingUp, title: "Mais de 9 mil perfis", desc: "Base comercial segmentada por estado, segmento e experiência para tornar a prospecção mais objetiva.", highlight: false },
+              { icon: TrendingUp, title: "Base de 173 mil+", desc: "Base comercial nacional segmentada por estado, segmento e experiência para tornar a prospecção mais objetiva.", highlight: false },
             ].map(({ icon: Icon, title, desc, highlight }) => (
               <div
                 key={title}
@@ -1042,7 +1042,7 @@ export default function Home() {
             <span className="text-gradient-green">em grupo de WhatsApp.</span>
           </h2>
           <p className="text-muted-foreground text-lg mb-12 max-w-xl mx-auto">
-            Mais de 9 mil perfis comerciais, filtráveis por região e segmento. Desbloqueie o contato direto por R$ 9,90 — sem mensalidade.
+            Mais de 173 mil representantes comerciais, filtráveis por região e segmento. Desbloqueie o contato direto por R$ 9,90 — sem mensalidade.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap">
             <button

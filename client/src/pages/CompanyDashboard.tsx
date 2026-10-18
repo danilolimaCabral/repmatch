@@ -635,7 +635,7 @@ export default function CompanyDashboard() {
               {item.id === "search" && (
                 <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                   activeTab === item.id ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"
-                }`}>9k+</span>
+                }`}>173k+</span>
               )}
             </button>
           ))}
