@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest";
 import { getLeadPackagePrice, isLeadPackageQuantity } from "../shared/leadPackages";
 
 describe("pacotes de leads", () => {
-  it("calcula o pacote de 1.000 empresas de forma proporcional", () => {
-    expect(getLeadPackagePrice(1490, 1000)).toBe(745);
-    expect(getLeadPackagePrice(990, 1000)).toBe(495);
+  it("mantém os preços definidos para os pacotes B2B e B2C", () => {
+    expect(getLeadPackagePrice("b2b", 179, 1000)).toBe(99);
+    expect(getLeadPackagePrice("b2b", 179, 2000)).toBe(179);
+    expect(getLeadPackagePrice("b2c", 149, 1000)).toBe(79);
+    expect(getLeadPackagePrice("b2c", 149, 2000)).toBe(149);
   });
 
-  it("mantém o valor configurado para o pacote de 2.000 empresas", () => {
-    expect(getLeadPackagePrice(1490, 2000)).toBe(1490);
+  it("mantém cálculo proporcional se o administrador configurar outro valor", () => {
+    expect(getLeadPackagePrice("b2b", 200, 1000)).toBe(100);
   });
 
   it("aceita somente os tamanhos de pacote comercializados", () => {

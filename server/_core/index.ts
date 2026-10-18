@@ -130,6 +130,32 @@ async function ensurePurchaseInterestTable() {
       INDEX market_leads_source_record_idx (source_project, source_org_id, source_record_id)
     )
   `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS market_lead_accesses (
+      id int AUTO_INCREMENT NOT NULL,
+      user_id int NOT NULL,
+      plan enum('unlimited_monthly') NOT NULL DEFAULT 'unlimited_monthly',
+      status enum('pending_payment','pending_approval','active','rejected','expired','cancelled') NOT NULL DEFAULT 'pending_payment',
+      amount decimal(10,2) NOT NULL,
+      mp_payment_id varchar(100),
+      reviewed_by int,
+      reviewed_at timestamp NULL,
+      starts_at timestamp NULL,
+      expires_at timestamp NULL,
+      admin_notes text,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX market_access_user_status_expiry_idx (user_id, status, expires_at),
+      INDEX market_access_status_created_idx (status, created_at)
+    )
+  `));
+  try {
+    await db.execute(sql.raw("ALTER TABLE users ADD COLUMN phone varchar(20) NULL"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    if (!message.includes("duplicate column")) throw error;
+  }
   console.log("[db] commercial catalog tables ready");
 }
 

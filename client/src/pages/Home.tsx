@@ -150,6 +150,7 @@ function B2BLeadCampaignSection() {
   const priceLabel = typeof price === "number"
     ? price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
     : "valor sob consulta";
+  const unlimitedPrice = catalog?.unlimitedMonthly?.price ?? 499;
 
   return (
     <section id="leads-b2b" className="border-t border-border bg-secondary/35 px-4 py-16 sm:px-6 sm:py-24">
@@ -162,7 +163,7 @@ function B2BLeadCampaignSection() {
             Encontre empresas para a sua próxima campanha comercial.
           </h2>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Defina segmento, CNAE e região. O RepMatch organiza uma campanha com 2.000 empresas para o seu time prospectar e acompanha a entrega após a confirmação do PIX.
+            Defina segmento, CNAE e região. Escolha um lote de 1.000 ou 2.000 empresas, ou assine pesquisas ilimitadas por 30 dias. Você só recebe acesso após a confirmação do PIX.
           </p>
 
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
@@ -179,6 +180,11 @@ function B2BLeadCampaignSection() {
             ))}
           </div>
 
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <button onClick={() => navigate("/pacotes-leads")} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md"><p className="text-sm font-black text-foreground">Concessionárias e automotivo</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Empresas para veículos, peças, serviços e novas parcerias comerciais.</p></button>
+            <button onClick={() => navigate("/pacotes-leads")} className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md"><p className="text-sm font-black text-foreground">Imobiliárias e construção</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Empresas para imóveis, construtoras, fornecedores e parcerias regionais.</p></button>
+          </div>
+
           <button
             onClick={() => navigate("/pacotes-leads")}
             className="group mt-8 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl sm:w-auto"
@@ -191,8 +197,8 @@ function B2BLeadCampaignSection() {
           <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">Pacote de prospecção B2B</p>
           <div className="mt-5 flex items-end justify-between gap-4">
             <div>
-              <p className="text-5xl font-black sm:text-6xl">2.000</p>
-              <p className="mt-1 text-sm text-emerald-100">empresas para trabalhar</p>
+              <p className="text-5xl font-black sm:text-6xl">1k ou 2k</p>
+              <p className="mt-1 text-sm text-emerald-100">empresas por campanha</p>
             </div>
             <div className="rounded-2xl bg-white/10 p-3"><Building2 className="h-7 w-7 text-emerald-300" /></div>
           </div>
@@ -208,6 +214,9 @@ function B2BLeadCampaignSection() {
           </div>
           <button onClick={() => navigate("/pacotes-leads")} className="mt-5 inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-extrabold text-emerald-950 transition hover:bg-emerald-50">
             Configurar meu público B2B <ArrowRight className="h-4 w-4" />
+          </button>
+          <button onClick={() => navigate("/pacotes-leads")} className="mt-3 inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-300/40 bg-emerald-400/10 px-4 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-400/20">
+            Pesquisa ilimitada · {unlimitedPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/mês <ArrowRight className="h-4 w-4" />
           </button>
         </aside>
       </div>
@@ -686,16 +695,15 @@ export default function Home() {
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black leading-[0.92] tracking-tight mb-8" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-            <span className="text-foreground">Contrate o representante</span>
+            <span className="text-foreground">Encontre o representante</span>
             <br />
-            <span className="text-gradient-green">certo para a sua região</span>
+            <span className="text-gradient-green">certo para vender mais</span>
             <br />
-            <span className="text-foreground">em menos de 48h.</span>
+            <span className="text-foreground">e dê novos clientes ao seu time.</span>
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-            Mais de 173 mil representantes comerciais na base, filtráveis por estado, segmento e anos de experiência.
-            Desbloqueie o contato direto por R$ 9,90 — sem mensalidade, sem contrato, sem burocracia.
+            Contrate representantes por região e segmento ou monte campanhas de prospecção com empresas segmentadas. Seu vendedor recebe uma base organizada para abrir novas conversas, trabalhar no próprio painel ou importar no CRM.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14 flex-wrap">
@@ -705,6 +713,14 @@ export default function Home() {
             >
               <Building2 className="w-5 h-5" />
               Sou Empresa
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button
+              onClick={() => navigate("/pacotes-leads")}
+              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-emerald-950 hover:bg-emerald-900 text-white font-bold text-base px-8 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+            >
+              <Target className="w-5 h-5 text-emerald-300" />
+              Quero prospectar empresas
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
             <button

@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   Database,
+  Download,
   FileCheck2,
   Loader2,
   LockKeyhole,
@@ -25,7 +26,7 @@ import {
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 const REGIONS = ["Nacional", "São Paulo", "Rio de Janeiro", "Minas Gerais", "Paraná", "Santa Catarina", "Rio Grande do Sul", "Bahia", "Pernambuco", "Goiás", "Distrito Federal"];
-const SEGMENTS = ["Tecnologia", "Agronegócio", "Alimentos e Bebidas", "Construção Civil", "Farmacêutico", "Automotivo", "Saúde e Médico", "Varejo", "Serviços", "Outro"];
+const SEGMENTS = ["Tecnologia", "Agronegócio", "Alimentos e Bebidas", "Construção Civil", "Concessionárias e automotivo", "Imobiliárias e construção", "Atacado e distribuição", "Farmacêutico", "Saúde e Médico", "Varejo", "Serviços", "Outro"];
 
 function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -49,21 +50,30 @@ export default function LeadPackages() {
   const [notes, setNotes] = useState("");
   const [legalConsent, setLegalConsent] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<{ orderId: number; price: number; quantity: number } | null>(null);
+  const [pendingUnlimitedAccess, setPendingUnlimitedAccess] = useState<{ accessId: number; price: number } | null>(null);
   const [cpf, setCpf] = useState("");
   const [pixLoading, setPixLoading] = useState(false);
   const [pix, setPix] = useState<{ qrCode: string; qrCodeBase64: string } | null>(null);
+  const [catalogSearch, setCatalogSearch] = useState("");
 
   const { data: catalog, isLoading: catalogLoading } = trpc.leadPackages.catalog.useQuery();
   const { data: myOrders, refetch: refetchOrders } = trpc.leadPackages.myOrders.useQuery(undefined, { enabled: !!user, refetchInterval: 20_000 });
+  const { data: unlimitedAccess, refetch: refetchUnlimitedAccess } = trpc.leadPackages.myUnlimitedAccess.useQuery(undefined, { enabled: !!user, refetchInterval: 20_000 });
+  const { data: unlimitedResults, isFetching: unlimitedResultsLoading } = trpc.leadPackages.searchUnlimitedCatalog.useQuery(
+    { query: catalogSearch || undefined, audience: audience === "b2b" ? "b2b" : "b2c", limit: 50 },
+    { enabled: !!unlimitedAccess },
+  );
   const createOrder = trpc.leadPackages.createOrder.useMutation({
     onError: (error) => toast.error(error.message),
   });
+  const createUnlimitedAccess = trpc.leadPackages.createUnlimitedAccess.useMutation({ onError: (error) => toast.error(error.message) });
+  const downloadDeliveredOrder = trpc.leadPackages.downloadDeliveredOrder.useMutation({ onError: (error) => toast.error(error.message) });
 
   const currentPackage = useMemo(
-    () => catalog?.[audience] ?? { quantity: 2000, price: audience === "b2b" ? 1490 : 990, available: 0, states: 0 },
+    () => catalog?.[audience] ?? { quantity: 2000, price: audience === "b2b" ? 179 : 149, available: 0, states: 0 },
     [catalog, audience],
   );
-  const selectedPrice = getLeadPackagePrice(currentPackage.price, quantity);
+  const selectedPrice = getLeadPackagePrice(audience, currentPackage.price, quantity);
   const leadStructuredData = useMemo(() => ({
     "@context": "https://schema.org",
     "@type": "Service",
@@ -82,7 +92,7 @@ export default function LeadPackages() {
         subtitle: "Empresas ativas para abrir novas conversas comerciais.",
         icon: Building2,
         label: "Empresas B2B",
-        bullets: ["CNPJ, CNAE e porte empresarial", "Recorte por setor, UF e cidade", "Canais empresariais quando disponíveis"],
+         bullets: ["CNPJ, CNAE e porte empresarial", "Recorte por setor, UF e cidade", "Telefone, e-mail e WhatsApp empresarial quando disponíveis"],
         helper: "Ideal para distribuidores, indústrias, software, serviços e expansão de canais.",
       }
     : {
@@ -98,8 +108,8 @@ export default function LeadPackages() {
 
   async function beginCheckout() {
     if (!user) {
-      toast.info("Crie sua conta com e-mail e senha para acompanhar a campanha.");
-      navigate("/register?type=empresa&returnTo=/pacotes-leads");
+      toast.info("Crie sua conta com e-mail e senha para acompanhar seu pedido.");
+      navigate("/register?purchase=leads&returnTo=/pacotes-leads");
       return;
     }
     if (!legalConsent) {
@@ -111,8 +121,32 @@ export default function LeadPackages() {
     setPix(null);
   }
 
+  async function beginUnlimitedCheckout() {
+    if (!user) {
+      toast.info("Crie sua conta com e-mail e senha para pesquisar o catálogo sem limites.");
+      navigate("/register?purchase=leads&returnTo=/pacotes-leads");
+      return;
+    }
+    const result = await createUnlimitedAccess.mutateAsync();
+    setPendingOrder(null);
+    setPendingUnlimitedAccess(result);
+    setPix(null);
+  }
+
+  async function exportOrderToCsv(orderId: number) {
+    const { rows } = await downloadDeliveredOrder.mutateAsync({ orderId });
+    const headers = ["Razão social", "Nome fantasia", "CNPJ", "CNAE", "Segmento", "Porte", "Cidade", "Estado", "CEP", "Endereço", "Telefone", "E-mail", "Site", "Instagram"];
+    const quote = (input: unknown) => `"${String(input ?? "").replaceAll('"', '""')}"`;
+    const csv = [headers.map(quote).join(";"), ...rows.map((row) => [row.razaoSocial, row.nomeFantasia, row.cnpj, row.cnaeDescricao, row.segmento, row.porte, row.cidade, row.estado, row.cep, row.endereco, row.telefone, row.email, row.site, row.instagram].map(quote).join(";"))].join("\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url; link.download = `repmatch-campanha-${orderId}.csv`; link.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV gerado para importação no CRM.");
+  }
+
   async function generatePix() {
-    if (!pendingOrder || !user) return;
+    if ((!pendingOrder && !pendingUnlimitedAccess) || !user) return;
     const digits = cpf.replace(/\D/g, "");
     if (digits.length !== 11) {
       toast.error("Informe um CPF válido com 11 dígitos para gerar o PIX.");
@@ -120,15 +154,19 @@ export default function LeadPackages() {
     }
     setPixLoading(true);
     try {
-      const response = await fetch("/api/mp/lead-package-pix", {
+      const isUnlimited = !!pendingUnlimitedAccess;
+      const response = await fetch(isUnlimited ? "/api/mp/market-search-unlimited-pix" : "/api/mp/lead-package-pix", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: pendingOrder.orderId, userId: user.id, userEmail: user.email ?? "", userName: user.name ?? "Cliente RepMatch", cpf: digits }),
+        body: JSON.stringify(isUnlimited
+          ? { accessId: pendingUnlimitedAccess!.accessId, userId: user.id, userEmail: user.email ?? "", userName: user.name ?? "Cliente RepMatch", cpf: digits }
+          : { orderId: pendingOrder!.orderId, userId: user.id, userEmail: user.email ?? "", userName: user.name ?? "Cliente RepMatch", cpf: digits }),
       });
       const data = await response.json();
       if (!response.ok || !data.qrCode) throw new Error(data.error ?? "Não foi possível gerar o PIX.");
       setPix({ qrCode: data.qrCode, qrCodeBase64: data.qrCodeBase64 });
       refetchOrders();
+      refetchUnlimitedAccess();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao gerar o PIX.");
     } finally {
@@ -186,8 +224,8 @@ export default function LeadPackages() {
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_14px_45px_-30px_rgba(15,23,42,.45)] sm:p-7">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {(["b2b", "b2c"] as const).map((type) => {
+               <div className="grid gap-3 sm:grid-cols-2">
+                 {(["b2b", "b2c"] as const).map((type) => {
                   const selected = audience === type;
                   const Icon = type === "b2b" ? Building2 : Users;
                   const item = catalog?.[type];
@@ -197,10 +235,18 @@ export default function LeadPackages() {
                     <p className="mt-1 text-sm leading-relaxed text-slate-600">{type === "b2b" ? "Empresas ativas para prospecção e expansão comercial." : "Empresas com atuação no consumidor final, varejo e serviços."}</p>
                     <p className="mt-3 text-xs font-bold text-emerald-700">{catalogLoading ? <InventorySkeleton /> : `${formatCount(item?.available ?? 0)}+ empresas disponíveis`}</p>
                   </button>;
-                })}
-              </div>
+                 })}
+               </div>
 
-              <div className="mt-8 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
+               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                 <p className="text-xs font-extrabold uppercase tracking-[.13em] text-amber-800">Campanhas prontas para vender mais</p>
+                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                   <button onClick={() => { setAudience("b2b"); setSegment("Concessionárias e automotivo"); }} className="rounded-xl border border-amber-200 bg-white p-3 text-left transition hover:border-amber-400 hover:shadow-sm"><p className="font-black text-slate-900">Concessionárias e automotivo</p><p className="mt-1 text-xs leading-relaxed text-slate-600">Lojas, veículos, peças e serviços automotivos para novas parcerias.</p></button>
+                   <button onClick={() => { setAudience("b2b"); setSegment("Imobiliárias e construção"); }} className="rounded-xl border border-amber-200 bg-white p-3 text-left transition hover:border-amber-400 hover:shadow-sm"><p className="font-black text-slate-900">Imobiliárias e construção</p><p className="mt-1 text-xs leading-relaxed text-slate-600">Imobiliárias, construtoras e parceiros do mercado imobiliário.</p></button>
+                 </div>
+               </div>
+
+               <div className="mt-8 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
                 <div className="flex items-start gap-3"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><PackageIcon className="h-5 w-5" /></div><div><h2 className="text-xl font-black">{packageCopy.title}</h2><p className="mt-1 text-sm text-slate-600">{packageCopy.subtitle}</p></div></div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">{packageCopy.bullets.map((item) => <div key={item} className="flex gap-2 rounded-xl bg-white p-3 text-xs font-semibold leading-relaxed text-slate-700 shadow-sm"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{item}</div>)}</div>
                 <p className="mt-4 text-xs leading-relaxed text-slate-500">{packageCopy.helper}</p>
@@ -211,7 +257,7 @@ export default function LeadPackages() {
                 <div className="mt-2 grid grid-cols-2 gap-3">
                   {([1000, 2000] as const).map((option) => {
                     const selected = quantity === option;
-                    const optionPrice = getLeadPackagePrice(currentPackage.price, option);
+                    const optionPrice = getLeadPackagePrice(audience, currentPackage.price, option);
                     return <button key={option} onClick={() => setQuantity(option)} className={`rounded-2xl border p-4 text-left transition ${selected ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100" : "border-slate-200 bg-white hover:border-emerald-300"}`}><span className="text-xl font-black">{option.toLocaleString("pt-BR")}</span><span className="block text-xs text-slate-500">empresas</span><span className="mt-2 block text-sm font-extrabold text-emerald-700">{catalogLoading ? "Consultando" : formatBRL(optionPrice)}</span></button>;
                   })}
                 </div>
@@ -247,6 +293,13 @@ export default function LeadPackages() {
                 {createOrder.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Solicitar por PIX <ArrowRight className="h-4 w-4" />
               </button>
               <div className="mt-4 flex gap-2 text-xs leading-relaxed text-slate-300"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Após o PIX confirmado, o pedido entra para revisão e entrega manual. Nenhum lote é liberado automaticamente.</div>
+              <div className="mt-6 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 p-4">
+                <p className="text-xs font-extrabold uppercase tracking-[.13em] text-emerald-300">Para quem pesquisa todo dia</p>
+                <p className="mt-2 text-lg font-black">Plano Pesquisa Ilimitada</p>
+                <p className="mt-1 text-sm text-slate-200">Pesquise quantas empresas quiser por 30 dias, com contato e dados comerciais disponíveis.</p>
+                <div className="mt-3 flex items-center justify-between"><strong className="text-2xl">{formatBRL(catalog?.unlimitedMonthly?.price ?? 499)}<span className="text-xs font-semibold text-slate-300">/mês</span></strong>{unlimitedAccess?.expiresAt ? <span className="rounded-full bg-emerald-300 px-2 py-1 text-[10px] font-black text-emerald-950">ATIVO ATÉ {new Date(unlimitedAccess.expiresAt).toLocaleDateString("pt-BR")}</span> : null}</div>
+                <button onClick={beginUnlimitedCheckout} disabled={createUnlimitedAccess.isPending || !!unlimitedAccess} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-3 text-sm font-extrabold text-emerald-800 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60">{createUnlimitedAccess.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}{unlimitedAccess ? "Acesso ilimitado ativo" : "Assinar pesquisa ilimitada"}</button>
+              </div>
             </aside>
           </div>
 
@@ -254,11 +307,11 @@ export default function LeadPackages() {
             {[{ icon: Target, title: "Briefing objetivo", text: "Você define público, setor e região." }, { icon: FileCheck2, title: "Curadoria antes da entrega", text: "O lote passa por revisão operacional." }, { icon: CircleDollarSign, title: "Compra por PIX", text: "Pagamento e aprovação em etapas claras." }].map((item) => <div key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5"><item.icon className="h-5 w-5 text-emerald-600" /><h3 className="mt-4 font-black">{item.title}</h3><p className="mt-1 text-sm leading-relaxed text-slate-600">{item.text}</p></div>)}
           </section>
 
-          {user && myOrders && myOrders.length > 0 && <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-extrabold uppercase tracking-[.14em] text-emerald-700">Acompanhamento</p><h2 className="mt-1 text-2xl font-black">Meus pedidos de campanha</h2></div><p className="text-sm text-slate-500">Atualizado automaticamente</p></div><div className="mt-5 space-y-3">{myOrders.slice(0, 5).map((order) => <div key={order.id} className="flex flex-col gap-3 rounded-2xl border border-slate-100 p-4 text-sm sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black">{order.quantity.toLocaleString("pt-BR")} empresas {order.audience.toUpperCase()}</p><p className="mt-1 text-xs text-slate-500">{order.segment || "Multissetorial"} · {order.region || "Nacional"}</p></div><span className="w-fit rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">{order.status === "pending_payment" ? "Aguardando PIX" : order.status === "pending_approval" ? "PIX confirmado — em análise" : order.status === "approved" ? "Em preparação" : order.status === "delivered" ? "Entregue" : order.status}</span></div>)}</div></section>}
+          {user && myOrders && myOrders.length > 0 && <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-extrabold uppercase tracking-[.14em] text-emerald-700">Acompanhamento</p><h2 className="mt-1 text-2xl font-black">Meus pedidos de campanha</h2></div><p className="text-sm text-slate-500">Atualizado automaticamente</p></div><div className="mt-5 space-y-3">{myOrders.slice(0, 5).map((order) => <div key={order.id} className="flex flex-col gap-3 rounded-2xl border border-slate-100 p-4 text-sm sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black">{order.quantity.toLocaleString("pt-BR")} empresas {order.audience.toUpperCase()}</p><p className="mt-1 text-xs text-slate-500">{order.segment || "Multissetorial"} · {order.region || "Nacional"}</p></div><div className="flex flex-wrap items-center gap-2"><span className="w-fit rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">{order.status === "pending_payment" ? "Aguardando PIX" : order.status === "pending_approval" ? "PIX confirmado — em análise" : order.status === "approved" ? "Em preparação" : order.status === "delivered" ? "Entregue" : order.status}</span>{order.status === "delivered" && <button onClick={() => exportOrderToCsv(order.id)} disabled={downloadDeliveredOrder.isPending} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"><Download className="h-3.5 w-3.5" />Baixar CSV para CRM</button>}</div></div>)}</div></section>}
         </section>
       </main>
 
-      {pendingOrder && <div className="fixed inset-0 z-50 flex items-end bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4"><div className="w-full rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-7"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Etapa final</p><h2 className="mt-1 text-xl font-black">Pagamento da campanha</h2><p className="mt-1 text-sm text-slate-600">{audience.toUpperCase()} · {pendingOrder.quantity.toLocaleString("pt-BR")} empresas · {formatBRL(pendingOrder.price)}</p></div><button onClick={() => setPendingOrder(null)} className="grid h-9 w-9 place-items-center rounded-full text-2xl text-slate-400 transition hover:bg-slate-100" aria-label="Fechar">×</button></div>{!pix ? <><label className="mt-6 block text-sm font-bold">CPF do pagador<input inputMode="numeric" value={cpf} onChange={(event) => setCpf(event.target.value)} placeholder="000.000.000-00" className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" /></label><button onClick={generatePix} disabled={pixLoading} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60">{pixLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Gerar QR Code PIX</button></> : <div className="mt-6 text-center"><img src={`data:image/png;base64,${pix.qrCodeBase64}`} className="mx-auto h-52 w-52" alt="QR Code PIX" /><p className="mt-4 font-black">PIX gerado com sucesso</p><p className="mt-1 text-xs leading-relaxed text-slate-500">A confirmação leva seu pedido para análise e entrega assistida.</p><button onClick={() => navigator.clipboard.writeText(pix.qrCode).then(() => toast.success("Código PIX copiado"))} className="mt-4 min-h-12 w-full rounded-xl border border-emerald-300 px-4 py-3 text-sm font-bold text-emerald-700">Copiar código PIX</button></div>}</div></div>}
+      {(pendingOrder || pendingUnlimitedAccess) && <div className="fixed inset-0 z-50 flex items-end bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4"><div className="w-full rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-7"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Etapa final</p><h2 className="mt-1 text-xl font-black">{pendingUnlimitedAccess ? "Plano Pesquisa Ilimitada" : "Pagamento da campanha"}</h2><p className="mt-1 text-sm text-slate-600">{pendingUnlimitedAccess ? `30 dias de pesquisas ilimitadas · ${formatBRL(pendingUnlimitedAccess.price)}` : `${audience.toUpperCase()} · ${pendingOrder!.quantity.toLocaleString("pt-BR")} empresas · ${formatBRL(pendingOrder!.price)}`}</p></div><button onClick={() => { setPendingOrder(null); setPendingUnlimitedAccess(null); }} className="grid h-9 w-9 place-items-center rounded-full text-2xl text-slate-400 transition hover:bg-slate-100" aria-label="Fechar">×</button></div>{!pix ? <><label className="mt-6 block text-sm font-bold">CPF do pagador<input inputMode="numeric" value={cpf} onChange={(event) => setCpf(event.target.value)} placeholder="000.000.000-00" className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" /></label><button onClick={generatePix} disabled={pixLoading} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60">{pixLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Gerar QR Code PIX</button></> : <div className="mt-6 text-center"><img src={`data:image/png;base64,${pix.qrCodeBase64}`} className="mx-auto h-52 w-52" alt="QR Code PIX" /><p className="mt-4 font-black">PIX gerado com sucesso</p><p className="mt-1 text-xs leading-relaxed text-slate-500">A confirmação leva seu pedido para análise e ativação assistida.</p><button onClick={() => navigator.clipboard.writeText(pix.qrCode).then(() => toast.success("Código PIX copiado"))} className="mt-4 min-h-12 w-full rounded-xl border border-emerald-300 px-4 py-3 text-sm font-bold text-emerald-700">Copiar código PIX</button></div>}</div></div>}
     </div>
   );
 }

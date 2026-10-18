@@ -46,10 +46,10 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings, leadPackageOrders, marketLeads } from "../drizzle/schema";
-import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count } from "drizzle-orm";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings, leadPackageOrders, marketLeads, marketLeadAccesses } from "../drizzle/schema";
+import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count, like, or } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
-import { getLeadPackagePrice } from "@shared/leadPackages";
+import { DEFAULT_LEAD_PACKAGE_PRICES, getLeadPackagePrice } from "@shared/leadPackages";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { consultarCnpj } from "./cnpja";
@@ -63,7 +63,9 @@ const TIER_ORDER = { free: 0, bronze: 1, prata: 2, ouro: 3 } as const;
 const COMPANY_CONTACT_UNLOCK_PRICE_KEY = "company_contact_unlock_price";
 const LEAD_PACKAGE_B2B_PRICE_KEY = "lead_package_b2b_price";
 const LEAD_PACKAGE_B2C_PRICE_KEY = "lead_package_b2c_price";
-const DEFAULT_LEAD_PACKAGE_PRICES = { b2b: 1490, b2c: 990 } as const;
+const MARKET_SEARCH_UNLIMITED_PRICE_KEY = "market_search_unlimited_monthly_price";
+const DEFAULT_LEAD_PACKAGE_TWO_THOUSAND_PRICES = { b2b: DEFAULT_LEAD_PACKAGE_PRICES.b2b[2000], b2c: DEFAULT_LEAD_PACKAGE_PRICES.b2c[2000] } as const;
+const DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE = 499;
 
 function normalizeContactUnlockPrice(value: string | null | undefined): number {
   const parsed = Number(value);
@@ -74,7 +76,14 @@ function normalizeLeadPackagePrice(value: string | null | undefined, audience: "
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 50 && parsed <= 100_000
     ? Number(parsed.toFixed(2))
-    : DEFAULT_LEAD_PACKAGE_PRICES[audience];
+    : DEFAULT_LEAD_PACKAGE_TWO_THOUSAND_PRICES[audience];
+}
+
+function normalizeMarketSearchUnlimitedPrice(value: string | null | undefined): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 50 && parsed <= 10_000
+    ? Number(parsed.toFixed(2))
+    : DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE;
 }
 
 function normalizePhone(raw: string | undefined | null): string | null {
@@ -1140,13 +1149,14 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
     catalog: publicProcedure.query(async () => {
       const db = await getDb();
       const fallback = {
-        b2b: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_PRICES.b2b, available: 0, states: 0 },
-        b2c: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_PRICES.b2c, available: 0, states: 0 },
+        b2b: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_TWO_THOUSAND_PRICES.b2b, available: 0, states: 0 },
+        b2c: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_TWO_THOUSAND_PRICES.b2c, available: 0, states: 0 },
+        unlimitedMonthly: { price: DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE, durationDays: 30 },
       };
       if (!db) return fallback;
       const settings = await db.select({ key: platformSettings.key, value: platformSettings.value })
         .from(platformSettings)
-        .where(inArray(platformSettings.key, [LEAD_PACKAGE_B2B_PRICE_KEY, LEAD_PACKAGE_B2C_PRICE_KEY]));
+        .where(inArray(platformSettings.key, [LEAD_PACKAGE_B2B_PRICE_KEY, LEAD_PACKAGE_B2C_PRICE_KEY, MARKET_SEARCH_UNLIMITED_PRICE_KEY]));
       const priceByKey = new Map(settings.map((setting) => [setting.key, setting.value]));
       const [b2bInventory, b2cInventory] = await Promise.all([
         db.select({
@@ -1171,8 +1181,71 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           available: Number(b2cInventory[0]?.available ?? 0),
           states: Number(b2cInventory[0]?.states ?? 0),
         },
+        unlimitedMonthly: {
+          price: normalizeMarketSearchUnlimitedPrice(priceByKey.get(MARKET_SEARCH_UNLIMITED_PRICE_KEY)),
+          durationDays: 30,
+        },
       };
     }),
+
+    myUnlimitedAccess: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const now = new Date();
+      const [access] = await db.select().from(marketLeadAccesses)
+        .where(and(eq(marketLeadAccesses.userId, ctx.user.id), eq(marketLeadAccesses.status, "active"), gte(marketLeadAccesses.expiresAt, now)))
+        .orderBy(desc(marketLeadAccesses.expiresAt))
+        .limit(1);
+      return access ?? null;
+    }),
+
+    createUnlimitedAccess: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [setting] = await db.select({ value: platformSettings.value }).from(platformSettings)
+        .where(eq(platformSettings.key, MARKET_SEARCH_UNLIMITED_PRICE_KEY)).limit(1);
+      const price = normalizeMarketSearchUnlimitedPrice(setting?.value);
+      const [result] = await db.insert(marketLeadAccesses).values({
+        userId: ctx.user.id,
+        plan: "unlimited_monthly",
+        status: "pending_payment",
+        amount: price.toFixed(2),
+      });
+      return { accessId: Number((result as unknown as [{ insertId: number }])[0]?.insertId), price, durationDays: 30 };
+    }),
+
+    searchUnlimitedCatalog: protectedProcedure
+      .input(z.object({
+        query: z.string().trim().max(120).optional(),
+        audience: z.enum(["b2b", "b2c", "all"]).default("all"),
+        state: z.string().trim().length(2).optional(),
+        segment: z.string().trim().max(150).optional(),
+        limit: z.number().int().min(1).max(100).default(50),
+      }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const now = new Date();
+        const [access] = await db.select({ id: marketLeadAccesses.id }).from(marketLeadAccesses)
+          .where(and(eq(marketLeadAccesses.userId, ctx.user.id), eq(marketLeadAccesses.status, "active"), gte(marketLeadAccesses.expiresAt, now)))
+          .limit(1);
+        if (!access) throw new TRPCError({ code: "FORBIDDEN", message: "Assine o Plano Pesquisa Ilimitada para pesquisar o catálogo." });
+        const filters = [eq(marketLeads.available, true)];
+        if (input.audience !== "all") filters.push(inArray(marketLeads.audience, [input.audience, "both"]));
+        if (input.state) filters.push(eq(marketLeads.estado, input.state.toUpperCase()));
+        if (input.segment) filters.push(like(marketLeads.segmento, `%${input.segment}%`));
+        if (input.query) {
+          const term = `%${input.query}%`;
+          filters.push(or(like(marketLeads.razaoSocial, term), like(marketLeads.nomeFantasia, term), like(marketLeads.cidade, term), like(marketLeads.cnaeDescricao, term))!);
+        }
+        return db.select({
+          id: marketLeads.id, razaoSocial: marketLeads.razaoSocial, nomeFantasia: marketLeads.nomeFantasia,
+          cnpj: marketLeads.cnpj, cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento,
+          porte: marketLeads.porte, cidade: marketLeads.cidade, estado: marketLeads.estado, cep: marketLeads.cep,
+          endereco: marketLeads.endereco, telefone: marketLeads.telefone, email: marketLeads.email, site: marketLeads.site,
+          instagram: marketLeads.instagram, situacaoCadastral: marketLeads.situacaoCadastral,
+        }).from(marketLeads).where(and(...filters)).orderBy(asc(marketLeads.razaoSocial)).limit(input.limit);
+      }),
 
     createOrder: protectedProcedure
       .input(z.object({
@@ -1189,7 +1262,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         const key = input.audience === "b2b" ? LEAD_PACKAGE_B2B_PRICE_KEY : LEAD_PACKAGE_B2C_PRICE_KEY;
         const [setting] = await db.select({ value: platformSettings.value }).from(platformSettings).where(eq(platformSettings.key, key)).limit(1);
         const packagePrice = normalizeLeadPackagePrice(setting?.value, input.audience);
-        const price = getLeadPackagePrice(packagePrice, input.quantity);
+        const price = getLeadPackagePrice(input.audience, packagePrice, input.quantity);
         const [result] = await db.insert(leadPackageOrders).values({
           userId: ctx.user.id,
           audience: input.audience,
@@ -1211,6 +1284,28 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       if (!db) return [];
       return db.select().from(leadPackageOrders).where(eq(leadPackageOrders.userId, ctx.user.id)).orderBy(desc(leadPackageOrders.createdAt));
     }),
+
+    downloadDeliveredOrder: protectedProcedure
+      .input(z.object({ orderId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [order] = await db.select().from(leadPackageOrders)
+          .where(and(eq(leadPackageOrders.id, input.orderId), eq(leadPackageOrders.userId, ctx.user.id)))
+          .limit(1);
+        if (!order || order.status !== "delivered") throw new TRPCError({ code: "FORBIDDEN", message: "O lote fica disponível para download após a entrega ser concluída." });
+        const filters = [eq(marketLeads.available, true)];
+        filters.push(inArray(marketLeads.audience, [order.audience, "both"]));
+        if (order.region && order.region !== "Nacional") filters.push(eq(marketLeads.estado, order.region));
+        if (order.segment) filters.push(like(marketLeads.segmento, `%${order.segment}%`));
+        const rows = await db.select({
+          razaoSocial: marketLeads.razaoSocial, nomeFantasia: marketLeads.nomeFantasia, cnpj: marketLeads.cnpj,
+          cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento, porte: marketLeads.porte,
+          cidade: marketLeads.cidade, estado: marketLeads.estado, cep: marketLeads.cep, endereco: marketLeads.endereco,
+          telefone: marketLeads.telefone, email: marketLeads.email, site: marketLeads.site, instagram: marketLeads.instagram,
+        }).from(marketLeads).where(and(...filters)).orderBy(asc(marketLeads.razaoSocial)).limit(order.quantity);
+        return { orderId: order.id, quantity: order.quantity, rows };
+      }),
 
     adminList: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
@@ -1258,6 +1353,42 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           deliveredAt: input.status === "delivered" ? new Date() : null,
         }).where(eq(leadPackageOrders.id, input.orderId));
         return { success: true };
+      }),
+
+    adminUnlimitedAccesses: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) return [];
+      return db.select({
+        id: marketLeadAccesses.id, status: marketLeadAccesses.status, amount: marketLeadAccesses.amount,
+        mpPaymentId: marketLeadAccesses.mpPaymentId, startsAt: marketLeadAccesses.startsAt, expiresAt: marketLeadAccesses.expiresAt,
+        adminNotes: marketLeadAccesses.adminNotes, createdAt: marketLeadAccesses.createdAt,
+        buyerName: users.name, buyerEmail: users.email,
+      }).from(marketLeadAccesses).leftJoin(users, eq(marketLeadAccesses.userId, users.id)).orderBy(desc(marketLeadAccesses.createdAt));
+    }),
+
+    reviewUnlimitedAccess: protectedProcedure
+      .input(z.object({ accessId: z.number().int().positive(), status: z.enum(["active", "rejected"]), notes: z.string().trim().max(1000).optional() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [access] = await db.select({ status: marketLeadAccesses.status }).from(marketLeadAccesses).where(eq(marketLeadAccesses.id, input.accessId)).limit(1);
+        if (!access) throw new TRPCError({ code: "NOT_FOUND", message: "Acesso não encontrado." });
+        if (input.status === "active" && access.status !== "pending_approval") {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A ativação só é permitida após a confirmação do PIX." });
+        }
+        const startsAt = input.status === "active" ? new Date() : null;
+        const expiresAt = startsAt ? new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000) : null;
+        await db.update(marketLeadAccesses).set({
+          status: input.status,
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+          startsAt,
+          expiresAt,
+          adminNotes: input.notes || null,
+        }).where(eq(marketLeadAccesses.id, input.accessId));
+        return { success: true, startsAt, expiresAt };
       }),
   }),
 

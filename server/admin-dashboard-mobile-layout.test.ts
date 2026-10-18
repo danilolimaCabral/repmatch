@@ -190,8 +190,10 @@ describe("AdminDashboard mobile layout", () => {
     expect(leadPackagesSource).toContain("1.000 ou 2.000 empresas");
     expect(leadPackagesSource).toContain("Tamanho do pacote");
     expect(routersSource).toContain("quantity: z.union([z.literal(1000), z.literal(2000)])");
-    expect(leadPackagesSource).toContain('/register?type=empresa&returnTo=/pacotes-leads');
+    expect(leadPackagesSource).toContain('/register?purchase=leads&returnTo=/pacotes-leads');
     expect(publicPageSources.Register).toContain("getSafeReturnTo");
+    expect(publicPageSources.Register).toContain('isLeadBuyerRegistration');
+    expect(publicPageSources.Register).toContain('required={leadBuyer}');
     expect(leadPackagesSource).toContain("conformidade com a LGPD");
   });
 

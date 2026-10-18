@@ -66,17 +66,24 @@ function getSafeReturnTo() {
   return value?.startsWith("/") && !value.startsWith("//") ? value : null;
 }
 
+function isLeadBuyerRegistration() {
+  return new URLSearchParams(window.location.search).get("purchase") === "leads";
+}
+
 export default function Register() {
   const [location, navigate] = useLocation();
   const [typeParam, setTypeParam] = useState<TypeKey | null>(getTypeFromSearch);
+  const [leadBuyer, setLeadBuyer] = useState(isLeadBuyerRegistration);
 
   // Re-read type param whenever location (URL) changes
   useEffect(() => {
     setTypeParam(getTypeFromSearch());
+    setLeadBuyer(isLeadBuyerRegistration());
   }, [location]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -95,7 +102,7 @@ export default function Register() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, phone, password, leadBuyer }),
       });
       const data = await res.json() as { success?: boolean; error?: string };
       if (!res.ok || !data.success) {
@@ -122,7 +129,7 @@ export default function Register() {
   }
 
   // If no type selected, show the type selection screen first
-  if (!typeParam) {
+  if (!typeParam && !leadBuyer) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8">
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -190,7 +197,7 @@ export default function Register() {
   }
 
   // Type selected — show registration form
-  const cfg = TYPE_CONFIG[typeParam];
+  const cfg = leadBuyer ? { ...TYPE_CONFIG.empresa, label: "Comprador de campanhas", subtitle: "Pesquise empresas e compre campanhas de leads", badge: "Acesso rápido" } : TYPE_CONFIG[typeParam!];
   const Icon = cfg.icon;
 
   return (
@@ -236,7 +243,7 @@ export default function Register() {
           <h2 className="text-foreground text-lg font-bold mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
             Crie sua conta gratuita
           </h2>
-          <p className="text-muted-foreground text-xs mb-5">Preencha os dados abaixo para começar</p>
+          <p className="text-muted-foreground text-xs mb-5">{leadBuyer ? "Use e-mail, celular e senha para acessar as campanhas." : "Preencha os dados abaixo para começar"}</p>
 
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-start gap-2">
@@ -246,7 +253,7 @@ export default function Register() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
+            {!leadBuyer && <div className="space-y-1.5">
               <Label htmlFor="name" className="text-foreground text-sm font-semibold">Nome completo</Label>
               <Input
                 id="name"
@@ -258,7 +265,7 @@ export default function Register() {
                 autoComplete="name"
                 className="bg-slate-50 border-slate-200 text-foreground placeholder:text-muted-foreground/70 focus:bg-white transition-colors"
               />
-            </div>
+            </div>}
 
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-foreground text-sm font-semibold">E-mail</Label>
@@ -272,6 +279,11 @@ export default function Register() {
                 autoComplete="email"
                 className="bg-slate-50 border-slate-200 text-foreground placeholder:text-muted-foreground/70 focus:bg-white transition-colors"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-foreground text-sm font-semibold">Celular {leadBuyer ? "" : "(opcional)"}</Label>
+              <Input id="phone" type="tel" inputMode="tel" placeholder="(00) 00000-0000" value={phone} onChange={e => setPhone(e.target.value)} required={leadBuyer} autoComplete="tel" className="bg-slate-50 border-slate-200 text-foreground placeholder:text-muted-foreground/70 focus:bg-white transition-colors" />
             </div>
 
             <div className="space-y-1.5">

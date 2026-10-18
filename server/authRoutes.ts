@@ -47,9 +47,9 @@ export function registerAuthRoutes(app: Express) {
   // POST /api/auth/register
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      const { name, email, password } = req.body as { name?: string; email?: string; password?: string };
-      if (!email || !password || !name) {
-        res.status(400).json({ error: "Nome, email e senha são obrigatórios." });
+      const { name, email, password, phone, leadBuyer } = req.body as { name?: string; email?: string; password?: string; phone?: string; leadBuyer?: boolean };
+      if (!email || !password || (!name && !leadBuyer) || (leadBuyer && !phone)) {
+        res.status(400).json({ error: leadBuyer ? "E-mail, celular e senha são obrigatórios para comprar leads." : "Nome, e-mail e senha são obrigatórios." });
         return;
       }
       if (password.length < 6) {
@@ -58,19 +58,26 @@ export function registerAuthRoutes(app: Express) {
       }
       const db = await getDb();
       if (!db) { res.status(500).json({ error: "DB unavailable" }); return; }
+      const normalizedEmail = email.trim().toLowerCase();
       // Check if email already exists
-      const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+      const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, normalizedEmail)).limit(1);
       if (existing.length > 0) {
         res.status(409).json({ error: "Este e-mail já está cadastrado." });
         return;
       }
+      const normalizedPhone = phone?.replace(/\D/g, "") || null;
+      if (leadBuyer && (!normalizedPhone || normalizedPhone.length < 10 || normalizedPhone.length > 13)) {
+        res.status(400).json({ error: "Informe um celular válido com DDD." });
+        return;
+      }
       const passwordHash = await bcrypt.hash(password, 10);
-      const openId = `email:${email}`;
+      const openId = `email:${normalizedEmail}`;
       const emailVerificationToken = generateToken();
       await db.insert(users).values({
         openId,
-        name,
-        email,
+        name: name?.trim() || normalizedEmail.split("@")[0],
+        email: normalizedEmail,
+        phone: normalizedPhone,
         passwordHash,
         emailVerified: false,
         emailVerificationToken,
@@ -84,8 +91,8 @@ export function registerAuthRoutes(app: Express) {
       const origin = (req.headers.origin as string) || `https://${req.headers.host}`;
       const verifyUrl = `${origin}/verificar-email?token=${emailVerificationToken}`;
       notifyOwner({
-        title: `📧 Novo cadastro: ${name}`,
-        content: `Novo usuário: ${name} (${email})\n\nLink de verificação de e-mail (encaminhe ao usuário):\n${verifyUrl}`,
+        title: `Novo cadastro: ${name?.trim() || normalizedEmail.split("@")[0]}`,
+        content: `Novo usuário: ${name?.trim() || normalizedEmail.split("@")[0]} (${normalizedEmail})\n\nLink de verificação de e-mail (encaminhe ao usuário):\n${verifyUrl}`,
       }).catch(() => {});
       res.json({
         success: true,

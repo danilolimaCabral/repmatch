@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
-import { representatives, companies, users, unlockRequests, unlockRequestItems, leadPackageOrders } from "../../drizzle/schema";
+import { representatives, companies, users, unlockRequests, unlockRequestItems, leadPackageOrders, marketLeadAccesses } from "../../drizzle/schema";
 import { and, eq } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { notifyOwner } from "../_core/notification";
@@ -197,6 +197,30 @@ mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
   }
 });
 
+// ─── Gerar PIX para o Plano Pesquisa Ilimitada ─────────────────────────────────
+mpRouter.post("/market-search-unlimited-pix", async (req: Request, res: Response) => {
+  try {
+    const { accessId, userId, userEmail, userName, cpf } = req.body as { accessId: number; userId: number; userEmail: string; userName: string; cpf: string };
+    if (!accessId || !userId || !cpf?.replace(/\D/g, "")) return res.status(400).json({ error: "Dados inválidos" });
+    const db = await getDb();
+    if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
+    const [access] = await db.select({ id: marketLeadAccesses.id, amount: marketLeadAccesses.amount, status: marketLeadAccesses.status })
+      .from(marketLeadAccesses).where(and(eq(marketLeadAccesses.id, accessId), eq(marketLeadAccesses.userId, userId))).limit(1);
+    if (!access || access.status !== "pending_payment") return res.status(404).json({ error: "Plano não disponível para pagamento" });
+    const payment = new Payment(mp);
+    const result = await payment.create({ body: {
+      transaction_amount: Number(access.amount), description: "Plano Pesquisa Ilimitada — 30 dias | RepMatch", payment_method_id: "pix",
+      payer: { email: userEmail, first_name: userName.split(" ")[0], last_name: userName.split(" ").slice(1).join(" ") || userName.split(" ")[0], identification: { type: "CPF", number: cpf.replace(/\D/g, "") } },
+      metadata: { type: "market_search_unlimited", access_id: accessId, user_id: userId },
+    }});
+    const txInfo = result.point_of_interaction?.transaction_data;
+    return res.json({ paymentId: result.id, status: result.status, qrCode: txInfo?.qr_code, qrCodeBase64: txInfo?.qr_code_base64, expiresAt: result.date_of_expiration });
+  } catch (e: any) {
+    console.error("[MP] market-search-unlimited-pix error:", e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Criar preferência de pagamento (Checkout Pro — cartão + Pix) ─────────────
 mpRouter.post("/preference", async (req: Request, res: Response) => {
   try {
@@ -352,8 +376,19 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
         const db = await getDb();
         if (!db) return res.json({ received: true });
 
+        // ── Plano Pesquisa Ilimitada: PIX confirmado, ativação manual ─────────
+        if (meta?.type === "market_search_unlimited") {
+          const accessId = Number(meta.access_id);
+          if (accessId) {
+            const [access] = await db.select({ id: marketLeadAccesses.id, status: marketLeadAccesses.status, amount: marketLeadAccesses.amount })
+              .from(marketLeadAccesses).where(eq(marketLeadAccesses.id, accessId)).limit(1);
+            if (access?.status === "pending_payment") {
+              await db.update(marketLeadAccesses).set({ status: "pending_approval", mpPaymentId: String(result.id), adminNotes: "PIX confirmado pelo Mercado Pago — aguardando ativação manual por 30 dias." }).where(eq(marketLeadAccesses.id, accessId));
+              void notifyOwner({ title: `PIX confirmado — Plano Ilimitado #${accessId}`, content: `Pagamento de R$ ${Number(access.amount).toFixed(2)} confirmado. Acesse Admin > Comercial para ativar 30 dias de pesquisa ilimitada.` }).catch((error) => console.error("[MP Webhook] unlimited notification error:", error));
+            }
+          }
         // ── Pacote de leads: PIX confirmado, entrega manual ──────────────────
-        if (meta?.type === "lead_package") {
+        } else if (meta?.type === "lead_package") {
           const orderId = Number(meta.order_id);
           if (orderId) {
             const [leadOrder] = await db.select({ id: leadPackageOrders.id, status: leadPackageOrders.status, audience: leadPackageOrders.audience, quantity: leadPackageOrders.quantity, totalAmount: leadPackageOrders.totalAmount })

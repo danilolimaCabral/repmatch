@@ -19,6 +19,7 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 20 }),
   passwordHash: varchar("passwordHash", { length: 255 }),
   emailVerified: boolean("emailVerified").default(false).notNull(),
   emailVerificationToken: varchar("emailVerificationToken", { length: 128 }),
@@ -416,6 +417,28 @@ export const marketLeads = mysqlTable("market_leads", {
 }));
 export type MarketLead = typeof marketLeads.$inferSelect;
 export type InsertMarketLead = typeof marketLeads.$inferInsert;
+
+// ─── Acessos mensais ao catálogo comercial ────────────────────────────────────
+export const marketLeadAccesses = mysqlTable("market_lead_accesses", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  plan: mysqlEnum("plan", ["unlimited_monthly"]).default("unlimited_monthly").notNull(),
+  status: mysqlEnum("status", ["pending_payment", "pending_approval", "active", "rejected", "expired", "cancelled"]).default("pending_payment").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  mpPaymentId: varchar("mp_payment_id", { length: 100 }),
+  reviewedBy: int("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  startsAt: timestamp("starts_at"),
+  expiresAt: timestamp("expires_at"),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  userStatusExpiryIdx: index("market_access_user_status_expiry_idx").on(t.userId, t.status, t.expiresAt),
+  statusCreatedIdx: index("market_access_status_created_idx").on(t.status, t.createdAt),
+}));
+export type MarketLeadAccess = typeof marketLeadAccesses.$inferSelect;
+export type InsertMarketLeadAccess = typeof marketLeadAccesses.$inferInsert;
 
 // ─── Pacotes de leads B2B e B2C (entrega manual após PIX confirmado) ─────────
 export const leadPackageOrders = mysqlTable("lead_package_orders", {

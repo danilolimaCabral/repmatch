@@ -849,10 +849,10 @@
 - [x] Validar o novo painel com TypeScript e testes automatizados
 
 ## Landing de campanhas B2B (18/10/2026)
-- [ ] Criar uma seção comercial para o pacote de 2.000 leads B2B
-- [ ] Levar o CTA diretamente ao catálogo de pedidos PIX com preço dinâmico
-- [ ] Explicar segmentação, curadoria e entrega assistida sem prometer dados indisponíveis
-- [ ] Validar a extensão da landing com TypeScript e testes automatizados
+- [x] Criar uma seção comercial para o pacote de 2.000 leads B2B
+- [x] Levar o CTA diretamente ao catálogo de pedidos PIX com preço dinâmico
+- [x] Explicar segmentação, curadoria e entrega assistida sem prometer dados indisponíveis
+- [x] Validar a extensão da landing com TypeScript e testes automatizados
 
 ## Pacotes B2B/B2C de 1.000 e 2.000 empresas (18/10/2026)
 - [x] Permitir escolher pacotes de 1.000 ou 2.000 empresas com preço proporcional e configurável
@@ -861,3 +861,28 @@
 - [x] Registrar a quantidade escolhida no pedido PIX e no painel administrativo
 - [x] Importar o catálogo empresarial ativo das três organizações em lotes deduplicados
 - [x] Validar o fluxo com TypeScript, testes e verificação de inventário
+
+## Pacote avulso de teste (18/10/2026)
+- [ ] Adicionar opção de 100 empresas para testar uma campanha com investimento menor
+- [ ] Calcular o valor proporcional no checkout e registrar a quantidade no pedido PIX
+- [ ] Atualizar a vitrine e a Central Comercial com o novo pacote avulso
+- [ ] Validar a opção avulsa com TypeScript e testes automatizados
+
+## Plano Pesquisa Ilimitada — R$ 499/mês (18/10/2026)
+- [x] Criar acesso mensal com 30 dias de pesquisas ilimitadas no catálogo empresarial
+- [x] Criar cobrança PIX de R$ 499 e aprovação manual pelo admin
+- [x] Restringir a busca detalhada no catálogo a assinaturas ativas
+- [x] Incluir compra e acompanhamento do plano na Central de Campanhas
+- [x] Validar o plano mensal com TypeScript e testes automatizados
+
+## Pacotes verticais para venda (18/10/2026)
+- [x] Criar atalhos de campanha para concessionárias/automotivo e imobiliárias/construção
+- [x] Usar os mesmos pacotes B2B de empresas, com segmento e região pré-selecionados
+- [ ] Pesquisar referências de mercado e requisitos legais para produtos baseados em dados de CPF, sem disponibilizar dados pessoais sem base legal
+
+## Área do comprador de campanhas (18/10/2026)
+- [x] Criar abas Buscar B2B e Buscar B2C no painel da empresa para assinantes ativos
+- [x] Restringir a pesquisa detalhada ao Plano Pesquisa Ilimitada ativo
+- [x] Permitir download CSV de pedidos entregues para importação no CRM do comprador
+- [x] Simplificar o cadastro de comprador para e-mail, celular e senha, com retorno à campanha
+- [x] Aplicar os preços comerciais definidos: B2B 1.000 R$ 99, B2B 2.000 R$ 179, B2C 1.000 R$ 79 e B2C 2.000 R$ 149
