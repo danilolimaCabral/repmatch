@@ -52,6 +52,7 @@ import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { consultarCnpj } from "./cnpja";
+import { resolveIbgeMunicipality } from "./ibge";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
 
@@ -1052,12 +1053,25 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         .filter(Boolean)));
       const liveCnpjDetails = await Promise.all(cnpjsToEnrich.map(async (cnpj) => [cnpj, await consultarCnpj(cnpj)] as const));
       const liveCnpjMap = new Map(liveCnpjDetails.filter(([, detail]) => detail).map(([cnpj, detail]) => [cnpj, detail!]));
+      const municipalityCodes = Array.from(new Set(unlocks
+        .map((unlock) => {
+          const rep = repMap[unlock.representativeId];
+          const imported = importedIdMap.get(unlock.representativeId) ?? importedCnpjMap.get(normalizedCnpj(rep?.cnpj));
+          const liveDetails = liveCnpjMap.get(normalizedCnpj(rep?.cnpj ?? imported?.cnpj));
+          return liveDetails?.municipio ?? rep?.cidade ?? imported?.municipio;
+        })
+        .filter((municipio): municipio is string => typeof municipio === "string" && /^\d{7}$/.test(municipio))));
+      const municipalities = await Promise.all(municipalityCodes.map(async (code) => [code, await resolveIbgeMunicipality(code)] as const));
+      const municipalityMap = new Map(municipalities.filter(([, municipality]) => municipality).map(([code, municipality]) => [code, municipality!]));
       return unlocks.map((u) => {
         const rep = repMap[u.representativeId];
         const imported = importedIdMap.get(u.representativeId) ?? importedCnpjMap.get(normalizedCnpj(rep?.cnpj));
         const liveDetails = liveCnpjMap.get(normalizedCnpj(rep?.cnpj ?? imported?.cnpj));
         const publicName = rep?.fullName || liveDetails?.nomeFantasia || liveDetails?.razaoSocial || imported?.nomeFantasia || imported?.razaoSocial || itemNameMap.get(u.representativeId) || "Representante comercial";
-        const cityAndState = [liveDetails?.municipio ?? rep?.cidade ?? imported?.municipio, liveDetails?.uf ?? rep?.estado ?? imported?.uf].filter(Boolean).join(" - ");
+        const rawMunicipality = liveDetails?.municipio ?? rep?.cidade ?? imported?.municipio;
+        const municipality = rawMunicipality ? municipalityMap.get(rawMunicipality) : null;
+        const state = municipality?.state ?? liveDetails?.uf ?? rep?.estado ?? imported?.uf ?? null;
+        const cityAndState = [municipality?.city ?? rawMunicipality, state].filter(Boolean).join(" - ");
         return {
           unlockedAt: u.unlockedAt,
           pricePaid: u.pricePaid,
@@ -1065,19 +1079,24 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           fullName: publicName,
           legalName: liveDetails?.razaoSocial || imported?.razaoSocial || null,
           segment: rep?.segment ?? liveDetails?.cnaeDescricao ?? imported?.cnaeDescricao ?? null,
-          region: rep?.region ?? liveDetails?.uf ?? imported?.uf ?? null,
+          region: rep?.region ?? state,
           city: cityAndState || null,
           address: imported?.logradouro ?? null,
+          cep: imported?.cep ?? null,
           cnpj: rep?.cnpj ?? imported?.cnpj ?? null,
           cnpjStatus: liveDetails?.situacao ?? null,
+          cnaeCode: liveDetails?.cnaePrincipal ?? imported?.cnaePrincipal ?? null,
           cnaeDescricao: liveDetails?.cnaeDescricao ?? imported?.cnaeDescricao ?? null,
           porte: imported?.porte ?? null,
+          isMei: Boolean(imported?.isMei),
+          openingDate: imported?.dataAbertura ?? null,
           phone: rep?.phone ?? liveDetails?.telefone ?? imported?.telefone ?? null,
           email: rep?.email ?? liveDetails?.email ?? imported?.email ?? null,
           experienceYears: rep?.experienceYears ?? null,
           subscriptionTier: rep?.subscriptionTier ?? "free",
           avatarUrl: rep?.avatarUrl ?? null,
           linkedinUrl: rep?.linkedinUrl ?? null,
+          socialSearchTerm: [liveDetails?.razaoSocial || imported?.razaoSocial || publicName, cityAndState].filter(Boolean).join(" "),
           bio: rep?.bio ?? null,
         };
       });

@@ -168,6 +168,11 @@ describe("AdminDashboard mobile layout", () => {
     expect(routersSource).toContain("liveCnpjMap");
     expect(companyDashboardSource).toContain("Telefone não informado no cadastro");
     expect(companyDashboardSource).toContain("WhatsApp");
+    expect(routersSource).toContain("resolveIbgeMunicipality");
+    expect(routersSource).toContain("socialSearchTerm");
+    expect(companyDashboardSource).toContain("Buscar LinkedIn");
+    expect(companyDashboardSource).toContain("Buscar Instagram");
+    expect(companyDashboardSource).toContain("CNAE");
   });
 
   it("provides compliant B2B and B2C lead packages with manual PIX fulfillment", () => {

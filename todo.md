@@ -829,3 +829,9 @@
 - [x] Centralizar classes e subclasses do grupo 46.1 em um catálogo compartilhado
 - [x] Usar o catálogo no validador CNPJA, na Base CNPJ e na classificação exibida nos resultados
 - [x] Cobrir os nove prefixos e as subclasses 4618 com testes automatizados
+
+## Ficha detalhada e redes sociais dos contatos liberados (18/10/2026)
+- [x] Converter códigos IBGE em cidade e UF por extenso
+- [x] Exibir CEP, ramo CNAE, porte e data de abertura quando disponíveis
+- [x] Oferecer links de busca segura para LinkedIn e Instagram, sem atribuir perfis não verificados
+- [x] Validar os novos detalhes com TypeScript e testes automatizados
