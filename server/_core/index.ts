@@ -42,6 +42,29 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+async function ensurePurchaseInterestTable() {
+  const { getDb } = await import("../db");
+  const { sql } = await import("drizzle-orm");
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+
+  // Idempotente: a tabela é criada apenas quando ainda não existe.
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS representative_purchase_clicks (
+      id int AUTO_INCREMENT NOT NULL,
+      companyId int NOT NULL,
+      representativeId int NOT NULL,
+      source varchar(40) NOT NULL DEFAULT 'search',
+      createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX rpc_rep_created_idx (representativeId, createdAt),
+      INDEX rpc_company_created_idx (companyId, createdAt),
+      INDEX rpc_created_idx (createdAt)
+    )
+  `));
+  console.log("[db] representative_purchase_clicks ready");
+}
+
 async function startServer() {
   const app = express();
   const server = createServer(app);
@@ -399,6 +422,8 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+
+  await ensurePurchaseInterestTable();
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

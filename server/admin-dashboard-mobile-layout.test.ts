@@ -8,6 +8,7 @@ const companyDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "clie
 const mpRoutesSource = fs.readFileSync(path.resolve(process.cwd(), "server/mercadopago/mpRoutes.ts"), "utf8");
 const sharedConstantsSource = fs.readFileSync(path.resolve(process.cwd(), "shared/const.ts"), "utf8");
 const routersSource = fs.readFileSync(path.resolve(process.cwd(), "server/routers.ts"), "utf8");
+const serverSource = fs.readFileSync(path.resolve(process.cwd(), "server/_core/index.ts"), "utf8");
 
 describe("AdminDashboard mobile layout", () => {
   it("uses an overlay drawer on mobile instead of reserving the desktop sidebar width", () => {
@@ -58,5 +59,10 @@ describe("AdminDashboard mobile layout", () => {
     expect(routersSource).toContain("purchaseInterest: protectedProcedure");
     expect(dashboardSource).toContain("Interesse em comprar contatos");
     expect(dashboardSource).toContain("Cards mais procurados");
+  });
+
+  it("creates the purchase-interest table safely when production boots", () => {
+    expect(serverSource).toContain("CREATE TABLE IF NOT EXISTS representative_purchase_clicks");
+    expect(serverSource).toContain("await ensurePurchaseInterestTable()");
   });
 });
