@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useState } from "react";
+import SEO from "@/components/SEO";
 import {
   ArrowRight, CheckCircle, Star, Shield, Zap, Users, TrendingUp,
   Building2, Handshake, Megaphone, Code2, Gift, Phone, MessageCircle,
@@ -142,6 +143,12 @@ export default function Parcerias() {
 
   return (
     <div className="min-h-screen" style={{ background: "#060d06" }}>
+      <SEO
+        title="Parcerias B2B para Representação Comercial"
+        description="Faça parceria com o RepMatch: integrações para CRM e ERP, co-marketing, associações e soluções para indústrias que buscam representantes comerciais no Brasil."
+        keywords="parceria B2B, parceria CRM, integração ERP, parceria representação comercial, afiliados B2B, associações comerciais"
+        canonical="/parcerias"
+      />
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 border-b border-white/[0.06]" style={{ background: "rgba(6,13,6,0.92)", backdropFilter: "blur(16px)" }}>
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6">
