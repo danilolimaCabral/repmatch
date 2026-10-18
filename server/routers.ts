@@ -51,6 +51,7 @@ import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count } from "drizzle-o
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
+import { consultarCnpj } from "./cnpja";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
 
@@ -1042,25 +1043,37 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       const importedIdMap = new Map(importedById.map((rep) => [rep.id + 100000, rep]));
       const importedCnpjMap = new Map(importedByCnpj.map((rep) => [normalizedCnpj(rep.cnpj), rep]));
       const itemNameMap = new Map(itemSnapshots.map((item) => [item.representativeId, item.repName]));
+      const cnpjsToEnrich = Array.from(new Set(unlocks
+        .map((unlock) => {
+          const rep = repMap[unlock.representativeId];
+          const imported = importedIdMap.get(unlock.representativeId) ?? importedCnpjMap.get(normalizedCnpj(rep?.cnpj));
+          return normalizedCnpj(rep?.cnpj ?? imported?.cnpj);
+        })
+        .filter(Boolean)));
+      const liveCnpjDetails = await Promise.all(cnpjsToEnrich.map(async (cnpj) => [cnpj, await consultarCnpj(cnpj)] as const));
+      const liveCnpjMap = new Map(liveCnpjDetails.filter(([, detail]) => detail).map(([cnpj, detail]) => [cnpj, detail!]));
       return unlocks.map((u) => {
         const rep = repMap[u.representativeId];
         const imported = importedIdMap.get(u.representativeId) ?? importedCnpjMap.get(normalizedCnpj(rep?.cnpj));
-        const publicName = rep?.fullName || imported?.nomeFantasia || imported?.razaoSocial || itemNameMap.get(u.representativeId) || "Representante comercial";
-        const cityAndState = [rep?.cidade ?? imported?.municipio, rep?.estado ?? imported?.uf].filter(Boolean).join(" - ");
+        const liveDetails = liveCnpjMap.get(normalizedCnpj(rep?.cnpj ?? imported?.cnpj));
+        const publicName = rep?.fullName || liveDetails?.nomeFantasia || liveDetails?.razaoSocial || imported?.nomeFantasia || imported?.razaoSocial || itemNameMap.get(u.representativeId) || "Representante comercial";
+        const cityAndState = [liveDetails?.municipio ?? rep?.cidade ?? imported?.municipio, liveDetails?.uf ?? rep?.estado ?? imported?.uf].filter(Boolean).join(" - ");
         return {
           unlockedAt: u.unlockedAt,
           pricePaid: u.pricePaid,
           representativeId: u.representativeId,
           fullName: publicName,
-          segment: rep?.segment ?? imported?.cnaeDescricao ?? null,
-          region: rep?.region ?? imported?.uf ?? null,
+          legalName: liveDetails?.razaoSocial || imported?.razaoSocial || null,
+          segment: rep?.segment ?? liveDetails?.cnaeDescricao ?? imported?.cnaeDescricao ?? null,
+          region: rep?.region ?? liveDetails?.uf ?? imported?.uf ?? null,
           city: cityAndState || null,
           address: imported?.logradouro ?? null,
           cnpj: rep?.cnpj ?? imported?.cnpj ?? null,
-          cnaeDescricao: imported?.cnaeDescricao ?? null,
+          cnpjStatus: liveDetails?.situacao ?? null,
+          cnaeDescricao: liveDetails?.cnaeDescricao ?? imported?.cnaeDescricao ?? null,
           porte: imported?.porte ?? null,
-          phone: rep?.phone ?? imported?.telefone ?? null,
-          email: rep?.email ?? imported?.email ?? null,
+          phone: rep?.phone ?? liveDetails?.telefone ?? imported?.telefone ?? null,
+          email: rep?.email ?? liveDetails?.email ?? imported?.email ?? null,
           experienceYears: rep?.experienceYears ?? null,
           subscriptionTier: rep?.subscriptionTier ?? "free",
           avatarUrl: rep?.avatarUrl ?? null,

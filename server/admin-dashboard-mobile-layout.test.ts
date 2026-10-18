@@ -164,6 +164,10 @@ describe("AdminDashboard mobile layout", () => {
     expect(companyDashboardSource).toContain("Contato desbloqueado");
     expect(companyDashboardSource).toContain("c.cnpj");
     expect(companyDashboardSource).toContain("c.address");
+    expect(routersSource).toContain("consultarCnpj");
+    expect(routersSource).toContain("liveCnpjMap");
+    expect(companyDashboardSource).toContain("Telefone não informado no cadastro");
+    expect(companyDashboardSource).toContain("WhatsApp");
   });
 
   it("provides compliant B2B and B2C lead packages with manual PIX fulfillment", () => {

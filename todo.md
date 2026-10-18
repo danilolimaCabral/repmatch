@@ -818,3 +818,9 @@
 - [x] Avaliar a cobertura da Receita Federal por CNAE e o grupo oficial 46.1 de representantes comerciais
 - [x] Avaliar Confere/CORE como fonte de validação institucional, sem uso de extração pública em massa
 - [x] Mapear provedores B2B comerciais para enriquecimento de empresas sob licença e LGPD
+
+## Complementação de contatos desbloqueados (18/10/2026)
+- [x] Consultar a CNPJA para preencher nome, telefone, e-mail, cidade e situação quando a base importada estiver incompleta
+- [x] Exibir todos os campos disponíveis e indicar claramente o que não foi informado no cadastro
+- [x] Criar atalhos de ligação, WhatsApp e e-mail após o desbloqueio
+- [x] Validar a complementação com TypeScript e testes automatizados
