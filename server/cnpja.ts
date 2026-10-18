@@ -1,3 +1,5 @@
+import { isCnaeRepresentativeCommercial } from "@shared/const";
+
 /**
  * CNPJA API helper — valida situação cadastral de CNPJs na Receita Federal
  * Documentação: https://docs.cnpja.com
@@ -83,9 +85,5 @@ export async function consultarCnpj(cnpj: string): Promise<CnpjaStatus | null> {
  * Verifica se um CNPJ é de representante comercial (CNAE família 46xx)
  */
 export function isRepresentanteComercial(cnaePrincipal?: string): boolean {
-  if (!cnaePrincipal) return false;
-  // CNAEs de representantes comerciais: 4611 a 4619
-  const code = cnaePrincipal.replace(/\D/g, "").slice(0, 4);
-  const num = parseInt(code, 10);
-  return num >= 4611 && num <= 4619;
+  return isCnaeRepresentativeCommercial(cnaePrincipal);
 }

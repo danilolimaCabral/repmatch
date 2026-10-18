@@ -28,6 +28,7 @@ import {
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { getCnae461Mapping } from "@shared/const";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -996,6 +997,7 @@ export async function listRepresentativesForCompany(
       r.situacaoCadastral AS situacaoCadastral,
       r.cnpj AS cnpj,
       r.nomeFantasia AS nomeFantasia,
+      NULL AS cnaePrincipal,
       NULL AS cnaeDescricao,
       NULL AS porte,
       NULL AS isMei,
@@ -1079,6 +1081,7 @@ export async function listRepresentativesForCompany(
       'Ativa' AS situacaoCadastral,
       c.cnpj AS cnpj,
       COALESCE(NULLIF(TRIM(c.nome_fantasia), ''), NULLIF(TRIM(c.razao_social), ''), 'Representante Comercial') AS nomeFantasia,
+      c.cnae_principal AS cnaePrincipal,
       c.cnae_descricao AS cnaeDescricao,
       c.porte AS porte,
       c.is_mei AS isMei,
@@ -1150,12 +1153,13 @@ export async function listRepresentativesForCompany(
   // Normalize rows to expected shape
   const isAdmin = (filters as any)?._isAdmin === true;
   const maskedReps = (rows as any[]).map((row: any) => {
+    const cnaeMapping = getCnae461Mapping(row.cnaePrincipal);
     const rep = {
       id: Number(row.id),
       fullName: String(row.fullName ?? row.nomeFantasia ?? '').trim() || 'Representante Comercial',
       phone: row.phone ?? null,
       region: row.region ?? null,
-      segment: row.segment ?? 'Outros',
+      segment: cnaeMapping?.segment ?? row.segment ?? 'Outros',
       experienceYears: Number(row.experienceYears ?? 0),
       bio: row.bio ?? null,
       subscriptionTier: row.subscriptionTier ?? 'free',
@@ -1176,6 +1180,7 @@ export async function listRepresentativesForCompany(
       situacaoCadastral: row.situacaoCadastral ?? null,
       cnpj: row.cnpj ?? null,
       nomeFantasia: row.nomeFantasia ?? null,
+      cnaePrincipal: row.cnaePrincipal ?? null,
       cnaeDescricao: row.cnaeDescricao ?? null,
       porte: row.porte ?? null,
       isMei: Number(row.isMei ?? 0) === 1,

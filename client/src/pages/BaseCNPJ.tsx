@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Building2, MapPin, Phone, Mail, Search, ChevronLeft, ChevronRight, Users, Filter, X } from "lucide-react";
+import { CNAE_461_MAP } from "@shared/const";
 
 const UF_LIST = [
   "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
@@ -19,20 +20,9 @@ const PORTE_MAP: Record<string, string> = {
   "Demais": "Médio/Grande",
 };
 
-const CNAE_MAP: Record<string, string> = {
-  "4611700": "Matérias-primas agrícolas",
-  "4612500": "Combustíveis e químicos",
-  "4613300": "Madeira e construção",
-  "4614100": "Máquinas e equipamentos",
-  "4615000": "Eletrodomésticos e TI",
-  "4616800": "Têxteis e vestuário",
-  "4617600": "Produtos farmacêuticos",
-  "4618401": "Medicamentos e insumos",
-  "4618402": "Instrumentos médico-hosp.",
-  "4618403": "Jornais e publicações",
-  "4618499": "Outros especializados",
-  "4619200": "Mercadorias em geral",
-};
+const CNAE_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(CNAE_461_MAP).map(([code, mapping]) => [code, mapping.label])
+);
 
 export default function BaseCNPJ() {
   const [query, setQuery] = useState("");

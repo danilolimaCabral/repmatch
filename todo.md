@@ -824,3 +824,8 @@
 - [x] Exibir todos os campos disponíveis e indicar claramente o que não foi informado no cadastro
 - [x] Criar atalhos de ligação, WhatsApp e e-mail após o desbloqueio
 - [x] Validar a complementação com TypeScript e testes automatizados
+
+## Estrutura CNAE 46.1 (18/10/2026)
+- [x] Centralizar classes e subclasses do grupo 46.1 em um catálogo compartilhado
+- [x] Usar o catálogo no validador CNPJA, na Base CNPJ e na classificação exibida nos resultados
+- [x] Cobrir os nove prefixos e as subclasses 4618 com testes automatizados
