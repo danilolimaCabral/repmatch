@@ -371,6 +371,15 @@ export const managerUnlocks = mysqlTable("manager_unlocks", {
 export type ManagerUnlock = typeof managerUnlocks.$inferSelect;
 export type InsertManagerUnlock = typeof managerUnlocks.$inferInsert;
 
+// ─── Configurações comerciais da plataforma ───────────────────────────────────
+export const platformSettings = mysqlTable("platform_settings", {
+  key: varchar("key", { length: 100 }).primaryKey(),
+  value: varchar("value", { length: 100 }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PlatformSetting = typeof platformSettings.$inferSelect;
+export type InsertPlatformSetting = typeof platformSettings.$inferInsert;
+
 // ─── Unlock Requests (Carrinho de desbloqueios via Pix ou Stripe) ───────────────
 export const unlockRequests = mysqlTable("unlock_requests", {
   id: int("id").autoincrement().primaryKey(),

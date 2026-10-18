@@ -46,9 +46,9 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks } from "../drizzle/schema";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings } from "../drizzle/schema";
 import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count } from "drizzle-orm";
-import { CONTACT_UNLOCK_PRICE, CONTACT_UNLOCK_PRICE_LABEL } from "@shared/const";
+import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -57,6 +57,12 @@ import { systemRouter } from "./_core/systemRouter";
 
 /// ─── Helpers ──────────────────────────────────────────────────────────────────
 const TIER_ORDER = { free: 0, bronze: 1, prata: 2, ouro: 3 } as const;
+const COMPANY_CONTACT_UNLOCK_PRICE_KEY = "company_contact_unlock_price";
+
+function normalizeContactUnlockPrice(value: string | null | undefined): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0.5 && parsed <= 1000 ? Number(parsed.toFixed(2)) : CONTACT_UNLOCK_PRICE;
+}
 
 function normalizePhone(raw: string | undefined | null): string | null {
   if (!raw) return null;
@@ -938,7 +944,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         if (alreadyUnlocked) return { success: true, alreadyUnlocked: true };
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message: `Adicione o representante ao carrinho e pague via PIX (${CONTACT_UNLOCK_PRICE_LABEL}) para solicitar a liberação.`,
+          message: "Adicione o representante ao carrinho e pague via PIX para solicitar a liberação.",
         });
       }),
 
@@ -951,7 +957,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
 
         // Verificar se já usou o free unlock
         if (company.freeUnlockUsed) {
-          throw new TRPCError({ code: "FORBIDDEN", message: `Você já usou seu desbloqueio gratuito. Desbloqueie mais contatos por ${CONTACT_UNLOCK_PRICE_LABEL} cada.` });
+          throw new TRPCError({ code: "FORBIDDEN", message: "Você já usou seu desbloqueio gratuito. Use o carrinho PIX para desbloquear mais contatos." });
         }
 
         // Verificar se já está desbloqueado
@@ -1056,12 +1062,55 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }),
   }),
 
+  // ─── Precificação comercial ──────────────────────────────────────────────────
+  pricing: router({
+    contactUnlockPrice: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return { price: CONTACT_UNLOCK_PRICE };
+      const [setting] = await db.select({ value: platformSettings.value })
+        .from(platformSettings)
+        .where(eq(platformSettings.key, COMPANY_CONTACT_UNLOCK_PRICE_KEY))
+        .limit(1);
+      return { price: normalizeContactUnlockPrice(setting?.value) };
+    }),
+  }),
+
   // ─── Admin ───────────────────────────────────────────────────────────────────
   admin: router({
     stats: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       return adminStats();
     }),
+
+    commercialSettings: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [setting] = await db.select({ value: platformSettings.value, updatedAt: platformSettings.updatedAt })
+        .from(platformSettings)
+        .where(eq(platformSettings.key, COMPANY_CONTACT_UNLOCK_PRICE_KEY))
+        .limit(1);
+      return {
+        contactUnlockPrice: normalizeContactUnlockPrice(setting?.value),
+        updatedAt: setting?.updatedAt ?? null,
+      };
+    }),
+
+    updateContactUnlockPrice: protectedProcedure
+      .input(z.object({ price: z.number().min(0.5).max(1000) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const price = Number(input.price.toFixed(2));
+        await db.insert(platformSettings).values({
+          key: COMPANY_CONTACT_UNLOCK_PRICE_KEY,
+          value: price.toFixed(2),
+        }).onDuplicateKeyUpdate({
+          set: { value: price.toFixed(2), updatedAt: new Date() },
+        });
+        return { price };
+      }),
 
     importLogs: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
@@ -2578,7 +2627,12 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           throw new TRPCError({ code: "BAD_REQUEST", message: "Os representantes selecionados já estão liberados para sua empresa." });
         }
 
-        const totalAmount = Number((repIds.length * CONTACT_UNLOCK_PRICE).toFixed(2));
+        const [priceSetting] = await db.select({ value: platformSettings.value })
+          .from(platformSettings)
+          .where(eq(platformSettings.key, COMPANY_CONTACT_UNLOCK_PRICE_KEY))
+          .limit(1);
+        const contactUnlockPrice = normalizeContactUnlockPrice(priceSetting?.value);
+        const totalAmount = Number((repIds.length * contactUnlockPrice).toFixed(2));
 
         // Create the request - pass numeric string without currency symbol for MySQL decimal
         const [result] = await db.insert(unlockRequests).values({
@@ -2600,7 +2654,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
             unlockRequestId: requestId,
             representativeId: repId,
             repName: repMap[repId] ?? "Representante",
-            priceUnit: CONTACT_UNLOCK_PRICE.toFixed(2),
+            priceUnit: contactUnlockPrice.toFixed(2),
           }))
         );
 

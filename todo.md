@@ -743,3 +743,11 @@
 - [x] Destacar no painel admin os pedidos PIX confirmados para aprovação manual
 - [x] Atualizar textos de preço e mensagens de acompanhamento para R$ 9,90 e liberação manual
 - [x] Cobrir a nova regra de preço e aprovação manual com testes
+
+## Gestão Comercial no Admin (18/10/2026)
+- [ ] Criar área comercial no admin para consultar e alterar o valor por desbloqueio
+- [ ] Aplicar o valor configurado ao carrinho e à cobrança PIX de novos pedidos
+- [ ] Exibir e filtrar carrinhos abandonados de desbloqueio
+- [ ] Criar acesso direto para visualizar novos cadastros
+- [ ] Adicionar ação de retorno consistente em todas as abas do admin
+- [ ] Validar a gestão comercial com TypeScript e testes automatizados

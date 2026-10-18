@@ -32,10 +32,11 @@ describe("AdminDashboard mobile layout", () => {
     expect(dashboardSource).toContain('userType: "company"');
   });
 
-  it("keeps contact unlocks at R$ 9,90 in the PIX cart", () => {
+  it("loads the configured contact price before showing the PIX cart", () => {
     expect(sharedConstantsSource).toContain("CONTACT_UNLOCK_PRICE = 9.9");
     expect(companyDashboardSource).toContain("Gerar QR Code PIX");
-    expect(companyDashboardSource).toContain("CONTACT_UNLOCK_PRICE_LABEL");
+    expect(companyDashboardSource).toContain("trpc.pricing.contactUnlockPrice.useQuery()");
+    expect(companyDashboardSource).toContain("contactUnlockPriceLabel");
   });
 
   it("queues a Mercado Pago PIX confirmation for manual admin release", () => {
@@ -64,5 +65,14 @@ describe("AdminDashboard mobile layout", () => {
   it("creates the purchase-interest table safely when production boots", () => {
     expect(serverSource).toContain("CREATE TABLE IF NOT EXISTS representative_purchase_clicks");
     expect(serverSource).toContain("await ensurePurchaseInterestTable()");
+  });
+
+  it("lets admins manage prices, abandoned carts, registrations, and return navigation", () => {
+    expect(routersSource).toContain("updateContactUnlockPrice: protectedProcedure");
+    expect(routersSource).toContain("company_contact_unlock_price");
+    expect(dashboardSource).toContain("Central Comercial");
+    expect(dashboardSource).toContain("Carrinhos abandonados");
+    expect(dashboardSource).toContain("Ver cadastros");
+    expect(dashboardSource).toContain("Voltar ao painel");
   });
 });

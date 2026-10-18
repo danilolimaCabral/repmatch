@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Moon, Sun } from "lucide-react";
-import { CONTACT_UNLOCK_PRICE, CONTACT_UNLOCK_PRICE_LABEL } from "@shared/const";
+import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -324,6 +324,9 @@ export default function CompanyDashboard() {
 
   const { data: profile, isLoading: profileLoading } = trpc.companies.myProfile.useQuery();
   const { data: myJobs, isLoading: jobsLoading } = trpc.jobs.myJobs.useQuery();
+  const { data: pricing } = trpc.pricing.contactUnlockPrice.useQuery();
+  const contactUnlockPrice = pricing?.price ?? CONTACT_UNLOCK_PRICE;
+  const contactUnlockPriceLabel = contactUnlockPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   // Toast de boas-vindas — dispara uma vez por sessão quando o perfil carrega
   useEffect(() => {
@@ -1221,7 +1224,7 @@ export default function CompanyDashboard() {
                               addToCart(rep.id, rep.fullName ?? "Representante", "top_match");
                               setCartOpen(true);
                             }}>
-                            <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {CONTACT_UNLOCK_PRICE_LABEL}
+                            <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {contactUnlockPriceLabel}
                           </Button>
                         </div>
                       );
@@ -1276,7 +1279,7 @@ export default function CompanyDashboard() {
                             <span className="text-sm text-slate-700 font-medium">{c.name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500">{CONTACT_UNLOCK_PRICE_LABEL}</span>
+                            <span className="text-xs text-slate-500">{contactUnlockPriceLabel}</span>
                             <button onClick={() => removeFromCart(c.id)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         </div>
@@ -1284,7 +1287,7 @@ export default function CompanyDashboard() {
                     </div>
                     <div className="flex items-center justify-between border-t border-slate-200 pt-3">
                       <span className="font-semibold text-slate-700">{cart.length} representante{cart.length > 1 ? "s" : ""}</span>
-                      <span className="text-lg font-bold text-emerald-700">{(cart.length * CONTACT_UNLOCK_PRICE).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                      <span className="text-lg font-bold text-emerald-700">{(cart.length * contactUnlockPrice).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                     </div>
                     <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 leading-relaxed">
                       Pague o total por PIX. Assim que o Mercado Pago confirmar o pagamento, o pedido aparecerá no painel do administrador para liberação manual dos contatos.
@@ -1467,7 +1470,7 @@ export default function CompanyDashboard() {
             {freeUnlockStatus?.used && (
               <div className="mb-5 flex items-center gap-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl px-5 py-3">
                 <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
-                <p className="text-sm">Você já usou seu desbloqueio gratuito. Para ver mais contatos, desbloqueie por <strong>{CONTACT_UNLOCK_PRICE_LABEL} cada</strong>.</p>
+                <p className="text-sm">Você já usou seu desbloqueio gratuito. Para ver mais contatos, desbloqueie por <strong>{contactUnlockPriceLabel} cada</strong>.</p>
               </div>
             )}
 
@@ -1711,13 +1714,13 @@ export default function CompanyDashboard() {
                               </Button>
                               <Button size="sm" variant="outline" className="w-full text-xs border-slate-200 text-slate-500"
                                 onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
-                                <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {CONTACT_UNLOCK_PRICE_LABEL}
+                                <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {contactUnlockPriceLabel}
                               </Button>
                             </div>
                           ) : (
                             <Button size="sm" className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
                               onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
-                              <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {CONTACT_UNLOCK_PRICE_LABEL}
+                              <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {contactUnlockPriceLabel}
                             </Button>
                           )}
                         </div>

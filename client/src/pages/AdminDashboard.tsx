@@ -10,8 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw, Mail, AlertCircle, Menu, X, ArrowUpRight, ShoppingCart } from "lucide-react";
-import { useState, useRef } from "react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw, Mail, AlertCircle, Menu, X, ArrowUpRight, ShoppingCart, ArrowLeft, SlidersHorizontal } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   FunnelChart, Funnel, LabelList, Cell, Legend, LineChart, Line
@@ -25,6 +25,7 @@ const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 const ADMIN_NAV_ITEMS = [
   { id: "stats", label: "Dashboard", icon: TrendingUp },
   { id: "analytics", label: "Analytics", icon: BarChart2 },
+  { id: "comercial", label: "Comercial", icon: SlidersHorizontal },
   { id: "pagamentos", label: "Pagamentos PIX", icon: CreditCard },
   { id: "desbloqueios", label: "Desbloqueios", icon: ShieldCheck },
   { id: "documentos", label: "Documentos", icon: FileText },
@@ -45,14 +46,16 @@ function normalizePhone(raw: string): string | null {
 export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"stats" | "analytics" | "import" | "users" | "jobs" | "pagamentos" | "documentos" | "desbloqueios" | "representantes">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "analytics" | "comercial" | "import" | "users" | "jobs" | "pagamentos" | "documentos" | "desbloqueios" | "representantes">("stats");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [repSearch, setRepSearch] = useState("");
   const [repEstado, setRepEstado] = useState("");
   const [repOffset, setRepOffset] = useState(0);
   const [expandedRepId, setExpandedRepId] = useState<number | null>(null);
   const [unlockSearch, setUnlockSearch] = useState("");
-  const [unlockStatusFilter, setUnlockStatusFilter] = useState<"all" | "pending_payment" | "pending_approval" | "approved" | "rejected">("all");
+  const [unlockStatusFilter, setUnlockStatusFilter] = useState<"all" | "pending_payment" | "pending_approval" | "approved" | "rejected" | "abandoned">("all");
+  const [contactUnlockPriceInput, setContactUnlockPriceInput] = useState("");
+  const commercialPriceInitialized = useRef(false);
   const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
   const [docStatusFilter, setDocStatusFilter] = useState("all");
   const [docSearch, setDocSearch] = useState("");
@@ -151,7 +154,8 @@ export default function AdminDashboard() {
     refetchOnWindowFocus: true,
   });
   const unlockRequests = (unlockRequestsRaw ?? []).filter(r => {
-    const matchStatus = unlockStatusFilter === "all" || r.status === unlockStatusFilter;
+    const isAbandoned = r.status === "pending_payment" && (Date.now() - new Date(r.createdAt).getTime()) >= 30 * 60 * 1000;
+    const matchStatus = unlockStatusFilter === "all" || (unlockStatusFilter === "abandoned" ? isAbandoned : r.status === unlockStatusFilter);
     const q = unlockSearch.toLowerCase();
     const matchSearch = !q || (r.companyName ?? "").toLowerCase().includes(q) || (r.companyEmail ?? "").toLowerCase().includes(q);
     return matchStatus && matchSearch;
@@ -174,6 +178,24 @@ export default function AdminDashboard() {
     { days: analyticsDays },
     { enabled: activeTab === "analytics" }
   );
+  const { data: commercialSettings, refetch: refetchCommercialSettings } = trpc.admin.commercialSettings.useQuery(undefined, {
+    enabled: activeTab === "comercial",
+  });
+  const updateContactUnlockPriceMutation = trpc.admin.updateContactUnlockPrice.useMutation({
+    onSuccess: (result) => {
+      setContactUnlockPriceInput(result.price.toFixed(2).replace(".", ","));
+      toast.success(`Valor atualizado para ${result.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}. Novos carrinhos já usarão este preço.`);
+      refetchCommercialSettings();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  useEffect(() => {
+    if (commercialSettings && !commercialPriceInitialized.current) {
+      setContactUnlockPriceInput(commercialSettings.contactUnlockPrice.toFixed(2).replace(".", ","));
+      commercialPriceInitialized.current = true;
+    }
+  }, [commercialSettings]);
 
   function openIndicator(tab: typeof activeTab, userTypeFilterValue?: string) {
     if (tab === "users") {
@@ -404,6 +426,24 @@ export default function AdminDashboard() {
             </div>
           </header>
           <div className="min-w-0 p-4 sm:p-6 lg:p-8">
+          <div className="mb-4 flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (activeTab === "stats") {
+                  navigate("/");
+                } else {
+                  setActiveTab("stats");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
+              className="border-border"
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              {activeTab === "stats" ? "Voltar ao site" : "Voltar ao painel"}
+            </Button>
+          </div>
           {activeTab === "stats" && (
             <div>
               <div className="flex items-center justify-between mb-8">
@@ -782,6 +822,82 @@ export default function AdminDashboard() {
                   </ResponsiveContainer>
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === "comercial" && (
+            <div className="mx-auto max-w-5xl">
+              <div className="mb-6">
+                <h1 className="text-2xl font-black text-foreground sm:text-3xl">Central Comercial</h1>
+                <p className="mt-1 text-sm text-muted-foreground">Controle o valor de novos desbloqueios, acompanhe pagamentos pendentes e acesse os cadastros recentes.</p>
+              </div>
+
+              <div className="grid gap-5 lg:grid-cols-2">
+                <section className="rounded-2xl border border-primary/25 bg-card p-5 shadow-sm sm:p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><CreditCard className="h-5 w-5" /></div>
+                    <div>
+                      <h2 className="font-bold text-foreground">Valor por contato</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">Aplicado somente nos novos carrinhos PIX. Pedidos já criados mantêm o valor original.</p>
+                    </div>
+                  </div>
+                  {!commercialSettings ? (
+                    <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Carregando valor atual…</div>
+                  ) : (
+                    <div className="mt-6">
+                      <label htmlFor="contact-unlock-price" className="text-sm font-semibold text-foreground">Preço por representante</label>
+                      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">R$</span>
+                          <input id="contact-unlock-price" inputMode="decimal" value={contactUnlockPriceInput} onChange={(event) => setContactUnlockPriceInput(event.target.value.replace(/[^0-9,\.]/g, ""))} className="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3 text-base font-semibold text-foreground outline-none focus:ring-2 focus:ring-primary/30" aria-label="Valor por contato em reais" />
+                        </div>
+                        <Button disabled={updateContactUnlockPriceMutation.isPending} onClick={() => {
+                          const price = Number(contactUnlockPriceInput.replace(",", "."));
+                          if (!Number.isFinite(price) || price < 0.5) { toast.error("Informe um valor de pelo menos R$ 0,50."); return; }
+                          updateContactUnlockPriceMutation.mutate({ price });
+                        }} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                          {updateContactUnlockPriceMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCheck className="mr-2 h-4 w-4" />}Salvar valor
+                        </Button>
+                      </div>
+                      <p className="mt-3 text-xs text-muted-foreground">Valor ativo: <strong className="text-foreground">{commercialSettings.contactUnlockPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>{commercialSettings.updatedAt ? ` · atualizado em ${new Date(commercialSettings.updatedAt).toLocaleDateString("pt-BR")}` : ""}</p>
+                    </div>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><ShoppingCart className="h-5 w-5" /></div>
+                    <div>
+                      <h2 className="font-bold text-foreground">Carrinhos abandonados</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">Pedidos PIX sem pagamento há mais de 30 minutos.</p>
+                    </div>
+                  </div>
+                  {(() => {
+                    const abandoned = (unlockRequestsRaw ?? []).filter((request) => request.status === "pending_payment" && Date.now() - new Date(request.createdAt).getTime() >= 30 * 60 * 1000);
+                    const total = abandoned.reduce((sum, request) => sum + Number(request.totalAmount), 0);
+                    return <>
+                      <div className="mt-6 grid grid-cols-2 gap-3">
+                        <div className="rounded-xl bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-800">Carrinhos</p><p className="mt-1 text-2xl font-black text-foreground">{abandoned.length}</p></div>
+                        <div className="rounded-xl bg-secondary/70 p-3"><p className="text-xs font-semibold text-muted-foreground">Potencial</p><p className="mt-1 text-2xl font-black text-foreground">{total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p></div>
+                      </div>
+                      <Button variant="outline" onClick={() => { setUnlockStatusFilter("abandoned"); setUnlockSearch(""); setActiveTab("desbloqueios"); }} className="mt-4 w-full border-amber-300 text-amber-800 hover:bg-amber-50"><Eye className="mr-2 h-4 w-4" />Ver carrinhos abandonados</Button>
+                    </>;
+                  })()}
+                </section>
+              </div>
+
+              <section className="mt-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="font-bold text-foreground">Acessos rápidos</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Consulte os cadastros recentes e a fila de liberação de contatos.</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <Button variant="outline" onClick={() => openIndicator("users")}><Users className="mr-2 h-4 w-4" />Ver cadastros</Button>
+                    <Button variant="outline" onClick={() => { setUnlockStatusFilter("pending_approval"); setUnlockSearch(""); setActiveTab("desbloqueios"); }}><CheckCheck className="mr-2 h-4 w-4" />PIX para liberar</Button>
+                  </div>
+                </div>
+              </section>
             </div>
           )}
 
@@ -1479,12 +1595,12 @@ export default function AdminDashboard() {
           {/* ─── ABA DESBLOQUEIOS ─────────────────────────────────────────────── */}
           {activeTab === "desbloqueios" && (
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-black">Solicitações de Desbloqueio</h1>
                   <p className="text-muted-foreground text-sm mt-1">PIX confirmado pelo Mercado Pago aparece aqui para você liberar os contatos manualmente</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-start sm:self-auto">
                   <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 px-3 py-1">
                     {(unlockRequestsRaw ?? []).filter(r => r.status === "pending_approval").length} pendentes
                   </Badge>
@@ -1512,6 +1628,7 @@ export default function AdminDashboard() {
                   className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground focus:outline-none"
                 >
                   <option value="all">Todos os status</option>
+                  <option value="abandoned">Carrinhos abandonados</option>
                   <option value="pending_payment">Aguardando pagamento PIX</option>
                   <option value="pending_approval">PIX confirmado — liberar</option>
                   <option value="approved">Aprovados</option>
@@ -1549,6 +1666,9 @@ export default function AdminDashboard() {
                               {req.status === "approved" && "Aprovado"}
                               {req.status === "rejected" && "Rejeitado"}
                             </Badge>
+                            {req.status === "pending_payment" && Date.now() - new Date(req.createdAt).getTime() >= 30 * 60 * 1000 && (
+                              <Badge className="border-amber-300 bg-amber-100 text-amber-900">Carrinho abandonado</Badge>
+                            )}
                             <span className="text-xs text-muted-foreground">
                               {req.paymentMethod === "pix" ? "Pix" : "Cartão"} • {Number(req.totalAmount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                             </span>

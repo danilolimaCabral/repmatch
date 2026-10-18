@@ -62,6 +62,14 @@ async function ensurePurchaseInterestTable() {
       INDEX rpc_created_idx (createdAt)
     )
   `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS platform_settings (
+      \`key\` varchar(100) NOT NULL,
+      value varchar(100) NOT NULL,
+      updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (\`key\`)
+    )
+  `));
   console.log("[db] representative_purchase_clicks ready");
 }
 
