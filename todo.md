@@ -808,3 +808,13 @@
 - [x] Exibir segmento, atividade principal, porte e tempo de atuação como dados públicos
 - [x] Manter telefone, e-mail, cidade, CNPJ e apresentação completa bloqueados até o pagamento
 - [x] Validar a nova prévia comercial com TypeScript e testes automatizados
+
+## Dados completos após desbloqueio (18/10/2026)
+- [x] Restaurar dados de representantes liberados com fallback da base CNPJ e do pedido de compra
+- [x] Exibir telefone, e-mail, cidade, endereço, CNPJ e informações comerciais na aba Meus Contatos
+- [x] Validar a correção com TypeScript e testes automatizados
+
+## Expansão nacional de representantes (18/10/2026)
+- [x] Avaliar a cobertura da Receita Federal por CNAE e o grupo oficial 46.1 de representantes comerciais
+- [x] Avaliar Confere/CORE como fonte de validação institucional, sem uso de extração pública em massa
+- [x] Mapear provedores B2B comerciais para enriquecimento de empresas sob licença e LGPD

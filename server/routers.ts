@@ -1021,23 +1021,51 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         .select()
         .from(representatives)
         .where(inArray(representatives.id, repIds));
+      const importedIds = repIds.filter((id) => id > 100000).map((id) => id - 100000);
+      const importedById = importedIds.length > 0
+        ? await db.select().from(cnpjRepresentatives).where(inArray(cnpjRepresentatives.id, importedIds))
+        : [];
+      const repCnpjs = reps.map((rep) => rep.cnpj).filter((cnpj): cnpj is string => Boolean(cnpj));
+      const normalizedCnpj = (value: string | null | undefined) => (value ?? "").replace(/\D/g, "");
+      const normalizedRepCnpjs = Array.from(new Set(repCnpjs.map(normalizedCnpj).filter(Boolean)));
+      const importedByCnpj = normalizedRepCnpjs.length > 0
+        ? await db.select().from(cnpjRepresentatives).where(inArray(cnpjRepresentatives.cnpj, normalizedRepCnpjs))
+        : [];
+      const { unlockRequestItems, unlockRequests } = await import("../drizzle/schema");
+      const itemSnapshots = await db
+        .select({ representativeId: unlockRequestItems.representativeId, repName: unlockRequestItems.repName })
+        .from(unlockRequestItems)
+        .innerJoin(unlockRequests, eq(unlockRequestItems.unlockRequestId, unlockRequests.id))
+        .where(and(eq(unlockRequests.companyId, company.id), inArray(unlockRequestItems.representativeId, repIds)));
       const repMap: Record<number, typeof reps[0]> = {};
       for (const r of reps) repMap[r.id] = r;
+      const importedIdMap = new Map(importedById.map((rep) => [rep.id + 100000, rep]));
+      const importedCnpjMap = new Map(importedByCnpj.map((rep) => [normalizedCnpj(rep.cnpj), rep]));
+      const itemNameMap = new Map(itemSnapshots.map((item) => [item.representativeId, item.repName]));
       return unlocks.map((u) => {
         const rep = repMap[u.representativeId];
+        const imported = importedIdMap.get(u.representativeId) ?? importedCnpjMap.get(normalizedCnpj(rep?.cnpj));
+        const publicName = rep?.fullName || imported?.nomeFantasia || imported?.razaoSocial || itemNameMap.get(u.representativeId) || "Representante comercial";
+        const cityAndState = [rep?.cidade ?? imported?.municipio, rep?.estado ?? imported?.uf].filter(Boolean).join(" - ");
         return {
           unlockedAt: u.unlockedAt,
           pricePaid: u.pricePaid,
           representativeId: u.representativeId,
-          fullName: rep?.fullName ?? null,
-          segment: rep?.segment ?? null,
-          region: rep?.region ?? null,
-          phone: rep?.phone ?? null,
-          email: rep?.email ?? null,
+          fullName: publicName,
+          segment: rep?.segment ?? imported?.cnaeDescricao ?? null,
+          region: rep?.region ?? imported?.uf ?? null,
+          city: cityAndState || null,
+          address: imported?.logradouro ?? null,
+          cnpj: rep?.cnpj ?? imported?.cnpj ?? null,
+          cnaeDescricao: imported?.cnaeDescricao ?? null,
+          porte: imported?.porte ?? null,
+          phone: rep?.phone ?? imported?.telefone ?? null,
+          email: rep?.email ?? imported?.email ?? null,
           experienceYears: rep?.experienceYears ?? null,
           subscriptionTier: rep?.subscriptionTier ?? "free",
           avatarUrl: rep?.avatarUrl ?? null,
           linkedinUrl: rep?.linkedinUrl ?? null,
+          bio: rep?.bio ?? null,
         };
       });
     }),

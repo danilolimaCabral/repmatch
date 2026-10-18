@@ -156,6 +156,16 @@ describe("AdminDashboard mobile layout", () => {
     expect(companyDashboardSource).toContain("Você libera telefone, e-mail, cidade e apresentação profissional");
   });
 
+  it("returns complete available details for contacts after they are unlocked", () => {
+    expect(routersSource).toContain("myUnlockedContacts: protectedProcedure");
+    expect(routersSource).toContain("importedCnpjMap");
+    expect(routersSource).toContain("itemSnapshots");
+    expect(routersSource).toContain("city: cityAndState || null");
+    expect(companyDashboardSource).toContain("Contato desbloqueado");
+    expect(companyDashboardSource).toContain("c.cnpj");
+    expect(companyDashboardSource).toContain("c.address");
+  });
+
   it("provides compliant B2B and B2C lead packages with manual PIX fulfillment", () => {
     expect(routersSource).toContain("leadPackages: router");
     expect(routersSource).toContain("legalConsent: z.literal(true)");

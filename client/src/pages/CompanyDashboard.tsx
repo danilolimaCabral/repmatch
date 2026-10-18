@@ -1826,22 +1826,26 @@ export default function CompanyDashboard() {
                 <div className="flex items-center justify-between mb-4"><span className="text-sm text-slate-500">{myContacts.length} contato{myContacts.length !== 1 ? "s" : ""} desbloqueado{myContacts.length !== 1 ? "s" : ""}</span></div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {myContacts.map((c) => (
-                    <div key={c.representativeId} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+                    <div key={c.representativeId} className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0">
                           {c.avatarUrl ? <img src={c.avatarUrl} alt={c.fullName ?? ""} className="w-full h-full object-cover" /> : <span className="text-white font-black text-lg">{(c.fullName ?? "?").charAt(0).toUpperCase()}</span>}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-800 truncate">{c.fullName ?? "Nome não informado"}</div>
-                          <div className="text-xs text-slate-500 truncate">{c.segment ?? "Segmento não informado"}</div>
-                          {c.region && <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{c.region}</div>}
+                          <div className="font-bold text-slate-800 truncate">{c.fullName ?? "Representante comercial"}</div>
+                          <div className="text-xs text-slate-500 line-clamp-2">{c.cnaeDescricao ?? c.segment ?? "Atuação comercial"}</div>
+                          <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Contato desbloqueado</span>
                         </div>
                       </div>
-                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <div className="space-y-2 border-t border-slate-100 pt-3">
                         {c.phone && <a href={`tel:${c.phone}`} className="flex items-center gap-2 text-sm text-slate-700 hover:text-emerald-600"><Phone className="w-4 h-4 text-emerald-500 flex-shrink-0" /><span className="truncate">{c.phone}</span></a>}
                         {c.email && <a href={`mailto:${c.email}`} className="flex items-center gap-2 text-sm text-slate-700 hover:text-emerald-600"><Mail className="w-4 h-4 text-emerald-500 flex-shrink-0" /><span className="truncate">{c.email}</span></a>}
+                        {c.city && <div className="flex items-start gap-2 text-sm text-slate-700"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span>{c.city}</span></div>}
+                        {c.address && <div className="flex items-start gap-2 text-sm text-slate-700"><Building2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span className="line-clamp-2">{c.address}</span></div>}
+                        {c.cnpj && <div className="flex items-center gap-2 text-sm text-slate-700"><BadgeCheck className="h-4 w-4 shrink-0 text-emerald-500" /><span>CNPJ: {c.cnpj}</span></div>}
                         {c.linkedinUrl && <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600"><Linkedin className="w-4 h-4 text-blue-500 flex-shrink-0" /><span>LinkedIn</span><ExternalLink className="w-3 h-3 ml-auto text-slate-400" /></a>}
                       </div>
+                      {(c.porte || c.bio) && <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">{c.porte && <p><strong className="text-slate-700">Porte:</strong> {c.porte}</p>}{c.bio && <p className={c.porte ? "mt-2" : ""}>{c.bio}</p>}</div>}
                       <div className="text-xs text-slate-400 pt-1">Desbloqueado em {new Date(c.unlockedAt!).toLocaleDateString("pt-BR")}{c.pricePaid && Number(c.pricePaid) > 0 && <span className="ml-2">· R$ {Number(c.pricePaid).toFixed(2)}</span>}</div>
                     </div>
                   ))}
