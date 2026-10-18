@@ -150,12 +150,6 @@ async function ensurePurchaseInterestTable() {
       INDEX market_access_status_created_idx (status, created_at)
     )
   `));
-  try {
-    await db.execute(sql.raw("ALTER TABLE users ADD COLUMN phone varchar(20) NULL"));
-  } catch (error) {
-    const message = error instanceof Error ? error.message.toLowerCase() : "";
-    if (!message.includes("duplicate column")) throw error;
-  }
   console.log("[db] commercial catalog tables ready");
 }
 
