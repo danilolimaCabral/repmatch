@@ -7,6 +7,7 @@ const dashboardSource = fs.readFileSync(dashboardPath, "utf8");
 const companyDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/CompanyDashboard.tsx"), "utf8");
 const mpRoutesSource = fs.readFileSync(path.resolve(process.cwd(), "server/mercadopago/mpRoutes.ts"), "utf8");
 const sharedConstantsSource = fs.readFileSync(path.resolve(process.cwd(), "shared/const.ts"), "utf8");
+const routersSource = fs.readFileSync(path.resolve(process.cwd(), "server/routers.ts"), "utf8");
 
 describe("AdminDashboard mobile layout", () => {
   it("uses an overlay drawer on mobile instead of reserving the desktop sidebar width", () => {
@@ -42,5 +43,20 @@ describe("AdminDashboard mobile layout", () => {
     expect(mpRoutesSource).not.toContain('status: "approved", reviewedAt');
     expect(dashboardSource).toContain("PIX confirmado — liberar");
     expect(dashboardSource).toContain("Liberar contatos");
+  });
+
+  it("uses cards instead of clipped tables in the principal mobile admin lists", () => {
+    expect(dashboardSource).toContain('className="divide-y divide-border sm:hidden"');
+    expect((dashboardSource.match(/className="hidden w-full text-sm sm:table"/g) ?? []).length).toBeGreaterThanOrEqual(5);
+    expect(dashboardSource).toContain("Ver dados fiscais");
+    expect(dashboardSource).toContain("Ativar plano");
+  });
+
+  it("tracks company purchase interest and exposes top representative cards to admins", () => {
+    expect(companyDashboardSource).toContain("trackPurchaseInterest.mutate({ representativeId: repId, source })");
+    expect(routersSource).toContain("trackPurchaseClick: protectedProcedure");
+    expect(routersSource).toContain("purchaseInterest: protectedProcedure");
+    expect(dashboardSource).toContain("Interesse em comprar contatos");
+    expect(dashboardSource).toContain("Cards mais procurados");
   });
 });

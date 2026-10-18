@@ -303,15 +303,12 @@ async function startServer() {
       return res.status(403).json({ error: "Forbidden" });
     }
     try {
-      const { fileURLToPath } = await import("url");
-      const { dirname, join } = await import("path");
       const { migrate } = await import("drizzle-orm/mysql2/migrator");
       const { getDb } = await import("../db");
       const db = await getDb();
       if (!db) return res.status(500).json({ error: "DB not available" });
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
-      const migrationsFolder = join(__dirname, "../../drizzle");
+      // Em desenvolvimento e no bundle do Railway, a raiz do processo contém /drizzle.
+      const migrationsFolder = path.join(process.cwd(), "drizzle");
       await migrate(db as any, { migrationsFolder });
       res.json({ success: true, message: "Migrations applied successfully" });
     } catch (err: any) {

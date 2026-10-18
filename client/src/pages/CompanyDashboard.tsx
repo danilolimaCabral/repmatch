@@ -288,10 +288,12 @@ export default function CompanyDashboard() {
   const createUnlockRequest = trpc.unlockRequests.create.useMutation({
     onError: (e) => toast.error(e.message),
   });
+  const trackPurchaseInterest = trpc.representativeInterest.trackPurchaseClick.useMutation();
 
-  const addToCart = (repId: number, repName: string) => {
+  const addToCart = (repId: number, repName: string, source: "search" | "top_match" = "search") => {
     if (cart.some(c => c.id === repId)) { toast.info("Já está no carrinho"); return; }
     setCart(prev => [...prev, { id: repId, name: repName }]);
+    trackPurchaseInterest.mutate({ representativeId: repId, source });
     toast.success(`${repName} adicionado ao carrinho`);
   };
   const removeFromCart = (repId: number) => setCart(prev => prev.filter(c => c.id !== repId));
@@ -1216,7 +1218,7 @@ export default function CompanyDashboard() {
                           {/* Action */}
                           <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
                             onClick={() => {
-                              addToCart(rep.id, rep.fullName ?? "Representante");
+                              addToCart(rep.id, rep.fullName ?? "Representante", "top_match");
                               setCartOpen(true);
                             }}>
                             <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {CONTACT_UNLOCK_PRICE_LABEL}

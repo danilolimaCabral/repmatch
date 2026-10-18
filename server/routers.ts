@@ -46,7 +46,7 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews } from "../drizzle/schema";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks } from "../drizzle/schema";
 import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE, CONTACT_UNLOCK_PRICE_LABEL } from "@shared/const";
 import { notifyOwner } from "./_core/notification";
@@ -1027,6 +1027,35 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
     }),
   }),
 
+  // ─── Interesse de compra de contatos ─────────────────────────────────────────
+  representativeInterest: router({
+    trackPurchaseClick: protectedProcedure
+      .input(z.object({
+        representativeId: z.number(),
+        source: z.enum(["search", "top_match"]).default("search"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const [companyRows, representativeRows] = await Promise.all([
+          db.select({ id: companies.id }).from(companies).where(eq(companies.userId, ctx.user.id)).limit(1),
+          db.select({ id: representatives.id }).from(representatives).where(eq(representatives.id, input.representativeId)).limit(1),
+        ]);
+        const company = companyRows[0];
+        const representative = representativeRows[0];
+        if (!company) throw new TRPCError({ code: "FORBIDDEN", message: "Apenas empresas podem adicionar contatos ao carrinho." });
+        if (!representative) throw new TRPCError({ code: "NOT_FOUND", message: "Representante não encontrado." });
+
+        await db.insert(representativePurchaseClicks).values({
+          companyId: company.id,
+          representativeId: representative.id,
+          source: input.source,
+        });
+        return { success: true };
+      }),
+  }),
+
   // ─── Admin ───────────────────────────────────────────────────────────────────
   admin: router({
     stats: protectedProcedure.query(async ({ ctx }) => {
@@ -1325,6 +1354,52 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }).from(representatives).limit(20);
       return rows;
     }),
+    // Admin: cliques em cards de representantes com intenção de comprar contato
+    purchaseInterest: protectedProcedure
+      .input(z.object({ days: z.number().min(1).max(90).default(30) }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const since = new Date(Date.now() - input.days * 24 * 3600 * 1000);
+
+        const [totals] = await db.select({
+          clicks: sql<number>`count(*)`,
+          interestedCompanies: sql<number>`count(distinct ${representativePurchaseClicks.companyId})`,
+          representatives: sql<number>`count(distinct ${representativePurchaseClicks.representativeId})`,
+        }).from(representativePurchaseClicks)
+          .where(gte(representativePurchaseClicks.createdAt, since));
+
+        const topCards = await db.select({
+          representativeId: representativePurchaseClicks.representativeId,
+          fullName: representatives.fullName,
+          region: representatives.region,
+          segment: representatives.segment,
+          clicks: sql<number>`count(*)`,
+          interestedCompanies: sql<number>`count(distinct ${representativePurchaseClicks.companyId})`,
+        }).from(representativePurchaseClicks)
+          .leftJoin(representatives, eq(representativePurchaseClicks.representativeId, representatives.id))
+          .where(gte(representativePurchaseClicks.createdAt, since))
+          .groupBy(
+            representativePurchaseClicks.representativeId,
+            representatives.fullName,
+            representatives.region,
+            representatives.segment,
+          )
+          .orderBy(desc(sql`count(*)`))
+          .limit(8);
+
+        return {
+          clicks: Number(totals?.clicks ?? 0),
+          interestedCompanies: Number(totals?.interestedCompanies ?? 0),
+          representatives: Number(totals?.representatives ?? 0),
+          topCards: topCards.map((card) => ({
+            ...card,
+            clicks: Number(card.clicks),
+            interestedCompanies: Number(card.interestedCompanies),
+          })),
+        };
+      }),
     // Admin: analytics de visitas (dados reais do banco)
     siteAnalytics: protectedProcedure
       .input(z.object({ days: z.number().min(1).max(90).default(30) }))

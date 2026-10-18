@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
-import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw, Mail, AlertCircle, Menu, X, ArrowUpRight } from "lucide-react";
+import { Users, Building2, Briefcase, TrendingUp, Upload, Loader2, CheckCircle, XCircle, Clock, LogOut, ShieldCheck, BarChart2, UserX, UserCheck, CreditCard, CheckCheck, Search, FileText, ThumbsUp, ThumbsDown, Eye, RefreshCw, Mail, AlertCircle, Menu, X, ArrowUpRight, ShoppingCart } from "lucide-react";
 import { useState, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -167,6 +167,10 @@ export default function AdminDashboard() {
 
   const [analyticsDays, setAnalyticsDays] = useState(30);
   const { data: siteAnalytics, isLoading: analyticsLoading } = trpc.admin.siteAnalytics.useQuery(
+    { days: analyticsDays },
+    { enabled: activeTab === "analytics" }
+  );
+  const { data: purchaseInterest, isLoading: purchaseInterestLoading } = trpc.admin.purchaseInterest.useQuery(
     { days: analyticsDays },
     { enabled: activeTab === "analytics" }
   );
@@ -593,6 +597,62 @@ export default function AdminDashboard() {
                 )}
               </div>
 
+              {/* Interesse de compra de contatos */}
+              <div className="mb-6 min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6">
+                <div className="mb-5 flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10">
+                    <ShoppingCart className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-sm uppercase tracking-wide text-muted-foreground">Interesse em comprar contatos</h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground/60">Cliques em “Adicionar ao carrinho” nos cards de representantes no período selecionado</p>
+                  </div>
+                </div>
+                {purchaseInterestLoading ? (
+                  <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                ) : (
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-1">
+                      {[
+                        { label: "Cliques", value: purchaseInterest?.clicks ?? 0, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+                        { label: "Empresas interessadas", value: purchaseInterest?.interestedCompanies ?? 0, color: "text-blue-400", bg: "bg-blue-400/10" },
+                        { label: "Cards com interesse", value: purchaseInterest?.representatives ?? 0, color: "text-purple-400", bg: "bg-purple-400/10" },
+                      ].map((metric) => (
+                        <div key={metric.label} className={`min-w-0 rounded-lg border border-border p-3 ${metric.bg}`}>
+                          <div className={`text-xl font-black sm:text-2xl ${metric.color}`}>{metric.value.toLocaleString("pt-BR")}</div>
+                          <div className="mt-1 text-[11px] leading-tight text-muted-foreground">{metric.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="rounded-lg border border-border/80 bg-background/40 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-foreground">Cards mais procurados</p>
+                        <span className="text-[11px] text-muted-foreground">por cliques no carrinho</span>
+                      </div>
+                      {(purchaseInterest?.topCards ?? []).length === 0 ? (
+                        <div className="flex min-h-28 items-center justify-center text-center text-xs text-muted-foreground">Os dados aparecerão quando empresas adicionarem representantes ao carrinho.</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {(purchaseInterest?.topCards ?? []).map((card, index) => (
+                            <div key={card.representativeId} className="flex items-center gap-3 rounded-lg bg-secondary/45 px-3 py-2.5">
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{index + 1}</span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-foreground">{card.fullName ?? `Representante #${card.representativeId}`}</p>
+                                <p className="truncate text-[11px] text-muted-foreground">{[card.region, card.segment].filter(Boolean).join(" · ") || "Sem região ou segmento"}</p>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <p className="text-sm font-black text-emerald-400">{card.clicks}</p>
+                                <p className="text-[10px] text-muted-foreground">{card.interestedCompanies} empresa{card.interestedCompanies !== 1 ? "s" : ""}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Crescimento Semanal */}
               <div className="rounded-xl border border-border bg-card p-6 mb-6">
                 <h2 className="font-bold mb-1 text-sm uppercase tracking-wide text-muted-foreground">Crescimento Semanal de Cadastros</h2>
@@ -818,12 +878,12 @@ export default function AdminDashboard() {
 
           {activeTab === "jobs" && (
             <div>
-              <div className="flex items-center justify-between mb-8">
+              <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-black">Vagas Publicadas</h1>
                   <p className="text-muted-foreground text-sm mt-1">Todas as vagas cadastradas na plataforma</p>
                 </div>
-                <Badge className="bg-purple-900/30 text-purple-300 border border-purple-700/40 px-3 py-1">
+                <Badge className="w-fit bg-purple-900/30 text-purple-300 border border-purple-700/40 px-3 py-1">
                   <BarChart2 className="w-3 h-3 mr-1" />{stats?.totalJobs ?? 0} vagas
                 </Badge>
               </div>
@@ -835,7 +895,27 @@ export default function AdminDashboard() {
                 <div className="text-center py-16 text-muted-foreground">Nenhuma vaga publicada ainda</div>
               ) : (
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
-                  <table className="w-full text-sm">
+                  <div className="divide-y divide-border sm:hidden">
+                    {((stats as Record<string, unknown> & { recentJobs?: Array<{ id: number; title: string; status: string; segment: string | null; region: string | null; createdAt: Date }> })?.recentJobs ?? []).map((job) => (
+                      <article key={job.id} className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground">Vaga #{job.id}</p>
+                            <h2 className="mt-1 text-base font-bold leading-snug text-foreground">{job.title}</h2>
+                          </div>
+                          <Badge className={`${job.status === "open" ? "bg-green-900/30 text-green-300" : job.status === "paused" ? "bg-yellow-900/30 text-yellow-300" : "bg-zinc-700 text-zinc-300"} shrink-0`} variant="outline">
+                            {job.status === "open" ? "Aberta" : job.status === "paused" ? "Pausada" : "Fechada"}
+                          </Badge>
+                        </div>
+                        <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                          <div><dt className="text-muted-foreground">Segmento</dt><dd className="mt-0.5 font-medium text-foreground">{job.segment ?? "—"}</dd></div>
+                          <div><dt className="text-muted-foreground">Região</dt><dd className="mt-0.5 font-medium text-foreground">{job.region ?? "—"}</dd></div>
+                        </dl>
+                        <p className="mt-3 text-xs text-muted-foreground">Publicada em {new Date(job.createdAt).toLocaleDateString("pt-BR")}</p>
+                      </article>
+                    ))}
+                  </div>
+                  <table className="hidden w-full text-sm sm:table">
                     <thead>
                       <tr className="border-b border-border bg-secondary/30">
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">ID</th>
@@ -873,19 +953,19 @@ export default function AdminDashboard() {
 
           {activeTab === "users" && (
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-black">Gerenciar Usuários</h1>
                   <p className="text-muted-foreground text-sm mt-1">
                     {userTotal > 0 ? <><span className="font-semibold text-foreground">{userTotal}</span> usuários cadastrados</> : "Todos os usuários cadastrados na plataforma"}
                   </p>
                 </div>
-                <Badge className="bg-red-900/30 text-red-300 border border-red-700/40 px-3 py-1">Admin</Badge>
+                <Badge className="w-fit bg-red-900/30 text-red-300 border border-red-700/40 px-3 py-1">Admin</Badge>
               </div>
 
               {/* Filtros */}
-              <div className="flex flex-wrap gap-3 mb-5">
-                <div className="relative flex-1 min-w-[200px]">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -895,7 +975,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <select
-                  className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 sm:w-auto"
                   value={userTypeFilter}
                   onChange={e => { setUserTypeFilter(e.target.value); setUserPage(0); }}
                 >
@@ -906,7 +986,7 @@ export default function AdminDashboard() {
                   <option value="pending">Pendente</option>
                 </select>
                 <select
-                  className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 sm:w-auto"
                   value={userRoleFilter}
                   onChange={e => { setUserRoleFilter(e.target.value); setUserPage(0); }}
                 >
@@ -930,7 +1010,53 @@ export default function AdminDashboard() {
               ) : (
                 <div>
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
-                  <table className="w-full text-sm">
+                  <div className="divide-y divide-border sm:hidden">
+                    {allUsers.map((u) => {
+                      const uTyped = u as Record<string, unknown> & { profileStatus?: string; userType?: string; isActive?: boolean };
+                      const profileStatus = uTyped.profileStatus ?? "incomplete";
+                      const typeLabels: Record<string, string> = { representative: "Representante", company: "Empresa", manager: "Gerente", pending: "Pendente" };
+                      const profileLabels: Record<string, string> = { complete: "Completo", partial: "Parcial", incomplete: "Incompleto" };
+                      const isActive = uTyped.isActive !== false;
+                      return (
+                        <article key={u.id} className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-muted-foreground">Usuário #{u.id}</p>
+                              <h2 className="mt-1 truncate text-base font-bold text-foreground">{u.name ?? "Sem nome"}</h2>
+                              <p className="mt-1 truncate text-sm text-muted-foreground">{u.email ?? "Sem e-mail"}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${isActive ? "border-green-300 bg-green-100 text-gray-900" : "border-gray-300 bg-gray-100 text-gray-700"}`}>
+                              {isActive ? "Ativo" : "Inativo"}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className="rounded-md border border-border bg-secondary px-2 py-1 text-[11px] font-semibold text-foreground">{typeLabels[uTyped.userType ?? "pending"] ?? "Pendente"}</span>
+                            <span className={`rounded-md border px-2 py-1 text-[11px] font-semibold ${profileStatus === "complete" ? "border-green-300 bg-green-100 text-gray-900" : profileStatus === "partial" ? "border-amber-300 bg-amber-100 text-gray-900" : "border-red-300 bg-red-100 text-gray-900"}`}>{profileLabels[profileStatus] ?? "Incompleto"}</span>
+                            {u.role === "admin" && <span className="rounded-md border border-red-300 bg-red-100 px-2 py-1 text-[11px] font-semibold text-gray-900">Admin</span>}
+                          </div>
+                          <p className="mt-3 text-xs text-muted-foreground">Cadastro em {new Date(u.createdAt).toLocaleDateString("pt-BR")}</p>
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            {profileStatus !== "complete" ? (
+                              <Button size="sm" variant="outline" className="text-xs" onClick={() => setProfileModal({ userId: u.id, userName: u.name ?? `#${u.id}` })}>
+                                <Eye className="mr-1 h-3 w-3" />Ver perfil
+                              </Button>
+                            ) : <div />}
+                            {u.email && (
+                              <Button size="sm" variant="outline" className="text-xs border-blue-700/40 text-blue-500" onClick={() => { setSendingEmailId(u.id); sendCadastroEmailMutation.mutate({ userId: u.id }); }} disabled={sendingEmailId === u.id && sendCadastroEmailMutation.isPending}>
+                                {sendingEmailId === u.id && sendCadastroEmailMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Mail className="mr-1 h-3 w-3" />E-mail</>}
+                              </Button>
+                            )}
+                            {u.id !== user?.id && (
+                              <Button size="sm" variant="outline" className={`col-span-2 text-xs ${isActive ? "border-red-700/40 text-red-500" : "border-green-700/40 text-green-600"}`} onClick={() => setConfirmAction({ type: "toggle", userId: u.id, userName: u.name ?? `#${u.id}`, isActive: !isActive })} disabled={toggleActiveMutation.isPending}>
+                                {isActive ? <><UserX className="mr-1 h-3 w-3" />Desativar usuário</> : <><UserCheck className="mr-1 h-3 w-3" />Reativar usuário</>}
+                              </Button>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                  <table className="hidden w-full text-sm sm:table">
                     <thead>
                       <tr className="border-b border-border bg-secondary/40">
                         <th className="text-left px-4 py-3 text-xs font-bold text-foreground uppercase tracking-wide">ID</th>
@@ -1056,17 +1182,17 @@ export default function AdminDashboard() {
           )}
           {activeTab === "representantes" && (
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-black">Representantes Importados</h1>
                   <p className="text-muted-foreground text-sm mt-1">9.680 representantes enriquecidos via CNPJÁ — CNPJ, e-mail, telefone, sócios e mais</p>
                 </div>
-                <Badge className="bg-blue-900/30 text-blue-300 border border-blue-700/40 px-3 py-1">
+                <Badge className="w-fit bg-blue-900/30 text-blue-300 border border-blue-700/40 px-3 py-1">
                   <UserCheck className="w-3 h-3 mr-1" />9.680 reps
                 </Badge>
               </div>
-              <div className="flex gap-3 mb-5">
-                <div className="relative flex-1">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+                <div className="relative w-full sm:flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -1076,7 +1202,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <select
-                  className="px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none sm:w-auto"
                   value={repEstado}
                   onChange={e => { setRepEstado(e.target.value); setRepOffset(0); }}
                 >
@@ -1090,7 +1216,43 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
               ) : (
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
-                  <table className="w-full text-sm">
+                  <div className="divide-y divide-border sm:hidden">
+                    {(enrichedReps?.reps ?? []).map((r) => (
+                      <article key={r.id} className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground">Representante #{r.id}</p>
+                            <h2 className="mt-1 text-base font-bold leading-snug text-foreground">{r.fullName}</h2>
+                            {r.nomeFantasia && <p className="mt-0.5 text-xs text-muted-foreground">{r.nomeFantasia}</p>}
+                          </div>
+                          {r.situacaoCadastral ? (
+                            <Badge className={`${r.situacaoCadastral.toLowerCase().includes("ativa") ? "bg-green-100 text-gray-900 border-green-300" : "bg-gray-100 text-gray-700 border-gray-300"} shrink-0 text-[11px]`}>
+                              {r.situacaoCadastral}
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 text-xs">
+                          <div className="min-w-0"><dt className="text-muted-foreground">CNPJ / CPF</dt><dd className="mt-0.5 break-all font-mono font-medium text-foreground">{r.cnpj ?? r.cpf ?? "—"}</dd></div>
+                          <div className="min-w-0"><dt className="text-muted-foreground">Cidade / UF</dt><dd className="mt-0.5 font-medium text-foreground">{r.cidade && r.estado ? `${r.cidade}/${r.estado}` : r.estado ?? "—"}</dd></div>
+                          <div className="min-w-0"><dt className="text-muted-foreground">E-mail</dt><dd className="mt-0.5 break-all font-medium text-foreground">{r.email ?? "—"}</dd></div>
+                          <div className="min-w-0"><dt className="text-muted-foreground">Telefone</dt><dd className="mt-0.5 font-medium text-foreground">{r.phone ?? "—"}</dd></div>
+                        </dl>
+                        <Button size="sm" variant="outline" className="mt-4 w-full text-xs" onClick={() => setExpandedRepId(expandedRepId === r.id ? null : r.id)}>
+                          <Eye className="mr-1 h-3 w-3" />{expandedRepId === r.id ? "Ocultar dados fiscais" : "Ver dados fiscais"}
+                        </Button>
+                        {expandedRepId === r.id && (
+                          <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-secondary/40 p-3 text-xs">
+                            <div><span className="text-muted-foreground">Porte:</span> <span className="font-medium text-foreground">{r.porte ?? "—"}</span></div>
+                            <div><span className="text-muted-foreground">Abertura:</span> <span className="font-medium text-foreground">{r.dataAbertura ?? "—"}</span></div>
+                            <div><span className="text-muted-foreground">CNAE:</span> <span className="font-medium text-foreground">{r.cnaeDescricao ?? "—"}</span></div>
+                            <div><span className="text-muted-foreground">MEI:</span> <span className="font-medium text-foreground">{r.mei ? "Sim" : "Não"}</span></div>
+                            {r.socios && <div className="col-span-2"><span className="text-muted-foreground">Sócios:</span> <span className="font-medium text-foreground">{r.socios}</span></div>}
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                  <table className="hidden w-full text-sm sm:table">
                     <thead>
                       <tr className="border-b border-border bg-secondary/30">
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome / Razão Social</th>
@@ -1168,14 +1330,14 @@ export default function AdminDashboard() {
           )}
           {activeTab === "pagamentos" && (
             <div>
-              <div className="flex items-center justify-between mb-8">
+              <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-black">Pagamentos PIX Pendentes</h1>
                   <p className="text-muted-foreground text-sm mt-1">
                     Representantes com pagamento pendente — ative o plano após confirmar o comprovante no WhatsApp
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 self-start sm:self-auto">
                   <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 px-3 py-1">
                     {pendingPayments?.length ?? 0} pendentes
                   </Badge>
@@ -1208,7 +1370,41 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
-                  <table className="w-full text-sm">
+                  <div className="divide-y divide-border sm:hidden">
+                    {(pendingPayments ?? [])
+                      .filter((r) => {
+                        if (!pixSearch) return true;
+                        const q = pixSearch.toLowerCase();
+                        return (r.fullName ?? "").toLowerCase().includes(q) || (r.phone ?? "").includes(q) || (r.region ?? "").toLowerCase().includes(q);
+                      })
+                      .map((rep) => (
+                        <article key={rep.repId} className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-muted-foreground">Representante #{rep.repId}</p>
+                              <h2 className="mt-1 text-base font-bold text-foreground">{rep.fullName ?? "—"}</h2>
+                              {rep.userEmail && <p className="mt-1 break-all text-xs text-muted-foreground">{rep.userEmail}</p>}
+                            </div>
+                            <Badge className="shrink-0 border-amber-300 bg-amber-100 text-gray-900">Pendente</Badge>
+                          </div>
+                          <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                            <div><dt className="text-muted-foreground">Telefone</dt><dd className="mt-0.5 font-medium text-foreground">{rep.phone ?? "—"}</dd></div>
+                            <div><dt className="text-muted-foreground">Região</dt><dd className="mt-0.5 font-medium text-foreground">{rep.region ?? "—"}</dd></div>
+                            <div><dt className="text-muted-foreground">Segmento</dt><dd className="mt-0.5 font-medium text-foreground">{rep.segment ?? "—"}</dd></div>
+                            <div><dt className="text-muted-foreground">Cadastro</dt><dd className="mt-0.5 font-medium text-foreground">{rep.createdAt ? new Date(rep.createdAt).toLocaleDateString("pt-BR") : "—"}</dd></div>
+                          </dl>
+                          <p className="mt-4 text-xs font-semibold text-muted-foreground">Ativar plano</p>
+                          <div className="mt-2 grid grid-cols-3 gap-2">
+                            {(["bronze", "prata", "ouro"] as const).map((tier) => (
+                              <Button key={tier} size="sm" variant="outline" disabled={activatePlanMutation.isPending && activatingId === rep.repId} onClick={() => { setActivatingId(rep.repId); activatePlanMutation.mutate({ repId: rep.repId, tier }); }} className={`text-xs capitalize ${tier === "bronze" ? "border-orange-700/40 text-orange-500" : tier === "prata" ? "border-primary/40 text-primary" : "border-amber-600/40 text-amber-500"}`}>
+                                {activatePlanMutation.isPending && activatingId === rep.repId ? <Loader2 className="h-3 w-3 animate-spin" /> : tier}
+                              </Button>
+                            ))}
+                          </div>
+                        </article>
+                      ))}
+                  </div>
+                  <table className="hidden w-full text-sm sm:table">
                     <thead>
                       <tr className="border-b border-border bg-secondary/30">
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Rep #</th>
@@ -1440,12 +1636,12 @@ export default function AdminDashboard() {
           {/* ─── ABA DOCUMENTOS ─────────────────────────────────────────────────── */}
           {activeTab === "documentos" && (
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-black">Validação de Documentos</h1>
                   <p className="text-muted-foreground text-sm mt-1">Revise identidade (KYC), registro CORE e CNPJ dos representantes</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { refetchDocs(); refetchDocStats(); }}>
+                <Button className="w-fit" variant="outline" size="sm" onClick={() => { refetchDocs(); refetchDocStats(); }}>
                   <RefreshCw className="w-4 h-4 mr-2" />Atualizar
                 </Button>
               </div>
@@ -1469,8 +1665,8 @@ export default function AdminDashboard() {
               </div>
 
               {/* Filters */}
-              <div className="flex gap-3 mb-4">
-                <div className="relative flex-1 max-w-xs">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+                <div className="relative w-full sm:max-w-xs sm:flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     className="w-full pl-9 pr-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -1480,7 +1676,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <select
-                  className="px-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none"
+                  className="w-full px-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none sm:w-auto"
                   value={docStatusFilter}
                   onChange={(e) => setDocStatusFilter(e.target.value)}
                 >
@@ -1499,7 +1695,35 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
-                  <table className="w-full text-sm">
+                  <div className="divide-y divide-border sm:hidden">
+                    {(allDocs?.items ?? []).length === 0 ? (
+                      <p className="p-8 text-center text-sm text-muted-foreground">Nenhum representante encontrado</p>
+                    ) : (allDocs?.items ?? []).map((rep) => {
+                      const kycStatus = rep.kycStatus as string;
+                      const coreStatus = rep.coreStatus as string;
+                      const kycLabels: Record<string, string> = { not_started: "Não enviado", pending_review: "Pendente", approved: "Aprovado", rejected: "Rejeitado" };
+                      const coreLabels: Record<string, string> = { not_checked: "Não verificado", active: "Ativo", inactive: "Inativo", not_found: "Não encontrado" };
+                      return (
+                        <article key={rep.id as number} className="p-4">
+                          <p className="text-xs font-medium text-muted-foreground">Representante #{rep.id as number}</p>
+                          <h2 className="mt-1 text-base font-bold text-foreground">{rep.fullName as string || "—"}</h2>
+                          <p className="mt-1 text-xs text-muted-foreground">{rep.segment as string || "Sem segmento"} · {rep.region as string || "Sem região"}</p>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-lg bg-secondary/50 p-2"><p className="text-muted-foreground">KYC</p><p className="mt-0.5 font-semibold text-foreground">{kycLabels[kycStatus] ?? kycStatus}</p></div>
+                            <div className="rounded-lg bg-secondary/50 p-2"><p className="text-muted-foreground">CORE</p><p className="mt-0.5 font-semibold text-foreground">{coreLabels[coreStatus] ?? coreStatus}</p></div>
+                            <div className="col-span-2 rounded-lg bg-secondary/50 p-2"><p className="text-muted-foreground">CNPJ</p><p className="mt-0.5 break-all font-mono font-medium text-foreground">{rep.cnpj as string || "Não informado"}</p></div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {rep.kycDocumentUrl && <a href={rep.kycDocumentUrl as string} target="_blank" rel="noreferrer"><Button size="sm" variant="outline" className="text-xs"><Eye className="mr-1 h-3 w-3" />Doc</Button></a>}
+                            {rep.kycSelfieUrl && <a href={rep.kycSelfieUrl as string} target="_blank" rel="noreferrer"><Button size="sm" variant="outline" className="text-xs"><Eye className="mr-1 h-3 w-3" />Selfie</Button></a>}
+                            {kycStatus === "pending_review" && <Button size="sm" className="text-xs bg-primary/10 text-primary hover:bg-primary/20" onClick={() => { setReviewModal({ rep: rep as Record<string, unknown>, mode: "kyc" }); setReviewDecision("approved"); setReviewNotes(""); }}><ShieldCheck className="mr-1 h-3 w-3" />Revisar KYC</Button>}
+                            {rep.coreNumber && <Button size="sm" variant="outline" className="text-xs" onClick={() => { setReviewModal({ rep: rep as Record<string, unknown>, mode: "core" }); setReviewDecision("active"); setReviewNotes(""); }}><RefreshCw className="mr-1 h-3 w-3" />CORE</Button>}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                  <table className="hidden w-full text-sm sm:table">
                     <thead>
                       <tr className="border-b border-border bg-secondary/30">
                         <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Representante</th>

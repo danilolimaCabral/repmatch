@@ -439,6 +439,21 @@ export const pageViews = mysqlTable("page_views", {
 export type PageView = typeof pageViews.$inferSelect;
 export type InsertPageView = typeof pageViews.$inferInsert;
 
+// ─── Interesse de compra de contatos (funil empresa → representante) ──────────
+export const representativePurchaseClicks = mysqlTable("representative_purchase_clicks", {
+  id: int("id").autoincrement().primaryKey(),
+  companyId: int("companyId").notNull(),
+  representativeId: int("representativeId").notNull(),
+  source: varchar("source", { length: 40 }).default("search").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  repCreatedIdx: index("rpc_rep_created_idx").on(t.representativeId, t.createdAt),
+  companyCreatedIdx: index("rpc_company_created_idx").on(t.companyId, t.createdAt),
+  createdAtIdx: index("rpc_created_idx").on(t.createdAt),
+}));
+export type RepresentativePurchaseClick = typeof representativePurchaseClicks.$inferSelect;
+export type InsertRepresentativePurchaseClick = typeof representativePurchaseClicks.$inferInsert;
+
 // ─── Blog Reactions (reações nos artigos do blog) ────────────────────────────
 export const blogReactions = mysqlTable("blog_reactions", {
   id: int("id").autoincrement().primaryKey(),
