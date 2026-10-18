@@ -166,13 +166,17 @@ describe("AdminDashboard mobile layout", () => {
     expect(companyDashboardSource).toContain("c.address");
     expect(routersSource).toContain("consultarCnpj");
     expect(routersSource).toContain("liveCnpjMap");
-    expect(companyDashboardSource).toContain("Telefone não informado no cadastro");
+    expect(companyDashboardSource).toContain("Telefone não informado");
     expect(companyDashboardSource).toContain("WhatsApp");
     expect(routersSource).toContain("resolveIbgeMunicipality");
     expect(routersSource).toContain("socialSearchTerm");
     expect(companyDashboardSource).toContain("Buscar LinkedIn");
     expect(companyDashboardSource).toContain("Buscar Instagram");
     expect(companyDashboardSource).toContain("CNAE");
+    expect(companyDashboardSource).toContain("Contato direto");
+    expect(companyDashboardSource).toContain("Localização");
+    expect(companyDashboardSource).toContain("Dados da empresa");
+    expect(companyDashboardSource).toContain("Abrir no mapa");
   });
 
   it("provides compliant B2B and B2C lead packages with manual PIX fulfillment", () => {

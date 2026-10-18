@@ -841,3 +841,9 @@
 - [x] Distinguir CNAE principal 46.1 dos CNAEs afins para manter transparência nos resultados
 - [x] Usar a classificação ampliada na validação CNPJA, busca e Base CNPJ
 - [x] Cobrir a expansão e excluir intermediação genérica 7490-1/04 com testes
+
+## Organização da ficha de contatos desbloqueados (18/10/2026)
+- [x] Separar telefone e e-mail em bloco de contato com ações rápidas
+- [x] Separar cidade, estado, endereço e CEP em bloco de localização com mapa
+- [x] Agrupar CNPJ, ramo CNAE, porte e data de abertura como dados da empresa
+- [x] Validar o novo painel com TypeScript e testes automatizados

@@ -1081,6 +1081,8 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           segment: rep?.segment ?? liveDetails?.cnaeDescricao ?? imported?.cnaeDescricao ?? null,
           region: rep?.region ?? state,
           city: cityAndState || null,
+          cityName: municipality?.city ?? rawMunicipality ?? null,
+          state,
           address: imported?.logradouro ?? null,
           cep: imported?.cep ?? null,
           cnpj: rep?.cnpj ?? imported?.cnpj ?? null,
