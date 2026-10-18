@@ -13,7 +13,7 @@ import {
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
   ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil, Shield,
   BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight, MessageSquare, Send,
-  ShoppingCart, Trash2, Upload, X as XIcon, QrCode, BookUser, Phone, Mail, ExternalLink
+  ShoppingCart, Trash2, Upload, X as XIcon, QrCode, BookUser, Phone, Mail, ExternalLink, Menu
 } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
@@ -121,9 +121,9 @@ function DirectChatTab({
   };
 
   return (
-    <div className="p-8 flex gap-6 h-full">
+    <div className="flex h-full flex-col gap-4 p-4 sm:p-6 lg:flex-row lg:gap-6 lg:p-8">
       {/* Conversation List */}
-      <div className="w-72 shrink-0">
+      <div className="w-full shrink-0 lg:w-72">
         <h2 className="text-lg font-bold text-slate-800 mb-4">Mensagens</h2>
         {convsLoading ? (
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-emerald-600" /></div>
@@ -247,6 +247,7 @@ export default function CompanyDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search" | "messages" | "contacts">("overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeChatRepId, setActiveChatRepId] = useState<number | null>(null);
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
   const [directChatInput, setDirectChatInput] = useState("");
@@ -591,12 +592,18 @@ export default function CompanyDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
+    <div className="min-h-screen overflow-hidden bg-slate-50 text-slate-900 lg:flex">
+      {mobileMenuOpen && (
+        <button type="button" aria-label="Fechar menu" className="fixed inset-0 z-40 bg-slate-950/35 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
+      )}
       {/* ─── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside className="w-64 bg-white border-r border-slate-100 flex flex-col shadow-sm shrink-0">
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-2.5rem))] flex-col border-r border-slate-100 bg-white shadow-2xl transition-transform duration-200 lg:static lg:w-64 lg:translate-x-0 lg:shadow-sm ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
         {/* Logo + profile */}
         <div className="p-5 border-b border-slate-100">
-          <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-5" />
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
+            <button type="button" aria-label="Fechar menu" className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 lg:hidden" onClick={() => setMobileMenuOpen(false)}><XIcon className="h-5 w-5" /></button>
+          </div>
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-black text-base shadow-sm">
               {profile.companyName.charAt(0).toUpperCase()}
@@ -615,7 +622,7 @@ export default function CompanyDashboard() {
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id as typeof activeTab)}
+              onClick={() => { setActiveTab(item.id as typeof activeTab); setMobileMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 activeTab === item.id
                   ? "bg-emerald-600 text-white shadow-sm"
@@ -657,11 +664,15 @@ export default function CompanyDashboard() {
       </aside>
 
       {/* ─── Main ────────────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-auto">
+      <main className="min-w-0 flex-1 overflow-auto">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur lg:hidden">
+          <button type="button" aria-label="Abrir menu" aria-expanded={mobileMenuOpen} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-800 shadow-sm" onClick={() => setMobileMenuOpen(true)}><Menu className="h-5 w-5" /></button>
+          <div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">Painel da Empresa</p><p className="truncate text-xs text-slate-500">{navItems.find((item) => item.id === activeTab)?.label}</p></div>
+        </header>
 
         {/* ─── Overview Tab ─────────────────────────────────────────────── */}
         {activeTab === "overview" && (
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-slate-800">Visão Geral</h1>
               <p className="text-slate-500 text-sm mt-1">Acompanhe o desempenho das suas vagas e candidaturas</p>
@@ -844,7 +855,7 @@ export default function CompanyDashboard() {
         )}
 
           {/* Welcome Banner */}
-          <div className="px-8 pt-6 pb-0">
+          <div className="px-4 pt-4 pb-0 sm:px-6 sm:pt-6 lg:px-8">
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl px-6 py-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
                 {(user?.name ?? "U").charAt(0).toUpperCase()}
@@ -862,7 +873,7 @@ export default function CompanyDashboard() {
 
         {/* ─── Jobs Tab ─────────────────────────────────────────────────── */}
         {activeTab === "jobs" && (
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-slate-800">Minhas Vagas</h1>
@@ -1021,7 +1032,7 @@ export default function CompanyDashboard() {
 
         {/* ─── Applications Tab ─────────────────────────────────────────── */}
         {activeTab === "applications" && (
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="flex items-center gap-4 mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-slate-800">Candidaturas</h1>
@@ -1032,7 +1043,7 @@ export default function CompanyDashboard() {
                   value={selectedJobId?.toString() ?? ""}
                   onValueChange={(v) => setSelectedJobId(Number(v))}
                 >
-                  <SelectTrigger className="w-64 border-slate-200 bg-white ml-auto">
+                  <SelectTrigger className="w-full border-slate-200 bg-white sm:ml-auto sm:w-64">
                     <SelectValue placeholder="Selecione uma vaga" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1436,7 +1447,7 @@ export default function CompanyDashboard() {
 
         {/* ─── Search Tab ──────────────────────────────────────────────────────────────────────────────────── */}
         {activeTab === "search" && (
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-slate-800 mb-1">Buscar Representantes</h1>
@@ -1756,7 +1767,7 @@ export default function CompanyDashboard() {
 
         {/* ─── Meus Contatos Tab ─────────────────────────────────────────────── */}
         {activeTab === "contacts" && (
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-slate-800">Meus Contatos</h1>
               <p className="text-slate-500 text-sm mt-1">Representantes cujos dados de contato você desbloqueou</p>
@@ -1802,7 +1813,7 @@ export default function CompanyDashboard() {
 
         {/* ─── Profile Tab ─────────────────────────────────────────────── */}
         {activeTab === "profile" && (
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-slate-800">Perfil da Empresa</h1>
               <p className="text-slate-500 text-sm mt-1">Informações públicas da sua empresa no RepMatch</p>

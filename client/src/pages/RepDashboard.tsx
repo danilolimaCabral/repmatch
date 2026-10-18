@@ -13,7 +13,7 @@ import {
   Briefcase, User, LogOut, Search, MapPin, DollarSign,
   ChevronRight, Loader2, Star, Lock, CheckCircle, Clock, XCircle,
   TrendingUp, Building2, Filter, MessageCircle, Send, Edit2, Bell,
-  Shield, Award, BarChart2, Target, Zap, Plus, Trash2, PauseCircle, PlayCircle
+  Shield, Award, BarChart2, Target, Zap, Plus, Trash2, PauseCircle, PlayCircle, Menu, X
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
@@ -184,8 +184,8 @@ function RepDirectChatTab({
   };
 
   return (
-    <div className="p-8 flex gap-6 h-full">
-      <div className="w-72 shrink-0">
+    <div className="flex h-full flex-col gap-4 p-4 sm:p-6 lg:flex-row lg:gap-6 lg:p-8">
+      <div className="w-full shrink-0 lg:w-72">
         <h2 className="text-lg font-bold text-slate-900 mb-4">Mensagens</h2>
         {convsLoading ? (
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-emerald-600" /></div>
@@ -309,6 +309,7 @@ export default function RepDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"jobs" | "applications" | "profile" | "messages" | "myopportunities" | "reviews">("jobs");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
   const [directChatInput, setDirectChatInput] = useState("");
   const [searchRegion, setSearchRegion] = useState("");
@@ -457,12 +458,16 @@ export default function RepDashboard() {
 
   return (
     <div data-theme="dashboard" className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="flex h-screen">
+      <div className="flex min-h-screen overflow-hidden lg:h-screen">
+        {mobileMenuOpen && <button type="button" aria-label="Fechar menu" className="fixed inset-0 z-40 bg-slate-950/35 lg:hidden" onClick={() => setMobileMenuOpen(false)} />}
 
         {/* ─── Sidebar ─────────────────────────────────────────────────── */}
-        <aside className="w-64 border-r border-slate-200 bg-white flex flex-col shadow-sm">
+        <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-2.5rem))] flex-col border-r border-slate-200 bg-white shadow-2xl transition-transform duration-200 lg:static lg:w-64 lg:translate-x-0 lg:shadow-sm ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div className="p-6 border-b border-slate-100">
-            <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain mb-5" />
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
+              <button type="button" aria-label="Fechar menu" className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 lg:hidden" onClick={() => setMobileMenuOpen(false)}><X className="h-5 w-5" /></button>
+            </div>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
                 {profile.fullName.charAt(0).toUpperCase()}
@@ -485,7 +490,7 @@ export default function RepDashboard() {
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id as typeof activeTab)}
+                onClick={() => { setActiveTab(item.id as typeof activeTab); setMobileMenuOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === item.id
                     ? "bg-emerald-50 text-emerald-700"
@@ -533,7 +538,11 @@ export default function RepDashboard() {
         </aside>
 
         {/* ─── Main Content ─────────────────────────────────────────────── */}
-        <main className="flex-1 overflow-auto bg-slate-50">
+        <main className="min-w-0 flex-1 overflow-auto bg-slate-50">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur lg:hidden">
+            <button type="button" aria-label="Abrir menu" aria-expanded={mobileMenuOpen} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-800 shadow-sm" onClick={() => setMobileMenuOpen(true)}><Menu className="h-5 w-5" /></button>
+            <div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">Painel do Representante</p><p className="truncate text-xs text-slate-500">Use o menu para navegar</p></div>
+          </header>
           {/* KYC Verification Banner */}
           {profile && (profile as any).kycStatus !== "approved" && (
             <div className={`flex items-center justify-between gap-3 px-6 py-3 text-sm font-medium ${
@@ -561,7 +570,7 @@ export default function RepDashboard() {
           )}
 
           {/* Welcome Banner */}
-          <div className="px-8 pt-6 pb-0">
+          <div className="px-4 pt-4 pb-0 sm:px-6 sm:pt-6 lg:px-8">
             <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-6 py-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
                 {(user?.name ?? "U").charAt(0).toUpperCase()}
@@ -579,7 +588,7 @@ export default function RepDashboard() {
 
           {/* ══ Jobs Tab ══════════════════════════════════════════════════ */}
           {activeTab === "jobs" && (
-            <div className="p-8">
+            <div className="p-4 sm:p-6 lg:p-8">
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -592,7 +601,7 @@ export default function RepDashboard() {
               </div>
 
               {/* KPI Cards */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 mb-8">
                 {[
                   { label: "Vagas Disponíveis", value: allJobs?.length ?? 0, icon: Briefcase, color: "text-emerald-600", bg: "bg-emerald-50" },
                   { label: "Candidaturas Enviadas", value: myApplications?.length ?? 0, icon: Send, color: "text-blue-600", bg: "bg-blue-50" },
@@ -612,7 +621,7 @@ export default function RepDashboard() {
 
               {/* Charts Row */}
               {(segmentCounts.length > 0 || statusCounts.length > 0) && (
-                <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6 mb-8">
                   {segmentCounts.length > 0 && (
                     <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                       <h3 className="text-sm font-semibold text-slate-700 mb-4">Vagas por Segmento</h3>
@@ -820,14 +829,14 @@ export default function RepDashboard() {
 
           {/* ══ Applications Tab ══════════════════════════════════════════ */}
           {activeTab === "applications" && (
-            <div className="p-8">
+            <div className="p-4 sm:p-6 lg:p-8">
               <div className="mb-8">
                 <h1 className="text-2xl font-bold text-slate-900">Minhas Candidaturas</h1>
                 <p className="text-slate-500 text-sm mt-1">Acompanhe o status e negocie diretamente com as empresas via chat</p>
               </div>
 
               {/* KPI Cards */}
-              <div className="grid grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 mb-8">
                 {[
                   { label: "Total",      value: myApplications?.length ?? 0,                                                                          color: "text-slate-700",   bg: "bg-slate-50",   icon: Bell },
                   { label: "Aceitas",    value: acceptedCount,                                                                                         color: "text-emerald-700", bg: "bg-emerald-50", icon: CheckCircle },
@@ -905,7 +914,7 @@ export default function RepDashboard() {
 
           {/* ══ Minhas Vagas Tab ═════════════════════════════════════════ */}
           {activeTab === "myopportunities" && (
-            <div className="p-8 max-w-3xl">
+            <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900">Minhas Vagas</h1>
@@ -1037,7 +1046,7 @@ export default function RepDashboard() {
 
                   {/* ══ Reviews Tab ══════════════════════════════════════════════════════ */}
           {activeTab === "reviews" && (
-            <div className="p-8 max-w-3xl">
+            <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
               <div className="mb-8">
                 <h1 className="text-2xl font-bold text-slate-900">Minhas Avaliações</h1>
                 <p className="text-slate-500 text-sm mt-1">Avaliações recebidas de empresas que você atendeu</p>
@@ -1103,7 +1112,7 @@ export default function RepDashboard() {
           )}
 
           {/* ══ Profile Tab ═════════════════════════════════════════════════════════ */}
-          {activeTab === "profile" && (         <div className="p-8 max-w-2xl">
+          {activeTab === "profile" && (         <div className="p-4 sm:p-6 lg:p-8 max-w-2xl">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900">Meu Perfil</h1>

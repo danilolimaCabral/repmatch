@@ -499,8 +499,8 @@ export default function Home() {
 
       {/* ─── Navbar ─────────────────────────────────────────────────────────── */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-card/97 backdrop-blur-md border-b border-border shadow-md" : "bg-transparent"}`}>
-        <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between" style={{ height: "72px" }}>
-          <img src={LOGO_URL} alt="RepMatch" className="h-8 object-contain" />
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:h-[72px] sm:px-6">
+          <img src={LOGO_URL} alt="RepMatch" className="h-7 shrink-0 object-contain sm:h-8" />
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#como-funciona" className="hover:text-foreground transition-colors">Como funciona</a>
             <a href="/vagas" className="hover:text-foreground transition-colors font-medium text-foreground/80">Vagas</a>
@@ -510,24 +510,30 @@ export default function Home() {
             <a href="/blog" className="hover:text-foreground transition-colors font-medium text-foreground/80">Blog</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>
-          <div className="flex items-center gap-3">
-            <ThemeToggleButton />
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="hidden sm:block"><ThemeToggleButton /></div>
             {isAuthenticated ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {user?.role === "admin" && (
                   <a
                     href="/admin"
-                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-full text-sm transition-colors"
+                    aria-label="Abrir Painel Admin"
+                    title="Painel Admin"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-sm font-semibold text-white transition-colors hover:bg-red-700 sm:h-auto sm:w-auto sm:gap-1.5 sm:px-4 sm:py-2"
                   >
-                    <span>🔑</span> Painel Admin
+                    <Lock className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Painel Admin</span>
                   </a>
                 )}
                 <div className="relative">
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors"
+                    aria-label="Abrir menu da conta"
+                    aria-expanded={userMenuOpen}
+                    className="flex h-10 w-10 items-center justify-center gap-1 rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-2.5"
                   >
-                    Olá, {user?.name?.split(" ")[0]} <ChevronDownSmall className="w-4 h-4" />
+                    <UserCog className="h-4 w-4 sm:hidden" aria-hidden="true" />
+                    <span className="hidden sm:inline">Olá, {user?.name?.split(" ")[0]}</span>
+                    <ChevronDownSmall className="h-4 w-4" />
                   </button>
                   {userMenuOpen && (
                     <div

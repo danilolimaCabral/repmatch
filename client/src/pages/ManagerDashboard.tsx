@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Users, Search, LogOut, UserCog, MapPin, Star, Briefcase,
   Phone, Mail, Eye, ChevronRight, TrendingUp, Target, Award, Clock,
-  Coins, ShoppingCart, Unlock, CheckCircle, Infinity
+  Coins, ShoppingCart, Unlock, CheckCircle, Infinity, Menu, X
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -44,6 +44,7 @@ export default function ManagerDashboard() {
   const { user, logout, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"overview" | "search" | "team">("overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unlockingRepId, setUnlockingRepId] = useState<number | null>(null);
 
   // Search filters
@@ -118,11 +119,15 @@ export default function ManagerDashboard() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
+    <div className="min-h-screen overflow-hidden bg-background text-foreground lg:flex">
+      {mobileMenuOpen && <button type="button" aria-label="Fechar menu" className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />}
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border bg-card flex flex-col shrink-0">
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-2.5rem))] flex-col border-r border-border bg-card shadow-2xl transition-transform duration-200 lg:static lg:w-64 lg:translate-x-0 lg:shadow-none ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-5 border-b border-border">
-          <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
+          <div className="flex items-center justify-between gap-3">
+            <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
+            <button type="button" aria-label="Fechar menu" className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary lg:hidden" onClick={() => setMobileMenuOpen(false)}><X className="h-5 w-5" /></button>
+          </div>
         </div>
 
         {/* User info */}
@@ -172,7 +177,7 @@ export default function ManagerDashboard() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setActiveTab(tab.id); setMobileMenuOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === tab.id
                     ? "bg-blue-400/15 text-blue-400"
@@ -226,9 +231,13 @@ export default function ManagerDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="min-w-0 flex-1 overflow-auto">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur lg:hidden">
+          <button type="button" aria-label="Abrir menu" aria-expanded={mobileMenuOpen} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground shadow-sm" onClick={() => setMobileMenuOpen(true)}><Menu className="h-5 w-5" /></button>
+          <div className="min-w-0"><p className="truncate text-sm font-bold">Painel do Gerente</p><p className="truncate text-xs text-muted-foreground">{tabs.find((tab) => tab.id === activeTab)?.label}</p></div>
+        </header>
         {/* Welcome Banner */}
-        <div className="px-8 pt-6 pb-0">
+        <div className="px-4 pt-4 pb-0 sm:px-6 sm:pt-6 lg:px-8">
           <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-100 rounded-2xl px-6 py-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
               {(user?.name ?? "U").charAt(0).toUpperCase()}
@@ -246,14 +255,14 @@ export default function ManagerDashboard() {
 
         {/* Overview Tab */}
         {activeTab === "overview" && (
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-8">
               <h1 className="text-2xl font-bold">Visão Geral</h1>
               <p className="text-muted-foreground mt-1">Gerencie sua equipe de representantes comerciais</p>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 mb-8">
               {[
                 { label: "Reps na Plataforma", value: "9.677+", icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
                 { label: "Disponíveis Agora", value: "1.240+", icon: Clock, color: "text-green-400", bg: "bg-green-400/10" },
@@ -293,7 +302,7 @@ export default function ManagerDashboard() {
             {/* Quick actions */}
             <div className="bg-card border border-border rounded-xl p-6 mb-6">
               <h2 className="font-semibold mb-4">Ações Rápidas</h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   onClick={() => setActiveTab("search")}
                   className="flex items-center gap-3 p-4 bg-blue-400/10 border border-blue-400/20 rounded-lg hover:bg-blue-400/20 transition-colors text-left"
@@ -352,7 +361,7 @@ export default function ManagerDashboard() {
 
         {/* Search Tab */}
         {activeTab === "search" && (
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold">Buscar Representantes</h1>
@@ -376,7 +385,7 @@ export default function ManagerDashboard() {
 
             {/* Filters */}
             <div className="bg-card border border-border rounded-xl p-5 mb-6">
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="col-span-1">
                   <Input
                     placeholder="Buscar por nome..."
@@ -523,7 +532,7 @@ export default function ManagerDashboard() {
 
         {/* Team Tab */}
         {activeTab === "team" && (
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-6">
               <h1 className="text-2xl font-bold">Minha Equipe</h1>
               <p className="text-muted-foreground mt-1">Representantes desbloqueados e prontos para contato</p>

@@ -9,6 +9,9 @@ const mpRoutesSource = fs.readFileSync(path.resolve(process.cwd(), "server/merca
 const sharedConstantsSource = fs.readFileSync(path.resolve(process.cwd(), "shared/const.ts"), "utf8");
 const routersSource = fs.readFileSync(path.resolve(process.cwd(), "server/routers.ts"), "utf8");
 const serverSource = fs.readFileSync(path.resolve(process.cwd(), "server/_core/index.ts"), "utf8");
+const homeSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
+const repDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/RepDashboard.tsx"), "utf8");
+const managerDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/ManagerDashboard.tsx"), "utf8");
 
 describe("AdminDashboard mobile layout", () => {
   it("uses an overlay drawer on mobile instead of reserving the desktop sidebar width", () => {
@@ -74,5 +77,24 @@ describe("AdminDashboard mobile layout", () => {
     expect(dashboardSource).toContain("Carrinhos abandonados");
     expect(dashboardSource).toContain("Ver cadastros");
     expect(dashboardSource).toContain("Voltar ao painel");
+  });
+
+  it("uses compact authenticated controls in the mobile landing-page header", () => {
+    expect(homeSource).toContain('className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:h-[72px] sm:px-6"');
+    expect(homeSource).toContain('className="hidden sm:inline">Painel Admin</span>');
+    expect(homeSource).toContain('className="hidden sm:inline">Olá, {user?.name?.split(" ")[0]}</span>');
+    expect(homeSource).toContain("<UserCog className=\"h-4 w-4 sm:hidden\"");
+  });
+
+  it("uses overlay drawers and compact content on every member dashboard", () => {
+    for (const source of [companyDashboardSource, repDashboardSource, managerDashboardSource]) {
+      expect(source).toContain("const [mobileMenuOpen, setMobileMenuOpen]");
+      expect(source).toContain("fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-2.5rem))]");
+      expect(source).toContain("lg:static lg:w-64 lg:translate-x-0");
+      expect(source).toContain('className="sticky top-0 z-30 flex h-16');
+    }
+    expect(companyDashboardSource).toContain('className="p-4 sm:p-6 lg:p-8"');
+    expect(repDashboardSource).toContain("grid grid-cols-2 gap-3 sm:grid-cols-4");
+    expect(managerDashboardSource).toContain("grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4");
   });
 });

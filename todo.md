@@ -751,3 +751,15 @@
 - [x] Criar acesso direto para visualizar novos cadastros
 - [x] Adicionar ação de retorno consistente em todas as abas do admin
 - [x] Validar a gestão comercial com TypeScript e testes automatizados
+
+## Cabeçalho autenticado no celular (18/10/2026)
+- [x] Compactar os botões Painel Admin e menu da conta para ícones no mobile
+- [x] Preservar rótulos completos e navegação no desktop
+- [x] Validar o ajuste com TypeScript e testes automatizados
+
+## Responsividade geral dos dashboards (18/10/2026)
+- [x] Transformar a barra lateral fixa do painel Empresa em drawer mobile
+- [x] Transformar a barra lateral fixa do painel Representante em drawer mobile
+- [x] Transformar a barra lateral fixa do painel Gerente em drawer mobile
+- [x] Ajustar grades, cartões e tabelas principais dos dashboards para telas estreitas
+- [x] Validar os três painéis no mobile com TypeScript e testes
