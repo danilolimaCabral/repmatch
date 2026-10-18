@@ -771,3 +771,9 @@
 - [x] Ajustar onboarding, cadastro, login, perfil e recuperação de senha para toque e formulários mobile
 - [x] Ajustar Base CNPJ e verificação KYC para conteúdo sem estouro horizontal
 - [x] Validar o conjunto completo com TypeScript e testes automatizados
+
+## Preview comercial de representantes (18/10/2026)
+- [x] Substituir nomes e avatares vazios por um preview comercial confiável
+- [x] Tornar os cards bloqueados mais persuasivos sem mostrar telefone, e-mail ou localização
+- [x] Exibir preço e benefício do desbloqueio de forma clara no card e no carrinho
+- [x] Validar a experiência com TypeScript e testes automatizados

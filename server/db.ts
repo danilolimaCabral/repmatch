@@ -1009,7 +1009,7 @@ export async function listRepresentativesForCompany(
       (c.id + 100000) AS id,
       'cnpj' AS source,
       1 AS source_priority,
-      COALESCE(c.nome_fantasia, c.razao_social) AS fullName,
+      COALESCE(NULLIF(TRIM(c.nome_fantasia), ''), NULLIF(TRIM(c.razao_social), ''), 'Representante Comercial') AS fullName,
       c.telefone AS phone,
       CASE c.uf
         WHEN 'SP' THEN 'São Paulo - Capital'
@@ -1074,7 +1074,7 @@ export async function listRepresentativesForCompany(
       c.uf AS estado,
       'Ativa' AS situacaoCadastral,
       c.cnpj AS cnpj,
-      COALESCE(c.nome_fantasia, c.razao_social) AS nomeFantasia,
+      COALESCE(NULLIF(TRIM(c.nome_fantasia), ''), NULLIF(TRIM(c.razao_social), ''), 'Representante Comercial') AS nomeFantasia,
       'not_started' AS kycStatus,
       'not_checked' AS coreStatus,
       4 AS tier_order,
@@ -1144,7 +1144,7 @@ export async function listRepresentativesForCompany(
   const maskedReps = (rows as any[]).map((row: any) => {
     const rep = {
       id: Number(row.id),
-      fullName: row.fullName ?? '',
+      fullName: String(row.fullName ?? row.nomeFantasia ?? '').trim() || 'Representante Comercial',
       phone: row.phone ?? null,
       region: row.region ?? null,
       segment: row.segment ?? 'Outros',

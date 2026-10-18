@@ -8,6 +8,7 @@ const companyDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "clie
 const mpRoutesSource = fs.readFileSync(path.resolve(process.cwd(), "server/mercadopago/mpRoutes.ts"), "utf8");
 const sharedConstantsSource = fs.readFileSync(path.resolve(process.cwd(), "shared/const.ts"), "utf8");
 const routersSource = fs.readFileSync(path.resolve(process.cwd(), "server/routers.ts"), "utf8");
+const dbSource = fs.readFileSync(path.resolve(process.cwd(), "server/db.ts"), "utf8");
 const serverSource = fs.readFileSync(path.resolve(process.cwd(), "server/_core/index.ts"), "utf8");
 const homeSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
 const repDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/RepDashboard.tsx"), "utf8");
@@ -128,5 +129,14 @@ describe("AdminDashboard mobile layout", () => {
     expect(manusDialogSource).toContain("w-[calc(100vw-2rem)] max-w-[400px]");
     expect(roiCalculatorSource).toContain("bg-card p-5 sm:p-8");
     expect(roiCalculatorSource).toContain("grid grid-cols-3 gap-2 sm:gap-4");
+  });
+
+  it("uses a persuasive, non-empty preview before a representative is unlocked", () => {
+    expect(dbSource).toContain("'Representante Comercial') AS fullName");
+    expect(dbSource).toContain("String(row.fullName ?? row.nomeFantasia ?? '').trim() || 'Representante Comercial'");
+    expect(companyDashboardSource).toContain('const previewName = String(rep.fullName');
+    expect(companyDashboardSource).toContain("Contato protegido");
+    expect(companyDashboardSource).toContain("Quero falar com este perfil");
+    expect(companyDashboardSource).toContain("Você libera telefone, e-mail, cidade e apresentação profissional");
   });
 });

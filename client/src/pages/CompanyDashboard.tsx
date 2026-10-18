@@ -13,7 +13,7 @@ import {
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
   ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil, Shield,
   BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight, MessageSquare, Send,
-  ShoppingCart, Trash2, Upload, X as XIcon, QrCode, BookUser, Phone, Mail, ExternalLink, Menu
+  ShoppingCart, Trash2, Upload, X as XIcon, QrCode, BookUser, Phone, Mail, ExternalLink, Menu, Lock
 } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
@@ -292,10 +292,11 @@ export default function CompanyDashboard() {
   const trackPurchaseInterest = trpc.representativeInterest.trackPurchaseClick.useMutation();
 
   const addToCart = (repId: number, repName: string, source: "search" | "top_match" = "search") => {
+    const previewName = repName.trim() || "Representante Comercial";
     if (cart.some(c => c.id === repId)) { toast.info("Já está no carrinho"); return; }
-    setCart(prev => [...prev, { id: repId, name: repName }]);
+    setCart(prev => [...prev, { id: repId, name: previewName }]);
     trackPurchaseInterest.mutate({ representativeId: repId, source });
-    toast.success(`${repName} adicionado ao carrinho`);
+    toast.success(`${previewName} adicionado ao carrinho`);
   };
   const removeFromCart = (repId: number) => setCart(prev => prev.filter(c => c.id !== repId));
 
@@ -1232,7 +1233,7 @@ export default function CompanyDashboard() {
                           {/* Action */}
                           <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
                             onClick={() => {
-                              addToCart(rep.id, rep.fullName ?? "Representante", "top_match");
+                              addToCart(rep.id, String(rep.fullName ?? "").trim() || "Representante Comercial", "top_match");
                               setCartOpen(true);
                             }}>
                             <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {contactUnlockPriceLabel}
@@ -1283,25 +1284,28 @@ export default function CompanyDashboard() {
                 ) : (
                   <>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {cart.map(c => (
-                        <div key={c.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">{c.name.charAt(0)}</div>
-                            <span className="text-sm text-slate-700 font-medium">{c.name}</span>
+                      {cart.map(c => {
+                        const cartName = c.name.trim() || "Representante Comercial";
+                        return (
+                          <div key={c.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                            <div className="min-w-0 flex items-center gap-2">
+                              <div className="w-7 h-7 shrink-0 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">{cartName.charAt(0)}</div>
+                              <span className="truncate text-sm font-medium text-slate-700">{cartName}</span>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <span className="text-xs text-slate-500">{contactUnlockPriceLabel}</span>
+                              <button onClick={() => removeFromCart(c.id)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500">{contactUnlockPriceLabel}</span>
-                            <button onClick={() => removeFromCart(c.id)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-                      <span className="font-semibold text-slate-700">{cart.length} representante{cart.length > 1 ? "s" : ""}</span>
+                      <span className="font-semibold text-slate-700">{cart.length} perfil{cart.length > 1 ? "is" : ""} selecionado{cart.length > 1 ? "s" : ""}</span>
                       <span className="text-lg font-bold text-emerald-700">{(cart.length * contactUnlockPrice).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                     </div>
                     <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 leading-relaxed">
-                      Pague o total por PIX. Assim que o Mercado Pago confirmar o pagamento, o pedido aparecerá no painel do administrador para liberação manual dos contatos.
+                      Você libera telefone, e-mail, cidade e apresentação profissional de cada perfil. Após o PIX ser confirmado, o pedido segue para liberação manual no painel administrativo.
                     </p>
                     <Button
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2"
@@ -1582,8 +1586,8 @@ export default function CompanyDashboard() {
                   {(activeSearchData?.reps ?? []).map((rep) => {
                     const isUnlocked = activeSearchData?.unlockedIds.includes(rep.id as never);
                     const autoMatchScore = (rep as any).autoMatchScore as number | undefined;
-                    const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : rep.subscriptionTier === "bronze" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200";
-                    const tierLabel = rep.subscriptionTier === "ouro" ? "🏆 Ouro" : rep.subscriptionTier === "prata" ? "🥈 Prata" : rep.subscriptionTier === "bronze" ? "🥉 Bronze" : "Pendente";
+                    const tierBadge = rep.subscriptionTier === "ouro" ? "bg-amber-100 text-amber-700 border-amber-200" : rep.subscriptionTier === "prata" ? "bg-blue-100 text-blue-700 border-blue-200" : rep.subscriptionTier === "bronze" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-sky-50 text-sky-700 border-sky-200";
+                    const tierLabel = rep.subscriptionTier === "ouro" ? "🏆 Ouro" : rep.subscriptionTier === "prata" ? "🥈 Prata" : rep.subscriptionTier === "bronze" ? "🥉 Bronze" : "Perfil ativo";
                     const coreActive = (rep as any).coreStatus === 'active';
                     // Avatar color based on name initial
                     const avatarColors = [
@@ -1594,7 +1598,13 @@ export default function CompanyDashboard() {
                       "from-rose-400 to-rose-600",
                       "from-cyan-400 to-cyan-600",
                     ];
-                    const avatarColor = avatarColors[(rep.fullName?.charCodeAt(0) ?? 0) % avatarColors.length];
+                    const previewName = String(rep.fullName ?? (rep as any).nomeFantasia ?? "").trim() || "Representante Comercial";
+                    const previewInitial = previewName.charAt(0).toUpperCase() || "R";
+                    const avatarColor = avatarColors[(previewName.charCodeAt(0) || 0) % avatarColors.length];
+                    const rating = Number(rep.averageRating ?? 0);
+                    const hasRating = rating > 0;
+                    const yearsExperience = Number(rep.experienceYears ?? 0);
+                    const segmentLabel = rep.segment && rep.segment !== "Outros" ? rep.segment : "Atuação comercial diversa";
                     return (
                       <div key={rep.id} className={`rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 ${isUnlocked ? "border-emerald-200 ring-1 ring-emerald-100" : "border-slate-200"}`}>
                         {/* Card header strip */}
@@ -1603,10 +1613,10 @@ export default function CompanyDashboard() {
                           {/* Top row: avatar + name + status badges */}
                           <div className="flex items-start gap-3 mb-4">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-base flex-shrink-0 bg-gradient-to-br ${avatarColor} text-white shadow-sm`}>
-                              {rep.fullName?.charAt(0)?.toUpperCase() ?? "R"}
+                              {previewInitial}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-bold text-sm text-slate-800 truncate">{rep.fullName ?? "Rep. Comercial"}</div>
+                              <div className="font-bold text-sm text-slate-800 truncate">{previewName}</div>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {isUnlocked ? (
                                   <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
@@ -1614,7 +1624,7 @@ export default function CompanyDashboard() {
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                                    🔒 Bloqueado
+                                    🔒 Contato protegido
                                   </span>
                                 )}
                                 {rep.availability === "imediata" && (
@@ -1639,25 +1649,25 @@ export default function CompanyDashboard() {
                           {/* Stats row */}
                           <div className="grid grid-cols-3 gap-2 mb-4">
                             <div className="bg-slate-50 rounded-xl p-2 text-center">
-                              <div className="text-xs font-bold text-slate-700">{rep.experienceYears ?? 0}</div>
-                              <div className="text-[10px] text-slate-400">anos exp.</div>
+                              <div className="text-xs font-bold text-slate-700">{yearsExperience > 0 ? `${yearsExperience}+` : "Perfil"}</div>
+                              <div className="text-[10px] text-slate-400">{yearsExperience > 0 ? "anos de experiência" : "comercial ativo"}</div>
                             </div>
                             <div className="bg-slate-50 rounded-xl p-2 text-center">
-                              <div className="text-xs font-bold text-amber-600">{Number(rep.averageRating ?? 0).toFixed(1)}</div>
-                              <div className="text-[10px] text-slate-400">avaliação</div>
+                              <div className={`text-xs font-bold ${hasRating ? "text-amber-600" : "text-emerald-600"}`}>{hasRating ? rating.toFixed(1) : "✓"}</div>
+                              <div className="text-[10px] text-slate-400">{hasRating ? "avaliação" : "perfil disponível"}</div>
                             </div>
                             <div className={`rounded-xl p-2 text-center ${coreActive ? "bg-emerald-50" : "bg-slate-50"}`}>
                               <div className={`text-xs font-bold ${coreActive ? "text-emerald-600" : "text-slate-400"}`}>
                                 {coreActive ? "✓" : "–"}
                               </div>
-                              <div className="text-[10px] text-slate-400">CORE</div>
+                              <div className="text-[10px] text-slate-400">{coreActive ? "CORE ativo" : "dados a validar"}</div>
                             </div>
                           </div>
 
                           {/* Segment */}
                           <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-4">
                             <Briefcase className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{rep.segment ?? "Geral"}</span>
+                            <span className="truncate">Especialista em {segmentLabel}</span>
                           </div>
 
                           {/* Contact info — only visible after unlock */}
@@ -1699,8 +1709,15 @@ export default function CompanyDashboard() {
                                 )}
                               </>
                             ) : (
-                              <div className="rounded-lg bg-slate-50 border border-dashed border-slate-200 p-3 text-center">
-                                <p className="text-[11px] text-slate-400">🔒 Desbloqueie para ver telefone, e-mail, cidade e bio</p>
+                              <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-3">
+                                <div className="flex items-start gap-2">
+                                  <div className="mt-0.5 rounded-lg bg-emerald-100 p-1.5 text-emerald-700"><Lock className="h-3.5 w-3.5" /></div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-semibold text-emerald-800">Contato protegido</p>
+                                    <p className="mt-0.5 text-[11px] leading-relaxed text-emerald-700">Libere telefone, e-mail, cidade e apresentação profissional para iniciar a conversa.</p>
+                                  </div>
+                                  <span className="shrink-0 text-xs font-bold text-emerald-700">{contactUnlockPriceLabel}</span>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -1724,14 +1741,14 @@ export default function CompanyDashboard() {
                                 Desbloquear grátis
                               </Button>
                               <Button size="sm" variant="outline" className="w-full text-xs border-slate-200 text-slate-500"
-                                onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
-                                <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {contactUnlockPriceLabel}
+                                onClick={() => addToCart(rep.id, previewName)}>
+                                <ShoppingCart className="w-3 h-3 mr-1" /> Quero falar com este perfil — {contactUnlockPriceLabel}
                               </Button>
                             </div>
                           ) : (
                             <Button size="sm" className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
-                              onClick={() => addToCart(rep.id, rep.fullName ?? "Representante")}>
-                              <ShoppingCart className="w-3 h-3 mr-1" /> Adicionar ao carrinho — {contactUnlockPriceLabel}
+                              onClick={() => addToCart(rep.id, previewName)}>
+                              <ShoppingCart className="w-3 h-3 mr-1" /> Quero falar com este perfil — {contactUnlockPriceLabel}
                             </Button>
                           )}
                         </div>
