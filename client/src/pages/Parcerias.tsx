@@ -145,22 +145,22 @@ export default function Parcerias() {
     <div className="min-h-screen" style={{ background: "#060d06" }}>
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 border-b border-white/[0.06]" style={{ background: "rgba(6,13,6,0.92)", backdropFilter: "blur(16px)" }}>
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <button onClick={() => navigate("/")} className="flex items-center gap-2">
-            <img src={LOGO_URL} alt="RepMatch" className="h-8 w-auto" />
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6">
+          <button onClick={() => navigate("/")} className="flex shrink-0 items-center gap-2">
+            <img src={LOGO_URL} alt="RepMatch" className="h-7 w-auto sm:h-8" />
           </button>
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/")} className="text-white/50 hover:text-white text-sm transition-colors">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <button onClick={() => navigate("/")} className="hidden text-sm text-white/50 transition-colors hover:text-white sm:block">
               ← Voltar ao site
             </button>
             <a
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm px-4 py-2 rounded-lg transition-all duration-200"
+              className="flex items-center gap-2 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-bold text-black transition-all duration-200 hover:bg-emerald-400 sm:px-4 sm:text-sm"
             >
               <MessageCircle className="w-4 h-4" />
-              Falar no WhatsApp
+              <span className="hidden sm:inline">Falar no WhatsApp</span>
             </a>
           </div>
         </div>
@@ -198,13 +198,13 @@ export default function Parcerias() {
         />
 
         {/* Conteúdo do Hero */}
-        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center py-24">
+        <div className="relative z-10 mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 sm:py-24">
           <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-bold px-4 py-2 rounded-full mb-8 tracking-widest uppercase backdrop-blur-sm">
             <Handshake className="w-3.5 h-3.5" />
             Programa de Parcerias RepMatch
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight" style={{ textShadow: "0 4px 32px rgba(0,0,0,0.8)" }}>
+          <h1 className="mb-6 text-4xl font-black leading-tight text-white sm:text-5xl md:text-7xl" style={{ textShadow: "0 4px 32px rgba(0,0,0,0.8)" }}>
             Cresça junto com o{" "}
             <span style={{ color: "#22c55e", textShadow: "0 0 40px rgba(34,197,94,0.4)" }}>maior marketplace</span>
             <br />de representantes do Brasil
@@ -221,7 +221,7 @@ export default function Parcerias() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-base px-8 py-4 rounded-xl transition-all duration-200 shadow-2xl hover:shadow-emerald-500/40 hover:-translate-y-0.5"
+              className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-500 px-4 py-4 text-center text-base font-black text-black transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-400 hover:shadow-2xl hover:shadow-emerald-500/40 sm:w-auto sm:px-8"
             >
               <MessageCircle className="w-5 h-5" />
               Falar com o time de parcerias
@@ -421,7 +421,7 @@ export default function Parcerias() {
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-lg px-10 py-5 rounded-2xl transition-all duration-200 shadow-2xl hover:shadow-emerald-500/40 hover:-translate-y-1 active:translate-y-0"
+            className="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-500 px-5 py-4 text-center text-sm font-black text-black transition-all duration-200 hover:-translate-y-1 hover:bg-emerald-400 hover:shadow-2xl hover:shadow-emerald-500/40 active:translate-y-0 sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
           >
             <MessageCircle className="w-6 h-6" />
             Falar agora no WhatsApp
@@ -435,7 +435,7 @@ export default function Parcerias() {
             <span>Danilo Lima · Fundador</span>
           </div>
 
-          <div className="flex items-center justify-center gap-6 mt-8 pt-8 border-t border-white/[0.06]">
+          <div className="mt-8 flex flex-col items-start gap-3 border-t border-white/[0.06] pt-8 sm:flex-row sm:items-center sm:justify-center sm:gap-6">
             {["Resposta em 2h", "Sem burocracia", "Proposta personalizada"].map(item => (
               <div key={item} className="flex items-center gap-1.5 text-white/35 text-xs">
                 <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />

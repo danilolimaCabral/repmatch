@@ -315,11 +315,11 @@ export default function VerificacaoKYC() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex gap-3">
-                  <Button onClick={startCamera} className="flex-1 bg-purple-600 hover:bg-purple-700">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button onClick={startCamera} className="w-full bg-purple-600 hover:bg-purple-700 sm:flex-1">
                     <Camera className="w-4 h-4 mr-2" /> Usar câmera
                   </Button>
-                  <label className="flex-1">
+                  <label className="w-full sm:flex-1">
                     <Button variant="outline" className="w-full border-gray-700" asChild>
                       <span><Upload className="w-4 h-4 mr-2" /> Upload de foto</span>
                     </Button>
@@ -348,7 +348,7 @@ export default function VerificacaoKYC() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Label className="text-sm text-gray-300 mb-2 block">Nº de Registro CORE</Label>
                 <Input

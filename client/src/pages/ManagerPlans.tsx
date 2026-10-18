@@ -112,8 +112,8 @@ export default function ManagerPlans() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
-      <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <header className="flex flex-col gap-3 border-b border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+        <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-start sm:gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/manager")} className="text-gray-400 hover:text-white">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar ao Dashboard
@@ -121,7 +121,7 @@ export default function ManagerPlans() {
           <img src={LOGO_URL} alt="RepMatch" className="h-8" />
         </div>
         {isAuthenticated && credits && (
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-4 py-2">
+          <div className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs sm:w-auto sm:px-4 sm:text-sm">
             <Coins className="w-4 h-4 text-green-400" />
             <span className="text-sm text-gray-300">Saldo atual:</span>
             <span className="font-bold text-green-400">
@@ -132,7 +132,7 @@ export default function ManagerPlans() {
       </header>
 
       {/* Hero */}
-      <div className="text-center py-12 px-6">
+      <div className="px-4 py-10 text-center sm:px-6 sm:py-12">
         <h1 className="text-4xl font-black mb-3">
           Planos para <span className="text-green-400">Gerente Comercial</span>
         </h1>
@@ -143,7 +143,7 @@ export default function ManagerPlans() {
       </div>
 
       {/* Plans Grid */}
-      <div className="max-w-6xl mx-auto px-6 pb-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="mx-auto grid max-w-6xl px-4 pb-12 sm:px-6 sm:pb-16 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {PLANS.map((plan) => {
           const Icon = plan.icon;
           return (

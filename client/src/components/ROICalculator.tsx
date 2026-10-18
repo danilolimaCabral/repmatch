@@ -142,9 +142,9 @@ export default function ROICalculator() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
+        <div className="grid items-start gap-8 lg:grid-cols-2">
           {/* ── Painel de controles ─────────────────────────────────────────── */}
-          <div className="rounded-2xl border border-border bg-card p-8 space-y-8">
+          <div className="space-y-8 rounded-2xl border border-border bg-card p-5 sm:p-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
                 Comparar com qual método?
@@ -226,7 +226,7 @@ export default function ROICalculator() {
           {/* ── Painel de resultados ────────────────────────────────────────── */}
           <div className="space-y-5">
             {/* Card principal — economia */}
-            <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-8 relative overflow-hidden">
+            <div className="relative overflow-hidden rounded-2xl border-2 border-primary/40 bg-primary/5 p-5 sm:p-8">
               <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-primary/5 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
               <div className="relative">
                 <div className="flex items-center gap-2 mb-2">
@@ -236,7 +236,7 @@ export default function ROICalculator() {
                   </span>
                 </div>
                 <div
-                  className="text-5xl md:text-6xl font-black text-primary mb-1 tabular-nums"
+                  className="mb-1 break-all text-4xl font-black tabular-nums text-primary sm:text-5xl md:text-6xl"
                   style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}
                 >
                   {formatBRL(Math.max(0, calc.savings))}
@@ -277,31 +277,31 @@ export default function ROICalculator() {
             </div>
 
             {/* Cards secundários */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border bg-card p-4 text-center">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+              <div className="rounded-xl border border-border bg-card p-2 text-center sm:p-4">
                 <DollarSign className="w-5 h-5 text-primary mx-auto mb-2" />
                 <div
-                  className="text-2xl font-black text-foreground tabular-nums"
+                  className="break-all text-lg font-black tabular-nums text-foreground sm:text-2xl"
                   style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}
                 >
                   {formatBRL(calc.repMatchCost)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">Custo RepMatch</p>
               </div>
-              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center">
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-2 text-center sm:p-4">
                 <BarChart3 className="w-5 h-5 text-primary mx-auto mb-2" />
                 <div
-                  className="text-2xl font-black text-primary tabular-nums"
+                  className="break-all text-lg font-black tabular-nums text-primary sm:text-2xl"
                   style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}
                 >
                   {savingsPct}%
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">Mais barato</p>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4 text-center">
+              <div className="rounded-xl border border-border bg-card p-2 text-center sm:p-4">
                 <Users className="w-5 h-5 text-primary mx-auto mb-2" />
                 <div
-                  className="text-2xl font-black text-foreground tabular-nums"
+                  className="break-all text-lg font-black tabular-nums text-foreground sm:text-2xl"
                   style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}
                 >
                   {calc.timeSavedHours}h

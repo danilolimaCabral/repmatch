@@ -178,7 +178,7 @@ export default function BaseCNPJ() {
           </div>
         ) : data && data.items.length > 0 ? (
           <>
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 <strong className="text-foreground">{data.total.toLocaleString("pt-BR")}</strong> resultados encontrados
                 {hasFilters && " com os filtros aplicados"}
@@ -228,7 +228,7 @@ export default function BaseCNPJ() {
                       {rep.email && (
                         <div className="flex items-center gap-1.5">
                           <Mail className="w-3 h-3 shrink-0" />
-                          <a href={`mailto:${rep.email}`} className="truncate text-emerald-500 hover:underline" onClick={e => e.stopPropagation()}>
+                          <a href={`mailto:${rep.email}`} className="min-w-0 flex-1 truncate text-emerald-500 hover:underline" onClick={e => e.stopPropagation()}>
                             {rep.email}
                           </a>
                         </div>

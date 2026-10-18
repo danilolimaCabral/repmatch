@@ -142,7 +142,7 @@ export default function OportunidadesReps() {
             Representantes comerciais publicando sua disponibilidade para novas parcerias.
             Filtre por região, segmento e disponibilidade.
           </p>
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground/70">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground/70">
             <span className="flex items-center gap-1.5"><Shield className="w-4 h-4 text-emerald-400" /> Perfis verificados</span>
             <span className="flex items-center gap-1.5"><Award className="w-4 h-4 text-amber-400" /> CORE validado</span>
             <span className="flex items-center gap-1.5"><Target className="w-4 h-4 text-blue-400" />{total} disponíveis agora</span>
@@ -339,11 +339,11 @@ export default function OportunidadesReps() {
           <div className="mt-12 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-2xl p-8 text-center text-white">
             <h2 className="text-2xl font-black mb-2">Encontrou o representante ideal?</h2>
             <p className="text-emerald-100 mb-6">Cadastre-se gratuitamente para ver o contato completo e iniciar a conversa</p>
-            <div className="flex items-center justify-center gap-3">
-              <Button size="lg" className="bg-card text-emerald-700 hover:bg-emerald-50 font-bold" onClick={() => navigate("/register")}>
+            <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+              <Button size="lg" className="w-full bg-card font-bold text-emerald-700 hover:bg-emerald-50 sm:w-auto" onClick={() => navigate("/register")}>
                 Criar conta grátis
               </Button>
-              <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-card/10" onClick={() => navigate("/login")}>
+              <Button size="lg" variant="outline" className="w-full border-white/40 text-white hover:bg-card/10 sm:w-auto" onClick={() => navigate("/login")}>
                 Já tenho conta
               </Button>
             </div>

@@ -379,7 +379,7 @@ export default function Onboarding() {
                     value={repForm.fullName}
                     onChange={(e) => setRepForm({ ...repForm, fullName: e.target.value })}
                     placeholder="Seu nome completo"
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                     required
                   />
                 </div>
@@ -390,7 +390,7 @@ export default function Onboarding() {
                     value={repForm.phone}
                     onChange={(e) => setRepForm({ ...repForm, phone: e.target.value })}
                     placeholder="(11) 99999-9999"
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                   />
                 </div>
 
@@ -403,7 +403,7 @@ export default function Onboarding() {
                     value={repCnpj}
                     onChange={(e) => setRepCnpj(e.target.value)}
                     placeholder="00.000.000/0001-00"
-                    className="bg-secondary border-border"
+                    className="w-full min-w-0 bg-secondary border-border"
                     required
                   />
                   <p className="text-xs text-muted-foreground mt-1">Obrigatório para representantes comerciais</p>
@@ -414,18 +414,18 @@ export default function Onboarding() {
                   <Label className="flex items-center gap-2 text-blue-400 font-semibold">
                     <BadgeCheck className="w-4 h-4" /> Registro CORE (Conselho dos Representantes)
                   </Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="sm:col-span-2">
                       <Input
                         value={repCoreNumber}
                         onChange={(e) => setRepCoreNumber(e.target.value)}
                         placeholder="Nº do CORE"
-                        className="bg-secondary border-border"
+                        className="w-full min-w-0 bg-secondary border-border"
                       />
                     </div>
                     <div>
                       <Select onValueChange={setRepCoreState}>
-                        <SelectTrigger className="bg-secondary border-border">
+                        <SelectTrigger className="w-full min-w-0 bg-secondary border-border">
                           <SelectValue placeholder="UF" />
                         </SelectTrigger>
                         <SelectContent>
@@ -454,11 +454,11 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <Label>Região de atuação *</Label>
                     <Select onValueChange={(v) => setRepForm({ ...repForm, region: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                      <SelectTrigger className="mt-1 w-full min-w-0 bg-secondary border-border">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -470,7 +470,7 @@ export default function Onboarding() {
                   <div>
                     <Label>Segmento *</Label>
                     <Select onValueChange={(v) => setRepForm({ ...repForm, segment: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                      <SelectTrigger className="mt-1 w-full min-w-0 bg-secondary border-border">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -488,15 +488,15 @@ export default function Onboarding() {
                     max={50}
                     value={repForm.experienceYears}
                     onChange={(e) => setRepForm({ ...repForm, experienceYears: Number(e.target.value) })}
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <Label className="flex items-center gap-1"><Clock className="w-3 h-3" /> Disponibilidade</Label>
                     <Select value={repForm.availability} onValueChange={(v: "imediata" | "30dias" | "60dias" | "negociavel") => setRepForm({ ...repForm, availability: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                      <SelectTrigger className="mt-1 w-full min-w-0 bg-secondary border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -510,7 +510,7 @@ export default function Onboarding() {
                   <div>
                     <Label className="flex items-center gap-1"><Briefcase className="w-3 h-3" /> Modelo de trabalho</Label>
                     <Select value={repForm.workModel} onValueChange={(v: "exclusivo" | "multiplas" | "indifferente") => setRepForm({ ...repForm, workModel: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                      <SelectTrigger className="mt-1 w-full min-w-0 bg-secondary border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -528,7 +528,7 @@ export default function Onboarding() {
                     value={repForm.cities}
                     onChange={(e) => setRepForm({ ...repForm, cities: e.target.value })}
                     placeholder="Ex: Curitiba, Londrina, Maringá..."
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                   />
                 </div>
 
@@ -538,7 +538,7 @@ export default function Onboarding() {
                     value={repForm.additionalSegments}
                     onChange={(e) => setRepForm({ ...repForm, additionalSegments: e.target.value })}
                     placeholder="Ex: Farmacêutico, Cosméticos..."
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                   />
                 </div>
 
@@ -548,7 +548,7 @@ export default function Onboarding() {
                     value={repForm.linkedinUrl}
                     onChange={(e) => setRepForm({ ...repForm, linkedinUrl: e.target.value })}
                     placeholder="https://linkedin.com/in/seu-perfil"
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                   />
                 </div>
 
@@ -558,7 +558,7 @@ export default function Onboarding() {
                     value={repForm.bio}
                     onChange={(e) => setRepForm({ ...repForm, bio: e.target.value })}
                     placeholder="Descreva sua experiência, produtos que já vendeu, diferenciais..."
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                     rows={3}
                   />
                 </div>
@@ -600,19 +600,19 @@ export default function Onboarding() {
                     value={managerForm.fullName}
                     onChange={(e) => setManagerForm({ ...managerForm, fullName: e.target.value })}
                     placeholder="Seu nome completo"
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                     required
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <Label>CPF</Label>
                     <Input
                       value={managerForm.cpf}
                       onChange={(e) => setManagerForm({ ...managerForm, cpf: e.target.value })}
                       placeholder="000.000.000-00"
-                      className="mt-1 bg-secondary border-border"
+                      className="mt-1 w-full min-w-0 bg-secondary border-border"
                     />
                   </div>
                   <div>
@@ -621,16 +621,16 @@ export default function Onboarding() {
                       value={managerForm.phone}
                       onChange={(e) => setManagerForm({ ...managerForm, phone: e.target.value })}
                       placeholder="(11) 99999-9999"
-                      className="mt-1 bg-secondary border-border"
+                      className="mt-1 w-full min-w-0 bg-secondary border-border"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <Label>Região de atuação *</Label>
                     <Select onValueChange={(v) => setManagerForm({ ...managerForm, region: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                      <SelectTrigger className="mt-1 w-full min-w-0 bg-secondary border-border">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -641,7 +641,7 @@ export default function Onboarding() {
                   <div>
                     <Label>Segmento *</Label>
                     <Select onValueChange={(v) => setManagerForm({ ...managerForm, segment: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                      <SelectTrigger className="mt-1 w-full min-w-0 bg-secondary border-border">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -659,7 +659,7 @@ export default function Onboarding() {
                     value={managerForm.teamSize}
                     onChange={(e) => setManagerForm({ ...managerForm, teamSize: Number(e.target.value) })}
                     placeholder="Quantos vendedores você gerencia hoje?"
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                   />
                 </div>
 
@@ -669,7 +669,7 @@ export default function Onboarding() {
                     value={managerForm.bio}
                     onChange={(e) => setManagerForm({ ...managerForm, bio: e.target.value })}
                     placeholder="Descreva sua experiência como gerente, segmentos que atua, objetivos..."
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                     rows={3}
                   />
                 </div>
@@ -711,7 +711,7 @@ export default function Onboarding() {
                     value={companyForm.companyName}
                     onChange={(e) => setCompanyForm({ ...companyForm, companyName: e.target.value })}
                     placeholder="Razão social ou nome fantasia"
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                     required
                   />
                 </div>
@@ -777,11 +777,11 @@ export default function Onboarding() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <Label>Segmento *</Label>
                     <Select onValueChange={(v) => setCompanyForm({ ...companyForm, segment: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                      <SelectTrigger className="mt-1 w-full min-w-0 bg-secondary border-border">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -793,7 +793,7 @@ export default function Onboarding() {
                   <div>
                     <Label>Região</Label>
                     <Select onValueChange={(v) => setCompanyForm({ ...companyForm, region: v })}>
-                      <SelectTrigger className="mt-1 bg-secondary border-border">
+                      <SelectTrigger className="mt-1 w-full min-w-0 bg-secondary border-border">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -809,7 +809,7 @@ export default function Onboarding() {
                     value={companyForm.phone}
                     onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })}
                     placeholder="(11) 3000-0000"
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                   />
                 </div>
 
@@ -819,7 +819,7 @@ export default function Onboarding() {
                     value={companyForm.description}
                     onChange={(e) => setCompanyForm({ ...companyForm, description: e.target.value })}
                     placeholder="Descreva sua empresa, produtos, mercado de atuação..."
-                    className="mt-1 bg-secondary border-border"
+                    className="mt-1 w-full min-w-0 bg-secondary border-border"
                     rows={4}
                   />
                 </div>

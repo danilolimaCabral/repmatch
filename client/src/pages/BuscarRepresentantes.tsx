@@ -124,7 +124,7 @@ export default function BuscarRepresentantes() {
                   <MapPin className="w-3 h-3" /> Região
                 </label>
                 <Select value={region} onValueChange={setRegion}>
-                  <SelectTrigger className="bg-background border-border h-10">
+                  <SelectTrigger className="h-10 w-full min-w-0 max-w-full bg-background border-border">
                     <SelectValue placeholder="Todas as regiões" />
                   </SelectTrigger>
                   <SelectContent>
@@ -140,7 +140,7 @@ export default function BuscarRepresentantes() {
                   <Briefcase className="w-3 h-3" /> Segmento
                 </label>
                 <Select value={segment} onValueChange={setSegment}>
-                  <SelectTrigger className="bg-background border-border h-10">
+                  <SelectTrigger className="h-10 w-full min-w-0 max-w-full bg-background border-border">
                     <SelectValue placeholder="Todos os segmentos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -226,7 +226,7 @@ export default function BuscarRepresentantes() {
         ) : (
           <>
             {/* Cabeçalho dos resultados */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-xl font-black">
                   <span className="text-primary">{count.toLocaleString("pt-BR")}</span> representantes

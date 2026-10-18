@@ -353,21 +353,21 @@ export default function Planos() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="border-b border-border py-4 px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <header className="border-b border-border px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2">
           <a href="/">
             <img src={LOGO_URL} alt="RepMatch" className="h-8 object-contain" />
           </a>
-          <div className="flex items-center gap-4">
-            <a href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Início</a>
-            <a href="/login" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+            <a href="/" className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:block">Início</a>
+            <a href="/login" className="whitespace-nowrap rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:px-5 sm:py-2.5 sm:text-sm">
               Entrar / Cadastrar
             </a>
           </div>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-6 py-16">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
         {/* Hero */}
         <div className="text-center mb-14">
           <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Planos e Preços</Badge>
@@ -412,17 +412,17 @@ export default function Planos() {
         </div>
 
         {/* Plan Type Toggle */}
-        <div className="flex items-center justify-center gap-3 mb-8">
+        <div className="mb-8 flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-center sm:gap-3">
           <button
             onClick={() => setPlanType("company")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all ${planType === "company" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+            className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all sm:w-auto sm:px-6 ${planType === "company" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
           >
             <Building2 className="w-4 h-4" />
             Para Empresas
           </button>
           <button
             onClick={() => setPlanType("rep")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all ${planType === "rep" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+            className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all sm:w-auto sm:px-6 ${planType === "rep" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
           >
             <Users className="w-4 h-4" />
             Para Representantes
@@ -455,7 +455,7 @@ export default function Planos() {
             Pro:        { border: "border-primary",          accent: "bg-primary/6",            badgeBg: "bg-primary text-primary-foreground",     checkColor: "text-primary",          btnClass: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25",                  priceCls: "text-primary" },
             Enterprise: { border: "border-purple-400/50",   accent: "bg-purple-400/8",         badgeBg: "bg-purple-400/15 text-purple-500",       checkColor: "text-purple-500",       btnClass: "bg-card border border-purple-400/40 text-purple-600 hover:bg-purple-50",                            priceCls: "text-foreground" },
           };
-          const cols = plans.length === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 md:grid-cols-3";
+          const cols = plans.length === 4 ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-4" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3";
           return (
             <div className={`grid ${cols} gap-5 mb-16 items-stretch`}>
               {plans.map((plan) => {
@@ -492,7 +492,7 @@ export default function Planos() {
 
                       {/* Price */}
                       <div className="mb-5">
-                        <div className="flex items-end gap-0.5">
+                        <div className="flex flex-wrap items-end gap-x-1 gap-y-1">
                           <span className={`text-4xl font-black leading-none ${cfg.priceCls}`} style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
                             {isFree ? "R$0" : `R$${price.replace(".", ",")}`}
                           </span>

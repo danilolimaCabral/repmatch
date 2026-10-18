@@ -351,7 +351,7 @@ export default function BlogPost() {
           prose-th:border prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:bg-card prose-th:text-foreground prose-th:font-bold
           prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-td:text-muted-foreground
         ">
-          <ReactMarkdown>{post.content}</ReactMarkdown>
+          <ReactMarkdown components={{ table: ({ children }) => <div className="w-full overflow-x-auto"><table className="min-w-[560px]">{children}</table></div> }}>{post.content}</ReactMarkdown>
         </div>
 
         {/* Tags + Compartilhamento */}

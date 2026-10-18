@@ -12,6 +12,13 @@ const serverSource = fs.readFileSync(path.resolve(process.cwd(), "server/_core/i
 const homeSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
 const repDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/RepDashboard.tsx"), "utf8");
 const managerDashboardSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/ManagerDashboard.tsx"), "utf8");
+const dashboardSkeletonSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/DashboardLayoutSkeleton.tsx"), "utf8");
+const roiCalculatorSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ROICalculator.tsx"), "utf8");
+const manusDialogSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ManusDialog.tsx"), "utf8");
+const publicPageSources = Object.fromEntries(
+  ["BuscarRepresentantes", "OportunidadesReps", "Blog", "BlogPost", "BaseCNPJ", "Planos", "ManagerPlans", "Parcerias", "Onboarding", "Login", "Register", "RedefinirSenha", "Perfil", "VerificacaoKYC"]
+    .map((name) => [name, fs.readFileSync(path.resolve(process.cwd(), `client/src/pages/${name}.tsx`), "utf8")])
+);
 
 describe("AdminDashboard mobile layout", () => {
   it("uses an overlay drawer on mobile instead of reserving the desktop sidebar width", () => {
@@ -96,5 +103,30 @@ describe("AdminDashboard mobile layout", () => {
     expect(companyDashboardSource).toContain('className="p-4 sm:p-6 lg:p-8"');
     expect(repDashboardSource).toContain("grid grid-cols-2 gap-3 sm:grid-cols-4");
     expect(managerDashboardSource).toContain("grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4");
+  });
+
+  it("keeps public pages and account forms usable in narrow viewports", () => {
+    expect(homeSource).toContain("text-5xl font-black text-primary mb-2 sm:text-7xl");
+    expect(homeSource).toContain("Deslize para o lado para comparar as opções");
+    expect(homeSource).toContain('min-w-[600px] w-full text-sm');
+    expect(publicPageSources.BuscarRepresentantes).toContain("w-full min-w-0 max-w-full");
+    expect(publicPageSources.OportunidadesReps).toContain("flex flex-col items-stretch justify-center gap-3 sm:flex-row");
+    expect(publicPageSources.BlogPost).toContain('className="w-full overflow-x-auto"><table className="min-w-[560px]"');
+    expect(publicPageSources.Planos).toContain('"grid-cols-1 sm:grid-cols-2 md:grid-cols-4"');
+    expect(publicPageSources.ManagerPlans).toContain("flex flex-col gap-3 border-b border-white/10 px-4 py-3");
+    expect(publicPageSources.Parcerias).toContain('hidden sm:inline">Falar no WhatsApp');
+    expect(publicPageSources.Onboarding).toContain("grid grid-cols-1 gap-4 sm:grid-cols-2");
+    expect(publicPageSources.VerificacaoKYC).toContain("flex flex-col gap-3 sm:flex-row");
+    for (const name of ["Login", "Register", "RedefinirSenha", "Perfil"]) {
+      expect(publicPageSources[name]).toContain("h-11 w-11");
+    }
+  });
+
+  it("keeps shared loading, dialog, and ROI components inside the mobile viewport", () => {
+    expect(dashboardSkeletonSource).toContain("hidden w-[280px]");
+    expect(dashboardSkeletonSource).toContain("min-w-0 flex-1");
+    expect(manusDialogSource).toContain("w-[calc(100vw-2rem)] max-w-[400px]");
+    expect(roiCalculatorSource).toContain("bg-card p-5 sm:p-8");
+    expect(roiCalculatorSource).toContain("grid grid-cols-3 gap-2 sm:gap-4");
   });
 });

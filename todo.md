@@ -763,3 +763,11 @@
 - [x] Transformar a barra lateral fixa do painel Gerente em drawer mobile
 - [x] Ajustar grades, cartões e tabelas principais dos dashboards para telas estreitas
 - [x] Validar os três painéis no mobile com TypeScript e testes
+
+## Responsividade das páginas públicas e formulários (18/10/2026)
+- [x] Ajustar hero, indicadores e CTAs da landing page para telas estreitas
+- [x] Ajustar páginas de busca, vagas, oportunidades, blog e artigo para mobile
+- [x] Ajustar planos, parcerias e páginas de compra no celular
+- [x] Ajustar onboarding, cadastro, login, perfil e recuperação de senha para toque e formulários mobile
+- [x] Ajustar Base CNPJ e verificação KYC para conteúdo sem estouro horizontal
+- [x] Validar o conjunto completo com TypeScript e testes automatizados

@@ -63,7 +63,7 @@ export default function EsqueciSenha() {
                 <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
                 <h3 className="font-semibold text-lg mb-2">Solicitação enviada!</h3>
                 <p className="text-muted-foreground text-sm mb-4">
-                  Se o e-mail <strong>{email}</strong> estiver cadastrado, você receberá um link de redefinição em breve.
+                  Se o e-mail <strong className="break-words">{email}</strong> estiver cadastrado, você receberá um link de redefinição em breve.
                 </p>
                 <p className="text-muted-foreground text-xs mb-6">
                   Não recebeu? Entre em contato pelo WhatsApp para suporte rápido.

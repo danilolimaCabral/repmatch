@@ -113,7 +113,7 @@ export default function Blog() {
       </section>
 
       {/* Filtros */}
-      <section className="border-b border-border bg-card/50 py-4 px-6 sticky top-[57px] z-30 backdrop-blur-sm">
+      <section className="border-b border-border bg-card/50 py-4 px-6 sticky top-[60px] z-30 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center gap-4">
           {/* Busca */}
           <div className="relative flex-1 max-w-sm">
@@ -186,8 +186,8 @@ export default function Blog() {
                   <p className="text-muted-foreground mb-5 text-base leading-relaxed">
                     {featured.excerpt}
                   </p>
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-muted-foreground">
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 text-xs text-muted-foreground">
                       {featured.author} · {formatDate(featured.date)}
                     </div>
                     <Button size="sm" className="bg-primary text-primary-foreground font-semibold">
@@ -202,8 +202,8 @@ export default function Blog() {
 
         {/* Grid de artigos */}
         <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-black">
+          <div className="mb-6 flex flex-wrap items-baseline gap-x-3 gap-y-2">
+            <h2 className="min-w-0 text-xl font-black">
               {activeCategory ? `Artigos: ${activeCategory}` : search ? `Resultados para "${search}"` : "Todos os Artigos"}
             </h2>
             <span className="text-sm text-muted-foreground">{gridPosts.length} artigo{gridPosts.length !== 1 ? "s" : ""}</span>
