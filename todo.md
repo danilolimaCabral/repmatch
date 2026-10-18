@@ -797,3 +797,9 @@
 - [x] Exibir pedidos de desbloqueio PIX na tela de pagamentos e direcionar para a fila correta
 - [x] Permitir confirmação manual do PIX pelo administrador antes da liberação de contatos
 - [x] Validar as correções com TypeScript e testes automatizados
+
+## Fila de desbloqueios PIX no mobile (18/10/2026)
+- [x] Agrupar carrinhos abandonados em seção própria
+- [x] Separar pedidos prontos para liberar, aguardando PIX e histórico
+- [x] Manter o botão de confirmação PIX visível e utilizável nos cards mobile
+- [x] Validar o layout e a fila com TypeScript e testes automatizados

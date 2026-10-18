@@ -66,6 +66,9 @@ describe("AdminDashboard mobile layout", () => {
     expect(dashboardSource).toContain("Confirmar PIX");
     expect(dashboardSource).toContain("Desbloqueios de contatos por PIX");
     expect(dashboardSource).toContain("Ver solicitações");
+    expect(dashboardSource).toContain("Carrinhos abandonados");
+    expect(dashboardSource).toContain("unlockRequestGroups");
+    expect(dashboardSource).toContain("Confirmar PIX recebido");
   });
 
   it("uses cards instead of clipped tables in the principal mobile admin lists", () => {

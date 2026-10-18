@@ -163,6 +163,14 @@ export default function AdminDashboard() {
     const matchSearch = !q || (r.companyName ?? "").toLowerCase().includes(q) || (r.companyEmail ?? "").toLowerCase().includes(q);
     return matchStatus && matchSearch;
   });
+  const unlockRequestGroups = unlockStatusFilter === "all"
+    ? [
+        { id: "ready", label: "Prontos para liberar", description: "PIX confirmado — libere os contatos abaixo.", accent: "border-emerald-200 bg-emerald-50", requests: unlockRequests.filter(r => r.status === "pending_approval") },
+        { id: "awaiting", label: "Aguardando confirmação PIX", description: "Confirme somente após verificar o recebimento no Mercado Pago ou extrato.", accent: "border-blue-200 bg-blue-50", requests: unlockRequests.filter(r => r.status === "pending_payment" && Date.now() - new Date(r.createdAt).getTime() < 30 * 60 * 1000) },
+        { id: "abandoned", label: "Carrinhos abandonados", description: "Pedidos sem confirmação de pagamento há mais de 30 minutos.", accent: "border-amber-200 bg-amber-50", requests: unlockRequests.filter(r => r.status === "pending_payment" && Date.now() - new Date(r.createdAt).getTime() >= 30 * 60 * 1000) },
+        { id: "history", label: "Histórico", description: "Pedidos já aprovados, recusados ou cancelados.", accent: "border-slate-200 bg-slate-50", requests: unlockRequests.filter(r => !["pending_approval", "pending_payment"].includes(r.status)) },
+      ].filter(group => group.requests.length > 0)
+    : [{ id: "filtered", label: "Solicitações encontradas", description: "", accent: "border-transparent bg-transparent", requests: unlockRequests }];
   const approveUnlockMutation = trpc.unlockRequests.approve.useMutation({
     onSuccess: () => { toast.success("Desbloqueio aprovado! Contatos liberados."); refetchUnlockRequests(); },
     onError: (e) => toast.error(e.message),
@@ -1745,14 +1753,21 @@ export default function AdminDashboard() {
                   <p className="text-muted-foreground">Nenhuma solicitação encontrada.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {unlockRequests.map(req => (
-                    <div key={req.id} className="rounded-xl border border-border bg-card p-5">
-                      <div className="flex items-start justify-between gap-4 mb-4">
-                        <div>
+                <div className="space-y-6 overflow-x-hidden">
+                  {unlockRequestGroups.map((group) => (
+                    <section key={group.id} className="space-y-3">
+                      <div className={`rounded-xl border p-3 ${group.accent}`}>
+                        <h2 className="text-sm font-bold text-foreground">{group.label} <span className="text-muted-foreground">({group.requests.length})</span></h2>
+                        {group.description && <p className="mt-1 text-xs text-muted-foreground">{group.description}</p>}
+                      </div>
+                      <div className="space-y-3">
+                        {group.requests.map(req => (
+                    <div key={req.id} className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5">
+                      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
                           <div className="font-bold text-foreground">{req.companyName ?? "Empresa"}</div>
-                          <div className="text-xs text-muted-foreground">{req.companyEmail ?? ""}</div>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="break-all text-xs text-muted-foreground">{req.companyEmail ?? ""}</div>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
                             <Badge className={`text-xs ${
                               req.status === "pending_approval" ? "bg-amber-900/30 text-amber-300 border-amber-700/40" :
                               req.status === "approved" ? "bg-emerald-900/30 text-emerald-300 border-emerald-700/40" :
@@ -1779,7 +1794,7 @@ export default function AdminDashboard() {
                             )}
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
                           {req.pixProofUrl && (
                             <Button size="sm" variant="outline" className="border-border text-xs" onClick={() => setViewProofUrl(req.pixProofUrl!)}>
                               <Eye className="w-3 h-3 mr-1" /> Ver comprovante
@@ -1789,19 +1804,19 @@ export default function AdminDashboard() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 text-xs"
+                              className="flex-1 border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 text-xs sm:flex-none"
                               disabled={confirmUnlockPixMutation.isPending}
                               onClick={() => confirmUnlockPixMutation.mutate({ requestId: req.id })}
                             >
                               {confirmUnlockPixMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCheck className="w-3 h-3 mr-1" />}
-                              Confirmar PIX
+                              Confirmar PIX recebido
                             </Button>
                           )}
                           {req.status === "pending_approval" && (
                             <>
                               <Button
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                                className="flex-1 bg-emerald-600 text-xs text-white hover:bg-emerald-700 sm:flex-none"
                                 disabled={approveUnlockMutation.isPending}
                                 onClick={() => approveUnlockMutation.mutate({ requestId: req.id })}
                               >
@@ -1811,7 +1826,7 @@ export default function AdminDashboard() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-red-700/40 text-red-400 hover:bg-red-900/20 text-xs"
+                                className="flex-1 border-red-700/40 text-xs text-red-400 hover:bg-red-900/20 sm:flex-none"
                                 disabled={rejectUnlockMutation.isPending}
                                 onClick={() => rejectUnlockMutation.mutate({ requestId: req.id })}
                               >
@@ -1836,6 +1851,9 @@ export default function AdminDashboard() {
                         </div>
                       )}
                     </div>
+                        ))}
+                      </div>
+                    </section>
                   ))}
                 </div>
               )}
