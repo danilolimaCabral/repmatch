@@ -380,6 +380,43 @@ export const platformSettings = mysqlTable("platform_settings", {
 export type PlatformSetting = typeof platformSettings.$inferSelect;
 export type InsertPlatformSetting = typeof platformSettings.$inferInsert;
 
+// ─── Catálogo comercial de empresas B2B/B2C importadas ───────────────────────
+// Não armazena pessoas, históricos internos ou observações do CRM de origem.
+export const marketLeads = mysqlTable("market_leads", {
+  id: int("id").autoincrement().primaryKey(),
+  sourceProject: varchar("source_project", { length: 80 }).notNull(),
+  sourceOrgId: int("source_org_id").notNull(),
+  sourceRecordId: int("source_record_id").notNull(),
+  cnpj: varchar("cnpj", { length: 14 }).notNull().unique(),
+  razaoSocial: varchar("razao_social", { length: 255 }).notNull(),
+  nomeFantasia: varchar("nome_fantasia", { length: 255 }),
+  cnae: varchar("cnae", { length: 20 }),
+  cnaeDescricao: varchar("cnae_descricao", { length: 255 }),
+  segmento: varchar("segmento", { length: 150 }),
+  audience: mysqlEnum("audience", ["b2b", "b2c", "both"]).notNull(),
+  situacaoCadastral: varchar("situacao_cadastral", { length: 50 }).notNull(),
+  porte: varchar("porte", { length: 60 }),
+  dataAbertura: varchar("data_abertura", { length: 20 }),
+  cidade: varchar("cidade", { length: 120 }),
+  estado: char("estado", { length: 2 }),
+  cep: varchar("cep", { length: 10 }),
+  endereco: text("endereco"),
+  telefone: varchar("telefone", { length: 50 }),
+  email: varchar("email", { length: 255 }),
+  site: varchar("site", { length: 255 }),
+  instagram: varchar("instagram", { length: 255 }),
+  available: boolean("available").default(true).notNull(),
+  importedAt: timestamp("imported_at").defaultNow().notNull(),
+  sourceUpdatedAt: timestamp("source_updated_at"),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  audienceStateIdx: index("market_leads_audience_state_idx").on(t.audience, t.estado, t.available),
+  segmentIdx: index("market_leads_segment_idx").on(t.segmento),
+  sourceRecordIdx: index("market_leads_source_record_idx").on(t.sourceProject, t.sourceOrgId, t.sourceRecordId),
+}));
+export type MarketLead = typeof marketLeads.$inferSelect;
+export type InsertMarketLead = typeof marketLeads.$inferInsert;
+
 // ─── Pacotes de leads B2B e B2C (entrega manual após PIX confirmado) ─────────
 export const leadPackageOrders = mysqlTable("lead_package_orders", {
   id: int("id").autoincrement().primaryKey(),

@@ -18,6 +18,11 @@ function getRedirectByUserType(userType: string, role: string): string {
   }
 }
 
+function getSafeReturnTo() {
+  const value = new URLSearchParams(window.location.search).get("returnTo");
+  return value?.startsWith("/") && !value.startsWith("//") ? value : null;
+}
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,7 +46,7 @@ export default function Login() {
         setError(data.error ?? "E-mail ou senha incorretos.");
         return;
       }
-      const redirect = getRedirectByUserType(data.user?.userType ?? "pending", data.user?.role ?? "user");
+      const redirect = getSafeReturnTo() ?? getRedirectByUserType(data.user?.userType ?? "pending", data.user?.role ?? "user");
       window.location.href = redirect;
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -141,7 +146,7 @@ export default function Login() {
           </form>
           <div className="mt-5 pt-5 border-t border-border text-center text-sm text-muted-foreground">
             Não tem conta?{" "}
-            <Link href="/register" className="text-primary hover:opacity-80 font-semibold transition-opacity">
+            <Link href={getSafeReturnTo() ? `/register?type=empresa&returnTo=${encodeURIComponent(getSafeReturnTo()!)}` : "/register"} className="text-primary hover:opacity-80 font-semibold transition-opacity">
               Cadastre-se grátis →
             </Link>
           </div>

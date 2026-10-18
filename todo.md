@@ -847,3 +847,17 @@
 - [x] Separar cidade, estado, endereço e CEP em bloco de localização com mapa
 - [x] Agrupar CNPJ, ramo CNAE, porte e data de abertura como dados da empresa
 - [x] Validar o novo painel com TypeScript e testes automatizados
+
+## Landing de campanhas B2B (18/10/2026)
+- [ ] Criar uma seção comercial para o pacote de 2.000 leads B2B
+- [ ] Levar o CTA diretamente ao catálogo de pedidos PIX com preço dinâmico
+- [ ] Explicar segmentação, curadoria e entrega assistida sem prometer dados indisponíveis
+- [ ] Validar a extensão da landing com TypeScript e testes automatizados
+
+## Pacotes B2B/B2C de 1.000 e 2.000 empresas (18/10/2026)
+- [x] Permitir escolher pacotes de 1.000 ou 2.000 empresas com preço proporcional e configurável
+- [x] Exibir prévia comercial dos dados incluídos, sem revelar contatos individuais antes do pedido
+- [x] Direcionar comprador sem sessão à criação de conta com senha para acompanhar e receber a entrega
+- [x] Registrar a quantidade escolhida no pedido PIX e no painel administrativo
+- [x] Importar o catálogo empresarial ativo das três organizações em lotes deduplicados
+- [x] Validar o fluxo com TypeScript, testes e verificação de inventário

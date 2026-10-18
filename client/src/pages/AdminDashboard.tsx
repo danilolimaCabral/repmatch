@@ -932,11 +932,11 @@ export default function AdminDashboard() {
                 </div>
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   {([
-                    { audience: "b2b" as const, label: "Pacote B2B", description: "Empresas e decisores", value: leadB2BPriceInput, setValue: setLeadB2BPriceInput, current: leadCatalog?.b2b.price },
-                    { audience: "b2c" as const, label: "Pacote B2C", description: "Público consumidor segmentado", value: leadB2CPriceInput, setValue: setLeadB2CPriceInput, current: leadCatalog?.b2c.price },
+                    { audience: "b2b" as const, label: "Pacote B2B", description: "Empresas ativas e contatos corporativos quando disponíveis", value: leadB2BPriceInput, setValue: setLeadB2BPriceInput, current: leadCatalog?.b2b.price },
+                    { audience: "b2c" as const, label: "Pacote B2C", description: "Empresas com atuação B2C ou mista", value: leadB2CPriceInput, setValue: setLeadB2CPriceInput, current: leadCatalog?.b2c.price },
                   ]).map((leadPackage) => (
                     <div key={leadPackage.audience} className="rounded-xl border border-border bg-background p-4">
-                      <p className="font-bold text-foreground">{leadPackage.label} · 2.000 leads</p>
+                      <p className="font-bold text-foreground">{leadPackage.label} · 1.000 ou 2.000 empresas</p>
                       <p className="mt-1 text-xs text-muted-foreground">{leadPackage.description}</p>
                       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                         <div className="relative flex-1"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">R$</span><input inputMode="decimal" value={leadPackage.value} onChange={(event) => leadPackage.setValue(event.target.value.replace(/[^0-9,.]/g, ""))} className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/30" aria-label={`Preço do ${leadPackage.label}`} /></div>
@@ -946,7 +946,7 @@ export default function AdminDashboard() {
                           updateLeadPackagePriceMutation.mutate({ audience: leadPackage.audience, price });
                         }}>{updateLeadPackagePriceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}</Button>
                       </div>
-                      {leadPackage.current !== undefined && <p className="mt-2 text-xs text-muted-foreground">Ativo: <strong className="text-foreground">{leadPackage.current.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></p>}
+                      {leadPackage.current !== undefined && <p className="mt-2 text-xs text-muted-foreground">Ativo para 2.000 empresas: <strong className="text-foreground">{leadPackage.current.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></p>}
                     </div>
                   ))}
                 </div>

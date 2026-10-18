@@ -61,6 +61,11 @@ function getTypeFromSearch(): TypeKey | null {
   return null;
 }
 
+function getSafeReturnTo() {
+  const value = new URLSearchParams(window.location.search).get("returnTo");
+  return value?.startsWith("/") && !value.startsWith("//") ? value : null;
+}
+
 export default function Register() {
   const [location, navigate] = useLocation();
   const [typeParam, setTypeParam] = useState<TypeKey | null>(getTypeFromSearch);
@@ -95,6 +100,11 @@ export default function Register() {
       const data = await res.json() as { success?: boolean; error?: string };
       if (!res.ok || !data.success) {
         setError(data.error ?? "Erro ao criar conta.");
+        return;
+      }
+      const returnTo = getSafeReturnTo();
+      if (returnTo) {
+        window.location.href = returnTo;
         return;
       }
       // Redirect to onboarding with the selected type pre-filled
@@ -138,7 +148,12 @@ export default function Register() {
               return (
                 <button
                   key={key}
-                  onClick={() => { window.location.href = `/register?type=${key}`; }}
+                  onClick={() => {
+                    const params = new URLSearchParams({ type: key });
+                    const returnTo = getSafeReturnTo();
+                    if (returnTo) params.set("returnTo", returnTo);
+                    window.location.href = `/register?${params.toString()}`;
+                  }}
                   className="group relative h-72 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 hover:-translate-y-1"
                 >
                   <img src={cfg.image} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -165,7 +180,7 @@ export default function Register() {
           </div>
           <p className="text-muted-foreground text-sm text-center">
             Já tem conta?{" "}
-            <Link href="/login" className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors">
+            <Link href={getSafeReturnTo() ? `/login?returnTo=${encodeURIComponent(getSafeReturnTo()!)}` : "/login"} className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors">
               Entrar →
             </Link>
           </p>
@@ -195,7 +210,7 @@ export default function Register() {
 
         {/* Back button */}
         <button
-          onClick={() => navigate("/register")}
+          onClick={() => navigate(getSafeReturnTo() ? `/register?returnTo=${encodeURIComponent(getSafeReturnTo()!)}` : "/register")}
           className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm mb-6 transition-colors font-medium"
         >
           <ArrowLeft className="w-4 h-4" /> Trocar perfil

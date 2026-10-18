@@ -46,9 +46,10 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings, leadPackageOrders } from "../drizzle/schema";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings, leadPackageOrders, marketLeads } from "../drizzle/schema";
 import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
+import { getLeadPackagePrice } from "@shared/leadPackages";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { consultarCnpj } from "./cnpja";
@@ -1138,20 +1139,45 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
   leadPackages: router({
     catalog: publicProcedure.query(async () => {
       const db = await getDb();
-      if (!db) return { b2b: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_PRICES.b2b }, b2c: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_PRICES.b2c } };
+      const fallback = {
+        b2b: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_PRICES.b2b, available: 0, states: 0 },
+        b2c: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_PRICES.b2c, available: 0, states: 0 },
+      };
+      if (!db) return fallback;
       const settings = await db.select({ key: platformSettings.key, value: platformSettings.value })
         .from(platformSettings)
         .where(inArray(platformSettings.key, [LEAD_PACKAGE_B2B_PRICE_KEY, LEAD_PACKAGE_B2C_PRICE_KEY]));
       const priceByKey = new Map(settings.map((setting) => [setting.key, setting.value]));
+      const [b2bInventory, b2cInventory] = await Promise.all([
+        db.select({
+          available: count(),
+          states: sql<number>`COUNT(DISTINCT ${marketLeads.estado})`,
+        }).from(marketLeads).where(and(eq(marketLeads.available, true), inArray(marketLeads.audience, ["b2b", "both"]))),
+        db.select({
+          available: count(),
+          states: sql<number>`COUNT(DISTINCT ${marketLeads.estado})`,
+        }).from(marketLeads).where(and(eq(marketLeads.available, true), inArray(marketLeads.audience, ["b2c", "both"]))),
+      ]);
       return {
-        b2b: { quantity: 2000, price: normalizeLeadPackagePrice(priceByKey.get(LEAD_PACKAGE_B2B_PRICE_KEY), "b2b") },
-        b2c: { quantity: 2000, price: normalizeLeadPackagePrice(priceByKey.get(LEAD_PACKAGE_B2C_PRICE_KEY), "b2c") },
+        b2b: {
+          quantity: 2000,
+          price: normalizeLeadPackagePrice(priceByKey.get(LEAD_PACKAGE_B2B_PRICE_KEY), "b2b"),
+          available: Number(b2bInventory[0]?.available ?? 0),
+          states: Number(b2bInventory[0]?.states ?? 0),
+        },
+        b2c: {
+          quantity: 2000,
+          price: normalizeLeadPackagePrice(priceByKey.get(LEAD_PACKAGE_B2C_PRICE_KEY), "b2c"),
+          available: Number(b2cInventory[0]?.available ?? 0),
+          states: Number(b2cInventory[0]?.states ?? 0),
+        },
       };
     }),
 
     createOrder: protectedProcedure
       .input(z.object({
         audience: z.enum(["b2b", "b2c"]),
+        quantity: z.union([z.literal(1000), z.literal(2000)]).default(2000),
         segment: z.string().trim().max(120).optional(),
         region: z.string().trim().max(120).optional(),
         notes: z.string().trim().max(1000).optional(),
@@ -1162,11 +1188,12 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         const key = input.audience === "b2b" ? LEAD_PACKAGE_B2B_PRICE_KEY : LEAD_PACKAGE_B2C_PRICE_KEY;
         const [setting] = await db.select({ value: platformSettings.value }).from(platformSettings).where(eq(platformSettings.key, key)).limit(1);
-        const price = normalizeLeadPackagePrice(setting?.value, input.audience);
+        const packagePrice = normalizeLeadPackagePrice(setting?.value, input.audience);
+        const price = getLeadPackagePrice(packagePrice, input.quantity);
         const [result] = await db.insert(leadPackageOrders).values({
           userId: ctx.user.id,
           audience: input.audience,
-          quantity: 2000,
+          quantity: input.quantity,
           segment: input.segment || null,
           region: input.region || null,
           notes: input.notes || null,
@@ -1176,7 +1203,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           status: "pending_payment",
         });
         const orderId = Number((result as unknown as [{ insertId: number }])[0]?.insertId);
-        return { orderId, price, quantity: 2000 };
+        return { orderId, price, quantity: input.quantity };
       }),
 
     myOrders: protectedProcedure.query(async ({ ctx }) => {

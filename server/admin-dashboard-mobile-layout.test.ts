@@ -187,7 +187,11 @@ describe("AdminDashboard mobile layout", () => {
     expect(mpRoutesSource).toContain('meta?.type === "lead_package"');
     expect(serverSource).toContain("CREATE TABLE IF NOT EXISTS lead_package_orders");
     expect(dashboardSource).toContain("Pacotes de leads B2B e B2C");
-    expect(leadPackagesSource).toContain("2.000 leads");
+    expect(leadPackagesSource).toContain("1.000 ou 2.000 empresas");
+    expect(leadPackagesSource).toContain("Tamanho do pacote");
+    expect(routersSource).toContain("quantity: z.union([z.literal(1000), z.literal(2000)])");
+    expect(leadPackagesSource).toContain('/register?type=empresa&returnTo=/pacotes-leads');
+    expect(publicPageSources.Register).toContain("getSafeReturnTo");
     expect(leadPackagesSource).toContain("conformidade com a LGPD");
   });
 

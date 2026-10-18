@@ -142,6 +142,79 @@ function LiveCounterSection() {
   );
 }
 
+// ─── Campanhas B2B ───────────────────────────────────────────────────────────
+function B2BLeadCampaignSection() {
+  const [, navigate] = useLocation();
+  const { data: catalog } = trpc.leadPackages.catalog.useQuery();
+  const price = catalog?.b2b.price;
+  const priceLabel = typeof price === "number"
+    ? price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+    : "valor sob consulta";
+
+  return (
+    <section id="leads-b2b" className="border-t border-border bg-secondary/35 px-4 py-16 sm:px-6 sm:py-24">
+      <div className="mx-auto grid max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_.95fr] lg:gap-14">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-primary">
+            <Target className="h-3.5 w-3.5" /> Campanhas B2B sob medida
+          </div>
+          <h2 className="mt-5 text-balance text-3xl font-black leading-tight text-foreground sm:text-5xl" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+            Encontre empresas para a sua próxima campanha comercial.
+          </h2>
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Defina segmento, CNAE e região. O RepMatch organiza uma campanha com 2.000 empresas para o seu time prospectar e acompanha a entrega após a confirmação do PIX.
+          </p>
+
+          <div className="mt-7 grid gap-3 sm:grid-cols-3">
+            {[
+              { icon: Filter, title: "Recorte certo", text: "Setor, região e perfil da empresa" },
+              { icon: Building2, title: "Base empresarial", text: "Empresas ativas para trabalhar" },
+              { icon: Shield, title: "Entrega assistida", text: "Análise antes da liberação" },
+            ].map(({ icon: Icon, title, text }) => (
+              <div key={title} className="rounded-2xl border border-border bg-card p-4">
+                <Icon className="h-5 w-5 text-primary" />
+                <p className="mt-3 text-sm font-bold text-foreground">{title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{text}</p>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => navigate("/pacotes-leads")}
+            className="group mt-8 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl sm:w-auto"
+          >
+            Montar campanha B2B <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </button>
+        </div>
+
+        <aside className="overflow-hidden rounded-3xl border border-emerald-800 bg-emerald-950 p-5 text-white shadow-2xl sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">Pacote de prospecção B2B</p>
+          <div className="mt-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-5xl font-black sm:text-6xl">2.000</p>
+              <p className="mt-1 text-sm text-emerald-100">empresas para trabalhar</p>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-3"><Building2 className="h-7 w-7 text-emerald-300" /></div>
+          </div>
+          <div className="mt-7 space-y-3 border-y border-white/15 py-5 text-sm text-emerald-50">
+            <div className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />CNPJ, razão social, setor e localização</div>
+            <div className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Canais empresariais quando disponíveis na fonte</div>
+            <div className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Briefing de segmento e região incluído no pedido</div>
+          </div>
+          <div className="mt-5 rounded-2xl bg-white/10 p-4">
+            <p className="text-xs text-emerald-100">Investimento do pacote</p>
+            <p className="mt-1 text-3xl font-black">{priceLabel}</p>
+            <p className="mt-1 text-xs leading-relaxed text-emerald-100">Pagamento via PIX. Pedido analisado antes da entrega.</p>
+          </div>
+          <button onClick={() => navigate("/pacotes-leads")} className="mt-5 inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-extrabold text-emerald-950 transition hover:bg-emerald-50">
+            Configurar meu público B2B <ArrowRight className="h-4 w-4" />
+          </button>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
 // ─── Match Simulator ─────────────────────────────────────────────────────────
 function MatchSimulator() {
   const [region, setRegion] = useState("");
@@ -491,10 +564,10 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <SEO
-        title="Contratar Representante Comercial — Marketplace #1 do Brasil"
-        description="Encontre representantes comerciais em todo o Brasil. Filtre por região, segmento e experiência. Base nacional com mais de 173 mil perfis comerciais. Desbloqueie contatos a partir de R$ 9,90."
+        title="Representantes Comerciais e Campanhas de Leads B2B | RepMatch"
+        description="Encontre representantes comerciais ou monte uma campanha B2B segmentada por setor, CNAE e região. Base nacional e pacote de 2.000 empresas para prospecção."
         canonical="/"
-        keywords="contratar representante comercial, representante comercial, marketplace representantes, vagas representante comercial, buscar representante, representação comercial, vendas externas, agente comercial, plataforma representantes, encontrar representante brasil"
+        keywords="contratar representante comercial, leads B2B, lista de empresas, campanha B2B, prospecção B2B, pacote de leads, representantes comerciais, vagas representante comercial, buscar representante, representação comercial"
       />
 
       {/* ─── Navbar ─────────────────────────────────────────────────────────── */}
@@ -669,6 +742,9 @@ export default function Home() {
 
       {/* ─── Contador ao Vivo ─────────────────────────────────────────────────────── */}
       <LiveCounterSection />
+
+      {/* ─── Campanhas B2B ────────────────────────────────────────────────────────── */}
+      <B2BLeadCampaignSection />
 
       {/* ─── Selos de Segurança e Certificações ─────────────────────────────────────────────────── */}
       <section className="py-16 px-6 border-t border-border bg-card">

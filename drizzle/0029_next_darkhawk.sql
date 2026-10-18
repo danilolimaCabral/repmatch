@@ -1,0 +1,1 @@
+ALTER TABLE `market_leads` ADD `data_abertura` varchar(20);

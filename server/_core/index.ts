@@ -95,7 +95,42 @@ async function ensurePurchaseInterestTable() {
       INDEX lead_order_status_created_idx (status, createdAt)
     )
   `));
-  console.log("[db] representative_purchase_clicks ready");
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS market_leads (
+      id int AUTO_INCREMENT NOT NULL,
+      source_project varchar(80) NOT NULL,
+      source_org_id int NOT NULL,
+      source_record_id int NOT NULL,
+      cnpj varchar(14) NOT NULL,
+      razao_social varchar(255) NOT NULL,
+      nome_fantasia varchar(255),
+      cnae varchar(20),
+      cnae_descricao varchar(255),
+      segmento varchar(150),
+      audience enum('b2b','b2c','both') NOT NULL,
+      situacao_cadastral varchar(50) NOT NULL,
+      porte varchar(60),
+      data_abertura varchar(20),
+      cidade varchar(120),
+      estado char(2),
+      cep varchar(10),
+      endereco text,
+      telefone varchar(50),
+      email varchar(255),
+      site varchar(255),
+      instagram varchar(255),
+      available boolean NOT NULL DEFAULT true,
+      imported_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      source_updated_at timestamp NULL,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY market_leads_cnpj_unique (cnpj),
+      INDEX market_leads_audience_state_idx (audience, estado, available),
+      INDEX market_leads_segment_idx (segmento),
+      INDEX market_leads_source_record_idx (source_project, source_org_id, source_record_id)
+    )
+  `));
+  console.log("[db] commercial catalog tables ready");
 }
 
 async function startServer() {
