@@ -106,9 +106,9 @@ export default function BrazilMapSection() {
           <p className="text-white/50 text-lg max-w-xl mx-auto">
             Mais de{" "}
             <span className="text-emerald-400 font-bold">
-              <AnimatedCounter end={173987} />
+              <AnimatedCounter end={9680} />
             </span>{" "}
-            representantes verificados, distribuídos por todos os 27 estados.
+            perfis comerciais na base, com cobertura em todos os 27 estados.
           </p>
         </div>
 
@@ -127,7 +127,7 @@ export default function BrazilMapSection() {
                 <div>
                   <p className="text-white font-bold text-sm leading-tight">{hoveredData.name}</p>
                   <p className="text-xs mt-0.5" style={{ color: hoveredRegion?.color ?? "#22c55e" }}>
-                    {hoveredData.reps.toLocaleString("pt-BR")} representantes
+                    Cobertura comercial na região
                   </p>
                 </div>
                 <div className="ml-auto text-right">
@@ -234,11 +234,11 @@ export default function BrazilMapSection() {
                 <div>
                   <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">Total nacional</p>
                   <p className="text-2xl font-black text-white tabular-nums leading-tight">
-                    <AnimatedCounter end={173987} />
+                    <AnimatedCounter end={9680} />
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-white/35 pl-12">representantes verificados em 27 estados</p>
+              <p className="text-xs text-white/35 pl-12">perfis comerciais disponíveis em 27 estados</p>
             </div>
 
             {/* Regiões — clicável para filtrar o mapa */}
@@ -262,9 +262,7 @@ export default function BrazilMapSection() {
                           {region.name}
                         </span>
                       </div>
-                      <span className="text-xs font-bold tabular-nums" style={{ color: region.color }}>
-                        {region.total.toLocaleString("pt-BR")}
-                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: region.color }}>Cobertura</span>
                     </div>
                     <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-700"

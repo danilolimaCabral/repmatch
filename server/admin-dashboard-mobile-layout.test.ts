@@ -21,6 +21,7 @@ const seoSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/compon
 const sitemapSource = fs.readFileSync(path.resolve(process.cwd(), "client/public/sitemap.xml"), "utf8");
 const robotsSource = fs.readFileSync(path.resolve(process.cwd(), "client/public/robots.txt"), "utf8");
 const indexHtmlSource = fs.readFileSync(path.resolve(process.cwd(), "client/index.html"), "utf8");
+const brazilMapSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/BrazilMapSection.tsx"), "utf8");
 const publicPageSources = Object.fromEntries(
   ["BuscarRepresentantes", "OportunidadesReps", "Blog", "BlogPost", "BaseCNPJ", "Planos", "ManagerPlans", "Parcerias", "Onboarding", "Login", "Register", "RedefinirSenha", "Perfil", "VerificacaoKYC"]
     .map((name) => [name, fs.readFileSync(path.resolve(process.cwd(), `client/src/pages/${name}.tsx`), "utf8")])
@@ -165,6 +166,9 @@ describe("AdminDashboard mobile layout", () => {
     expect(sitemapSource).toContain("https://repmatch.com.br/pacotes-leads");
     expect(robotsSource).toContain("Allow: /pacotes-leads");
     expect(homeSource).toContain('href="/pacotes-leads"');
+    expect(homeSource).not.toContain("173 mil representantes");
+    expect(publicPageSources.Parcerias).not.toContain("173k+");
+    expect(brazilMapSource).not.toContain("end={173987}");
     expect(indexHtmlSource).not.toContain('"@type": "JobPosting"');
     expect(indexHtmlSource).not.toContain('"aggregateRating"');
   });

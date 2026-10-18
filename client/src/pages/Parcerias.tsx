@@ -37,7 +37,7 @@ const PARTNERSHIP_TYPES = [
     border: "rgba(59,130,246,0.2)",
     title: "Tecnologia & Integrações",
     subtitle: "CRMs, ERPs, plataformas de vendas",
-    description: "Conecte seu sistema ao RepMatch via API. Enriqueça seus dados com nossa base de 173 mil representantes verificados.",
+    description: "Conecte seu sistema ao RepMatch via API e enriqueça seus dados com uma base comercial segmentada por região e segmento.",
     benefits: [
       "API REST documentada e estável",
       "Webhook para eventos em tempo real",
@@ -90,8 +90,7 @@ const ACTIVE_PARTNERS = [
 
 // ─── Números de impacto ───────────────────────────────────────────────────────
 const STATS = [
-  { icon: Users, value: "173k+", label: "Representantes na base" },
-  { icon: Building2, value: "9.200+", label: "Empresas cadastradas" },
+  { icon: Users, value: "9 mil+", label: "Perfis comerciais na base" },
   { icon: Globe, value: "27", label: "Estados cobertos" },
   { icon: BarChart3, value: "R$ 9,90", label: "Custo por conexão" },
 ];
@@ -211,7 +210,7 @@ export default function Parcerias() {
           </h1>
 
           <p className="text-white/70 text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.6)" }}>
-            173 mil representantes. 9.200 empresas. 27 estados.
+            Mais de 9 mil perfis comerciais. Cobertura em 27 estados.
             Seja você uma associação, empresa de tecnologia ou distribuidora —
             temos um modelo de parceria feito para você.
           </p>
@@ -353,7 +352,7 @@ export default function Parcerias() {
               { icon: Shield, color: "#3b82f6", title: "Dados verificados", desc: "KYC com reconhecimento facial, validação de CNPJ e CORE. A base mais confiável do mercado." },
               { icon: Star, color: "#f59e0b", title: "Nicho sem concorrência", desc: "Primeiro marketplace B2B especializado em representantes comerciais no Brasil. Seja pioneiro." },
               { icon: Zap, color: "#8b5cf6", title: "Integração rápida", desc: "API REST documentada. Do primeiro contato à integração em produção em menos de 2 semanas." },
-              { icon: Gift, color: "#ec4899", title: "Co-marketing ativo", desc: "Divulgamos seus serviços para nossa base de 9.200+ empresas e 173k+ representantes." },
+              { icon: Gift, color: "#ec4899", title: "Co-marketing ativo", desc: "Divulgamos seus serviços para uma audiência comercial segmentada em todo o Brasil." },
               { icon: Award, color: "#22c55e", title: "Suporte dedicado", desc: "Cada parceiro tem um ponto de contato direto. Sem ticket, sem fila, sem burocracia." },
             ].map(item => (
               <div key={item.title}

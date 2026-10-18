@@ -621,7 +621,7 @@ export default function Home() {
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-            Mais de 173 mil representantes comerciais verificados, filtráveis por estado, segmento e anos de experiência.
+            Mais de 9 mil perfis comerciais na base, filtráveis por estado, segmento e anos de experiência.
             Desbloqueie o contato direto por R$ 9,90 — sem mensalidade, sem contrato, sem burocracia.
           </p>
 
@@ -757,7 +757,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             {[
-              { value: 173987, suffix: "+", label: "Representantes na base", icon: Users },
+              { value: 9680, suffix: "+", label: "Representantes na base", icon: Users },
               { value: 27, suffix: "", label: "Estados cobertos", icon: Building2 },
               { value: 12, suffix: "", label: "Segmentos de atuação", icon: Target },
               { value: 48, suffix: "h", label: "Tempo médio para conexão", icon: Clock },
@@ -915,7 +915,7 @@ export default function Home() {
               { icon: Shield, title: "Acesso por plano", desc: "Representantes Free acessam vagas Bronze e Silver. Premium acessa Gold. Elite acessa Platinum.", highlight: false },
               { icon: MessageSquare, title: "Chat dentro da plataforma", desc: "Negocie direto com o candidato sem sair do RepMatch. Contatos só revelados quando ambas as partes concordam.", highlight: false },
               { icon: BarChart3, title: "Painel de controle", desc: "Dashboard separado para empresas e representantes com histórico de candidaturas, vagas e performance.", highlight: false },
-              { icon: TrendingUp, title: "Base de 173 mil+", desc: "A maior base de representantes comerciais do Brasil, com dados validados e segmentados por estado, segmento e experiência.", highlight: false },
+              { icon: TrendingUp, title: "Mais de 9 mil perfis", desc: "Base comercial segmentada por estado, segmento e experiência para tornar a prospecção mais objetiva.", highlight: false },
             ].map(({ icon: Icon, title, desc, highlight }) => (
               <div
                 key={title}
@@ -1042,7 +1042,7 @@ export default function Home() {
             <span className="text-gradient-green">em grupo de WhatsApp.</span>
           </h2>
           <p className="text-muted-foreground text-lg mb-12 max-w-xl mx-auto">
-            Mais de 173 mil representantes qualificados, filtráveis por região e segmento. Desbloqueie o contato direto por R$ 9,90 — sem mensalidade.
+            Mais de 9 mil perfis comerciais, filtráveis por região e segmento. Desbloqueie o contato direto por R$ 9,90 — sem mensalidade.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap">
             <button
