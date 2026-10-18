@@ -46,6 +46,17 @@ export const CNAE_461_CLASS_MAP: Record<string, Cnae461Mapping> = {
   "4619": CNAE_461_MAP["4619200"],
 };
 
+/**
+ * CNAEs de representantes comerciais fora do grupo 46.1, mas oficialmente
+ * classificados pelo IBGE como representação de veículos, peças ou motocicletas.
+ * São exibidos como "CNAE afim" para não confundir a origem com a base 46.1.
+ */
+export const CNAE_RELATED_REPRESENTATIVE_MAP: Record<string, Cnae461Mapping> = {
+  "4512901": { prefix: "4512", label: "Representação de veículos automotores", segment: "Automotivo" },
+  "4530706": { prefix: "4530", label: "Representação de peças e acessórios automotivos", segment: "Automotivo" },
+  "4542101": { prefix: "4542", label: "Representação de motocicletas, peças e acessórios", segment: "Motocicletas e Acessórios" },
+};
+
 export function normalizeCnae(cnae?: string | null): string {
   return (cnae ?? "").replace(/\D/g, "");
 }
@@ -55,7 +66,20 @@ export function isCnaeRepresentativeCommercial(cnae?: string | null): boolean {
   return Boolean(CNAE_461_CLASS_MAP[prefix]);
 }
 
+export function isCnaeRepMatchCandidate(cnae?: string | null): boolean {
+  const normalized = normalizeCnae(cnae);
+  return isCnaeRepresentativeCommercial(normalized) || Boolean(CNAE_RELATED_REPRESENTATIVE_MAP[normalized]);
+}
+
 export function getCnae461Mapping(cnae?: string | null): Cnae461Mapping | null {
   const normalized = normalizeCnae(cnae);
   return CNAE_461_MAP[normalized] ?? CNAE_461_CLASS_MAP[normalized.slice(0, 4)] ?? null;
+}
+
+export function getCnaeRepMatchMapping(cnae?: string | null): (Cnae461Mapping & { sourceGroup: "46.1" | "afim" }) | null {
+  const normalized = normalizeCnae(cnae);
+  const primaryMapping = getCnae461Mapping(normalized);
+  if (primaryMapping) return { ...primaryMapping, sourceGroup: "46.1" };
+  const relatedMapping = CNAE_RELATED_REPRESENTATIVE_MAP[normalized];
+  return relatedMapping ? { ...relatedMapping, sourceGroup: "afim" } : null;
 }

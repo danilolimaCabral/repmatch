@@ -28,7 +28,7 @@ import {
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
-import { getCnae461Mapping } from "@shared/const";
+import { getCnaeRepMatchMapping } from "@shared/const";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -1153,7 +1153,7 @@ export async function listRepresentativesForCompany(
   // Normalize rows to expected shape
   const isAdmin = (filters as any)?._isAdmin === true;
   const maskedReps = (rows as any[]).map((row: any) => {
-    const cnaeMapping = getCnae461Mapping(row.cnaePrincipal);
+    const cnaeMapping = getCnaeRepMatchMapping(row.cnaePrincipal);
     const rep = {
       id: Number(row.id),
       fullName: String(row.fullName ?? row.nomeFantasia ?? '').trim() || 'Representante Comercial',
@@ -1181,6 +1181,7 @@ export async function listRepresentativesForCompany(
       cnpj: row.cnpj ?? null,
       nomeFantasia: row.nomeFantasia ?? null,
       cnaePrincipal: row.cnaePrincipal ?? null,
+      cnaeSourceGroup: cnaeMapping?.sourceGroup ?? null,
       cnaeDescricao: row.cnaeDescricao ?? null,
       porte: row.porte ?? null,
       isMei: Number(row.isMei ?? 0) === 1,

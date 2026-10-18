@@ -70,3 +70,12 @@ O CNAE é um sinal de atividade empresarial, não prova de registro no CORE nem 
 [1]: https://concla.ibge.gov.br/busca-online-cnae.html?view=grupo&tipo=cnae&versao=10&grupo=461 "Grupo 46.1 da CNAE"
 [2]: https://concla.ibge.gov.br/busca-online-cnae.html?subclasse=4619200&tipo=cnae&view=subclasse "CNAE 4619-2/00"
 [3]: https://concla.ibge.gov.br/busca-online-cnae.html?subclasse=4614100&view=subclasse "CNAE 4614-1/00"
+
+## CNAEs afins incluídos na expansão controlada
+
+Além do grupo 46.1, foram incluídos três CNAEs que o IBGE classifica explicitamente como atividades de representantes comerciais: **4512-9/01** para veículos automotores, **4530-7/06** para peças e acessórios automotivos e **4542-1/01** para motocicletas, peças e acessórios. Eles devem entrar com a marca `CNAE afim`, distinta do grupo principal 46.1. A subclasse **7490-1/04** foi analisada e ficou fora: o próprio IBGE a define como intermediação genérica de serviços e negócios e exclui expressamente os representantes comerciais do grupo 46.1. [4] [5] [6] [7]
+
+[4]: https://concla.ibge.gov.br/busca-online-cnae.html?subclasse=4512901&tipo=cnae&versao=9&view=subclasse "CNAE 4512-9/01"
+[5]: https://concla.ibge.gov.br/busca-online-cnae.html?subclasse=4530706&tipo=cnae&view=subclasse "CNAE 4530-7/06"
+[6]: https://concla.ibge.gov.br/busca-online-cnae.html?subclasse=4542101&view=subclasse "CNAE 4542-1/01"
+[7]: https://concla.ibge.gov.br/busca-online-cnae.html?subclasse=7490104&tipo=cnae&view=subclasse "CNAE 7490-1/04"

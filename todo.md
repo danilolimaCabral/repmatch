@@ -835,3 +835,9 @@
 - [x] Exibir CEP, ramo CNAE, porte e data de abertura quando disponíveis
 - [x] Oferecer links de busca segura para LinkedIn e Instagram, sem atribuir perfis não verificados
 - [x] Validar os novos detalhes com TypeScript e testes automatizados
+
+## CNAEs de representação comercial afins (18/10/2026)
+- [x] Adicionar representantes de veículos, peças automotivas e motocicletas ao catálogo de CNAEs aceitos
+- [x] Distinguir CNAE principal 46.1 dos CNAEs afins para manter transparência nos resultados
+- [x] Usar a classificação ampliada na validação CNPJA, busca e Base CNPJ
+- [x] Cobrir a expansão e excluir intermediação genérica 7490-1/04 com testes

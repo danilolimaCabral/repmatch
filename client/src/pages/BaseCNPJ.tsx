@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Building2, MapPin, Phone, Mail, Search, ChevronLeft, ChevronRight, Users, Filter, X } from "lucide-react";
-import { CNAE_461_MAP } from "@shared/const";
+import { CNAE_461_MAP, CNAE_RELATED_REPRESENTATIVE_MAP } from "@shared/const";
 
 const UF_LIST = [
   "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
@@ -21,7 +21,10 @@ const PORTE_MAP: Record<string, string> = {
 };
 
 const CNAE_MAP: Record<string, string> = Object.fromEntries(
-  Object.entries(CNAE_461_MAP).map(([code, mapping]) => [code, mapping.label])
+  [
+    ...Object.entries(CNAE_461_MAP).map(([code, mapping]) => [code, mapping.label]),
+    ...Object.entries(CNAE_RELATED_REPRESENTATIVE_MAP).map(([code, mapping]) => [code, `${mapping.label} · CNAE afim`]),
+  ]
 );
 
 export default function BaseCNPJ() {
