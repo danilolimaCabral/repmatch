@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2, ArrowLeft, Building2, Handshake, BarChart3, ArrowRight, Sparkles } from "lucide-react";
+import SEO from "@/components/SEO";
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
@@ -179,6 +180,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8">
+      <SEO title="Criar conta" canonical="/register" noIndex />
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] opacity-25" style={{ background: "oklch(0.62 0.18 152 / 0.12)" }} />
       </div>

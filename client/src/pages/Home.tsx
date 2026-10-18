@@ -92,7 +92,7 @@ const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 function LiveCounterSection() {
   const { data } = trpc.representatives.preview.useQuery({ region: "", segment: "" });
   const { data: jobsData } = trpc.jobs.listPublic.useQuery({ page: 1, limit: 1 });
-  const totalReps = 173987;
+  const totalReps = data?.count ?? 9680;
   const totalJobs = jobsData?.total ?? 0;
   const [pulse, setPulse] = useState(false);
   useEffect(() => {
@@ -101,7 +101,7 @@ function LiveCounterSection() {
   }, []);
 
   const stats = [
-    { value: totalReps, suffix: "+", label: "Representantes cadastrados", sublabel: "Cadastrados na plataforma", icon: Users, pulsed: pulse },
+    { value: totalReps, suffix: "+", label: "Representantes disponíveis", sublabel: "Perfis na base RepMatch", icon: Users, pulsed: pulse },
     { value: totalJobs, suffix: "", label: "Vagas abertas agora", sublabel: "Atualizado em tempo real", icon: Briefcase, pulsed: !pulse },
     { value: 12, suffix: "", label: "Segmentos cobertos", sublabel: "Do agro ao tech", icon: BarChart3, pulsed: pulse },
     { value: 27, suffix: "", label: "Estados atendidos", sublabel: "Cobertura nacional", icon: MapPin, pulsed: !pulse },
@@ -492,7 +492,7 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <SEO
         title="Contratar Representante Comercial — Marketplace #1 do Brasil"
-        description="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e experiência. Base com +173 mil representantes verificados. Desbloqueie contatos a partir de R$ 9,90."
+        description="Encontre representantes comerciais qualificados em todo o Brasil. Filtre por região, segmento e experiência. Base com mais de 9 mil perfis comerciais. Desbloqueie contatos a partir de R$ 9,90."
         canonical="/"
         keywords="contratar representante comercial, representante comercial, marketplace representantes, vagas representante comercial, buscar representante, representação comercial, vendas externas, agente comercial, plataforma representantes, encontrar representante brasil"
       />
@@ -506,6 +506,7 @@ export default function Home() {
             <a href="/vagas" className="hover:text-foreground transition-colors font-medium text-foreground/80">Vagas</a>
             <a href="/buscar" className="hover:text-foreground transition-colors font-medium text-foreground/80">Buscar Reps</a>
             <a href="/oportunidades-reps" className="hover:text-foreground transition-colors font-medium text-foreground/80">Reps Disponíveis</a>
+            <a href="/pacotes-leads" className="hover:text-foreground transition-colors font-medium text-foreground/80">Leads B2B/B2C</a>
             <a href="/parcerias" className="hover:text-foreground transition-colors font-semibold text-emerald-600">Parcerias</a>
             <a href="/blog" className="hover:text-foreground transition-colors font-medium text-foreground/80">Blog</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>

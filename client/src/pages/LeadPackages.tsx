@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import SEO from "@/components/SEO";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, CheckCircle2, FileCheck2, Loader2, MapPin, QrCode, ShieldCheck, Target, Users } from "lucide-react";
 
@@ -33,6 +34,15 @@ export default function LeadPackages() {
   });
 
   const currentPackage = useMemo(() => catalog?.[audience] ?? { quantity: 2000, price: audience === "b2b" ? 1490 : 990 }, [catalog, audience]);
+  const leadStructuredData = useMemo(() => ({
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: `Pacote de 2.000 leads ${audience.toUpperCase()} | RepMatch`,
+    description: audience === "b2b" ? "Pacote de 2.000 leads B2B com segmentação por setor e região, sujeito a análise e entrega manual." : "Pacote de 2.000 leads B2C com segmentação por região e interesse, sujeito a análise e entrega manual.",
+    provider: { "@type": "Organization", name: "RepMatch", url: "https://repmatch.com.br" },
+    areaServed: { "@type": "Country", name: "Brasil" },
+    offers: { "@type": "Offer", price: currentPackage.price.toFixed(2), priceCurrency: "BRL", availability: "https://schema.org/InStock", url: "https://repmatch.com.br/pacotes-leads" },
+  }), [audience, currentPackage.price]);
 
   async function beginCheckout() {
     if (!user) {
@@ -81,6 +91,13 @@ export default function LeadPackages() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      <SEO
+        title="Pacotes de Leads B2B e B2C | 2.000 Leads Segmentados"
+        description="Escolha um pacote de 2.000 leads B2B ou B2C, segmente por região e setor e solicite a entrega por PIX com análise manual e uso responsável de dados."
+        keywords="pacote de leads B2B, leads B2C, comprar leads qualificados, lista de empresas Brasil, prospecção B2B, leads segmentados"
+        canonical="/pacotes-leads"
+        structuredData={leadStructuredData}
+      />
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <button onClick={() => navigate("/")} className="flex min-w-0 items-center gap-2" aria-label="Voltar para início">

@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2, ArrowRight, Sparkles } from "lucide-react";
+import SEO from "@/components/SEO";
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 
@@ -51,6 +52,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8">
+      <SEO title="Entrar" canonical="/login" noIndex />
       {/* Background decoration */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] opacity-30" style={{ background: "oklch(0.52 0.17 152 / 0.10)" }} />

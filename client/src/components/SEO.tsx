@@ -8,6 +8,7 @@ interface SEOProps {
   ogImage?: string;
   ogType?: string;
   noIndex?: boolean;
+  structuredData?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
 const BASE_URL = "https://repmatch.com.br";
@@ -42,6 +43,7 @@ export default function SEO({
   ogImage = DEFAULT_IMAGE,
   ogType = "website",
   noIndex = false,
+  structuredData,
 }: SEOProps) {
   const fullTitle = title
     ? `${title} | ${SITE_NAME}`
@@ -56,7 +58,7 @@ export default function SEO({
     // Meta básico
     setMeta("description", description);
     if (keywords) setMeta("keywords", keywords);
-    if (noIndex) setMeta("robots", "noindex, nofollow");
+    setMeta("robots", noIndex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
 
     // Canonical
     setLink("canonical", canonicalUrl);
@@ -75,7 +77,18 @@ export default function SEO({
     setMeta("twitter:title", fullTitle);
     setMeta("twitter:description", description);
     setMeta("twitter:image", ogImage);
-  }, [fullTitle, description, keywords, canonicalUrl, ogImage, ogType, noIndex]);
+
+    const existingSchema = document.getElementById("page-structured-data") as HTMLScriptElement | null;
+    if (structuredData) {
+      const script = existingSchema ?? document.createElement("script");
+      script.id = "page-structured-data";
+      script.type = "application/ld+json";
+      script.textContent = JSON.stringify(structuredData);
+      if (!existingSchema) document.head.appendChild(script);
+    } else {
+      existingSchema?.remove();
+    }
+  }, [fullTitle, description, keywords, canonicalUrl, ogImage, ogType, noIndex, structuredData]);
 
   return null;
 }

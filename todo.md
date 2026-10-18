@@ -784,3 +784,10 @@
 - [x] Criar pedido PIX com preço configurável pelo admin e aprovação manual após confirmação
 - [x] Incluir gestão de preços, pedidos e entrega no painel administrativo
 - [x] Validar o novo fluxo com TypeScript e testes automatizados
+
+## SEO técnico e páginas comerciais (18/10/2026)
+- [x] Tornar a página de pacotes de leads indexável com título, descrição, canônica e dados estruturados coerentes
+- [x] Atualizar sitemap, robots e links internos para a nova página comercial
+- [x] Remover marcações estruturadas genéricas que não representam uma oferta ou vaga individual real
+- [x] Concentrar indexação orgânica nas páginas públicas de aquisição, excluindo login e cadastro
+- [x] Validar metadados, sitemap e regressões com TypeScript e testes automatizados

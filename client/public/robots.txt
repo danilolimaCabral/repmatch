@@ -9,6 +9,7 @@ Allow: /vagas
 Allow: /planos
 Allow: /oportunidades-reps
 Allow: /parcerias
+Allow: /pacotes-leads
 Allow: /termos
 Allow: /privacidade
 Allow: /login
@@ -30,6 +31,7 @@ User-agent: Googlebot
 Allow: /
 Allow: /buscar
 Allow: /vagas
+Allow: /pacotes-leads
 Allow: /blog
 Allow: /blog/
 Crawl-delay: 1

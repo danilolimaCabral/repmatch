@@ -17,6 +17,10 @@ const dashboardSkeletonSource = fs.readFileSync(path.resolve(process.cwd(), "cli
 const roiCalculatorSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ROICalculator.tsx"), "utf8");
 const manusDialogSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ManusDialog.tsx"), "utf8");
 const leadPackagesSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/LeadPackages.tsx"), "utf8");
+const seoSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/SEO.tsx"), "utf8");
+const sitemapSource = fs.readFileSync(path.resolve(process.cwd(), "client/public/sitemap.xml"), "utf8");
+const robotsSource = fs.readFileSync(path.resolve(process.cwd(), "client/public/robots.txt"), "utf8");
+const indexHtmlSource = fs.readFileSync(path.resolve(process.cwd(), "client/index.html"), "utf8");
 const publicPageSources = Object.fromEntries(
   ["BuscarRepresentantes", "OportunidadesReps", "Blog", "BlogPost", "BaseCNPJ", "Planos", "ManagerPlans", "Parcerias", "Onboarding", "Login", "Register", "RedefinirSenha", "Perfil", "VerificacaoKYC"]
     .map((name) => [name, fs.readFileSync(path.resolve(process.cwd(), `client/src/pages/${name}.tsx`), "utf8")])
@@ -152,5 +156,16 @@ describe("AdminDashboard mobile layout", () => {
     expect(dashboardSource).toContain("Pacotes de leads B2B e B2C");
     expect(leadPackagesSource).toContain("2.000 leads");
     expect(leadPackagesSource).toContain("conformidade com a LGPD");
+  });
+
+  it("keeps commercial SEO indexable and removes generic job or review markup", () => {
+    expect(seoSource).toContain("structuredData?:");
+    expect(leadPackagesSource).toContain('canonical="/pacotes-leads"');
+    expect(leadPackagesSource).toContain('"@type": "Service"');
+    expect(sitemapSource).toContain("https://repmatch.com.br/pacotes-leads");
+    expect(robotsSource).toContain("Allow: /pacotes-leads");
+    expect(homeSource).toContain('href="/pacotes-leads"');
+    expect(indexHtmlSource).not.toContain('"@type": "JobPosting"');
+    expect(indexHtmlSource).not.toContain('"aggregateRating"');
   });
 });
