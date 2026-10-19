@@ -253,6 +253,8 @@ export default function CompanyDashboard() {
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
   const [marketSearch, setMarketSearch] = useState("");
   const [marketPackageSegment, setMarketPackageSegment] = useState("");
+  const [openedLeadPackageId, setOpenedLeadPackageId] = useState<number | null>(null);
+  const [openedLeadPackageSegment, setOpenedLeadPackageSegment] = useState("");
   const [marketPixData, setMarketPixData] = useState<{ qrCode: string; qrCodeBase64: string; label: string; price: number } | null>(null);
   const [marketPixLoading, setMarketPixLoading] = useState(false);
   const [marketPixSeconds, setMarketPixSeconds] = useState(60);
@@ -405,6 +407,8 @@ export default function CompanyDashboard() {
   const { data: marketRequest } = trpc.leadPackages.myUnlimitedRequest.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 15_000 });
   const { data: myLeadPackages } = trpc.leadPackages.myOrders.useQuery(undefined, { enabled: !!user, refetchInterval: 20_000 });
   const downloadLeadPackage = trpc.leadPackages.downloadDeliveredOrder.useMutation({ onError: (error) => toast.error(error.message) });
+  const openedLeadPackageInput = useMemo(() => ({ orderId: openedLeadPackageId ?? 0, segment: openedLeadPackageSegment || undefined }), [openedLeadPackageId, openedLeadPackageSegment]);
+  const { data: openedLeadPackageResults, isFetching: openedLeadPackageLoading } = trpc.leadPackages.searchReleasedPackage.useQuery(openedLeadPackageInput, { enabled: activeTab === "leadPackages" && !!openedLeadPackageId });
   const { data: marketResults, isFetching: marketLoading } = trpc.leadPackages.searchUnlimitedCatalog.useQuery(
     { audience: marketAudience, query: marketSearch || undefined, limit: 50 },
     { enabled: marketTabActive && !!marketAccess },
@@ -488,7 +492,7 @@ export default function CompanyDashboard() {
   };
 
   const downloadLeadPackageCsv = async (orderId: number) => {
-    const { rows } = await downloadLeadPackage.mutateAsync({ orderId });
+    const { rows } = await downloadLeadPackage.mutateAsync({ orderId, segment: openedLeadPackageId === orderId ? openedLeadPackageSegment || undefined : undefined });
     const headers = ["Razão social", "Nome fantasia", "CNPJ", "CNAE", "Segmento", "Porte", "Cidade", "Estado", "CEP", "Endereço", "Telefone", "E-mail", "Site", "Instagram"];
     const quote = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
     const content = [headers.map(quote).join(";"), ...rows.map((row) => [row.razaoSocial, row.nomeFantasia, row.cnpj, row.cnaeDescricao, row.segmento, row.porte, row.cidade, row.estado, row.cep, row.endereco, row.telefone, row.email, row.site, row.instagram].map(quote).join(";"))].join("\n");
@@ -2024,13 +2028,37 @@ export default function CompanyDashboard() {
                           <h2 className="mt-3 text-xl font-black text-slate-900">{order.quantity.toLocaleString("pt-BR")} empresas {order.audience.toUpperCase()} para prospecção</h2>
                           <p className="mt-1 text-sm text-slate-600">{order.segment || "Todos os segmentos"} · {order.region || "Cobertura nacional"}</p>
                         </div>
-                        <Button onClick={() => downloadLeadPackageCsv(order.id)} disabled={downloadLeadPackage.isPending} className="min-h-12 shrink-0 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"><ExternalLink className="mr-2 h-4 w-4" />Baixar CSV para CRM</Button>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" onClick={() => { setOpenedLeadPackageId(order.id); setOpenedLeadPackageSegment(order.segment ?? ""); }} className="min-h-12 border-emerald-300 text-emerald-700 hover:bg-emerald-50"><Search className="mr-2 h-4 w-4" />Buscar leads</Button>
+                          <Button onClick={() => downloadLeadPackageCsv(order.id)} disabled={downloadLeadPackage.isPending} className="min-h-12 shrink-0 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"><ExternalLink className="mr-2 h-4 w-4" />Baixar CSV para CRM</Button>
+                        </div>
                       </div>
                       <div className="mt-5 grid gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 sm:grid-cols-3">
                         <div><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Empresas</p><p className="mt-1 text-sm font-bold text-slate-800">{order.quantity.toLocaleString("pt-BR")} registros organizados</p></div>
                         <div><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Campos incluídos</p><p className="mt-1 text-sm font-bold text-slate-800">CNPJ, segmento, cidade e porte</p></div>
                         <div><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Contatos empresariais</p><p className="mt-1 text-sm font-bold text-slate-800">Telefone e e-mail quando disponíveis</p></div>
                       </div>
+                      {openedLeadPackageId === order.id && (
+                        <div className="mt-5 rounded-2xl border border-emerald-200 bg-white p-4 sm:p-5">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-extrabold uppercase tracking-[.12em] text-emerald-700">Buscar dentro do seu pacote</p>
+                              <p className="mt-1 text-sm text-slate-600">Escolha o segmento. A pesquisa traz até {order.quantity.toLocaleString("pt-BR")} empresas do seu lote, com os dados empresariais disponíveis.</p>
+                            </div>
+                            <label className="block text-sm font-bold text-slate-700">Segmento
+                              <select value={openedLeadPackageSegment} onChange={(event) => setOpenedLeadPackageSegment(event.target.value)} className="mt-1 min-h-11 w-full min-w-52 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-emerald-500 sm:w-60">
+                                <option value="">Todos os segmentos</option>
+                                {SEGMENTS.map((segment) => <option key={segment} value={segment}>{segment}</option>)}
+                              </select>
+                            </label>
+                          </div>
+                          {openedLeadPackageLoading ? <div className="py-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-emerald-600" /></div> : openedLeadPackageResults ? <>
+                            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm"><span className="font-bold text-emerald-900">{openedLeadPackageResults.total.toLocaleString("pt-BR")} leads encontrados</span><span className="text-emerald-800">Limite do pacote: {order.quantity.toLocaleString("pt-BR")}</span></div>
+                            {openedLeadPackageResults.total === 0 ? <p className="mt-4 text-sm text-slate-600">Nenhum lead disponível com este segmento e região. Escolha outro segmento ou todos os segmentos.</p> : <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200"><table className="min-w-[720px] w-full text-left text-xs"><thead className="bg-slate-50 text-slate-600"><tr><th className="px-3 py-3 font-bold">Empresa</th><th className="px-3 py-3 font-bold">Segmento/CNAE</th><th className="px-3 py-3 font-bold">Localização</th><th className="px-3 py-3 font-bold">Contato</th></tr></thead><tbody className="divide-y divide-slate-100">{openedLeadPackageResults.rows.slice(0, 50).map((lead) => <tr key={lead.id}><td className="px-3 py-3 font-semibold text-slate-800">{lead.nomeFantasia || lead.razaoSocial}<span className="mt-0.5 block font-normal text-slate-500">{lead.cnpj || "CNPJ não informado"}</span></td><td className="px-3 py-3 text-slate-600">{lead.segmento || lead.cnaeDescricao || "Não informado"}</td><td className="px-3 py-3 text-slate-600">{lead.cidade || "Cidade não informada"}{lead.estado ? ` · ${lead.estado}` : ""}</td><td className="px-3 py-3 text-slate-600">{lead.telefone || "Telefone não informado"}<span className="mt-0.5 block">{lead.email || "E-mail não informado"}</span></td></tr>)}</tbody></table></div>}
+                            {openedLeadPackageResults.total > 50 && <p className="mt-3 text-xs text-slate-500">Mostrando 50 registros na tela. Use o botão “Baixar CSV para CRM” para levar todos os {openedLeadPackageResults.total.toLocaleString("pt-BR")} leads encontrados.</p>}
+                          </> : null}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

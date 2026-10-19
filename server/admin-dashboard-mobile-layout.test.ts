@@ -259,6 +259,16 @@ describe("AdminDashboard mobile layout", () => {
     expect(dashboardSource).toContain("Liberar pacote ao comprador");
   });
 
+  it("lets the buyer search the released lead package by segment before exporting the same results", () => {
+    expect(routersSource).toContain("searchReleasedPackage: protectedProcedure");
+    expect(routersSource).toContain("getMarketLeadStateCode(order.region)");
+    expect(routersSource).toContain("MARKET_LEAD_STATE_CODES");
+    expect(companyDashboardSource).toContain("Buscar dentro do seu pacote");
+    expect(companyDashboardSource).toContain("Buscar leads");
+    expect(companyDashboardSource).toContain("leads encontrados");
+    expect(companyDashboardSource).toContain("Use o botão “Baixar CSV para CRM”");
+  });
+
   it("shows a one-minute PIX timer and preserves the order as awaiting verification after expiry", () => {
     expect(companyDashboardSource).toContain("const [marketPixSeconds, setMarketPixSeconds] = useState(60)");
     expect(companyDashboardSource).toContain("Pague em");

@@ -87,6 +87,21 @@ function normalizeMarketSearchUnlimitedPrice(value: string | null | undefined): 
     : DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE;
 }
 
+const MARKET_LEAD_STATE_CODES: Record<string, string> = {
+  "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM", "Bahia": "BA", "Ceará": "CE",
+  "Distrito Federal": "DF", "Espírito Santo": "ES", "Goiás": "GO", "Maranhão": "MA", "Mato Grosso": "MT",
+  "Mato Grosso do Sul": "MS", "Minas Gerais": "MG", "Pará": "PA", "Paraíba": "PB", "Paraná": "PR",
+  "Pernambuco": "PE", "Piauí": "PI", "Rio de Janeiro": "RJ", "Rio Grande do Norte": "RN", "Rio Grande do Sul": "RS",
+  "Rondônia": "RO", "Roraima": "RR", "Santa Catarina": "SC", "São Paulo": "SP", "Sergipe": "SE", "Tocantins": "TO",
+};
+
+function getMarketLeadStateCode(region: string | null | undefined): string | null {
+  if (!region || region === "Nacional") return null;
+  const cleaned = region.trim();
+  if (/^[A-Z]{2}$/.test(cleaned)) return cleaned;
+  return MARKET_LEAD_STATE_CODES[cleaned] ?? null;
+}
+
 function normalizePhone(raw: string | undefined | null): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D/g, "");
@@ -1361,8 +1376,32 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       return db.select().from(leadPackageOrders).where(eq(leadPackageOrders.userId, ctx.user.id)).orderBy(desc(leadPackageOrders.createdAt));
     }),
 
+    searchReleasedPackage: protectedProcedure
+      .input(z.object({ orderId: z.number().int().positive(), segment: z.string().trim().max(120).optional() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [order] = await db.select().from(leadPackageOrders)
+          .where(and(eq(leadPackageOrders.id, input.orderId), eq(leadPackageOrders.userId, ctx.user.id)))
+          .limit(1);
+        if (!order || !["approved", "delivered"].includes(order.status)) throw new TRPCError({ code: "FORBIDDEN", message: "Este pacote ainda não foi liberado." });
+
+        const selectedSegment = input.segment || order.segment || undefined;
+        const stateCode = getMarketLeadStateCode(order.region);
+        const availableForAudience = and(eq(marketLeads.available, true), inArray(marketLeads.audience, [order.audience, "both"]));
+        const regionScope = stateCode ? and(availableForAudience, eq(marketLeads.estado, stateCode)) : availableForAudience;
+        const deliveryScope = selectedSegment ? and(regionScope, like(marketLeads.segmento, `%${selectedSegment}%`)) : regionScope;
+        const rows = await db.select({
+          id: marketLeads.id, razaoSocial: marketLeads.razaoSocial, nomeFantasia: marketLeads.nomeFantasia, cnpj: marketLeads.cnpj,
+          cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento, porte: marketLeads.porte,
+          cidade: marketLeads.cidade, estado: marketLeads.estado, cep: marketLeads.cep, endereco: marketLeads.endereco,
+          telefone: marketLeads.telefone, email: marketLeads.email, site: marketLeads.site, instagram: marketLeads.instagram,
+        }).from(marketLeads).where(deliveryScope).orderBy(asc(marketLeads.razaoSocial)).limit(order.quantity);
+        return { orderId: order.id, quantity: order.quantity, selectedSegment: selectedSegment ?? "Todos os segmentos", total: rows.length, rows };
+      }),
+
     downloadDeliveredOrder: protectedProcedure
-      .input(z.object({ orderId: z.number().int().positive() }))
+      .input(z.object({ orderId: z.number().int().positive(), segment: z.string().trim().max(120).optional() }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -1370,17 +1409,18 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           .where(and(eq(leadPackageOrders.id, input.orderId), eq(leadPackageOrders.userId, ctx.user.id)))
           .limit(1);
         if (!order || !["approved", "delivered"].includes(order.status)) throw new TRPCError({ code: "FORBIDDEN", message: "O lote fica disponível para download após a liberação administrativa." });
-        const filters = [eq(marketLeads.available, true)];
-        filters.push(inArray(marketLeads.audience, [order.audience, "both"]));
-        if (order.region && order.region !== "Nacional") filters.push(eq(marketLeads.estado, order.region));
-        if (order.segment) filters.push(like(marketLeads.segmento, `%${order.segment}%`));
+        const selectedSegment = input.segment || order.segment || undefined;
+        const stateCode = getMarketLeadStateCode(order.region);
+        const availableForAudience = and(eq(marketLeads.available, true), inArray(marketLeads.audience, [order.audience, "both"]));
+        const regionScope = stateCode ? and(availableForAudience, eq(marketLeads.estado, stateCode)) : availableForAudience;
+        const deliveryScope = selectedSegment ? and(regionScope, like(marketLeads.segmento, `%${selectedSegment}%`)) : regionScope;
         const rows = await db.select({
           razaoSocial: marketLeads.razaoSocial, nomeFantasia: marketLeads.nomeFantasia, cnpj: marketLeads.cnpj,
           cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento, porte: marketLeads.porte,
           cidade: marketLeads.cidade, estado: marketLeads.estado, cep: marketLeads.cep, endereco: marketLeads.endereco,
           telefone: marketLeads.telefone, email: marketLeads.email, site: marketLeads.site, instagram: marketLeads.instagram,
-        }).from(marketLeads).where(and(...filters)).orderBy(asc(marketLeads.razaoSocial)).limit(order.quantity);
-        return { orderId: order.id, quantity: order.quantity, rows };
+        }).from(marketLeads).where(deliveryScope).orderBy(asc(marketLeads.razaoSocial)).limit(order.quantity);
+        return { orderId: order.id, quantity: order.quantity, selectedSegment: selectedSegment ?? "Todos os segmentos", rows };
       }),
 
     adminList: protectedProcedure.query(async ({ ctx }) => {

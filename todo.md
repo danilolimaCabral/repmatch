@@ -958,3 +958,10 @@
 - [x] Mostrar cada pacote aprovado como liberado, com a quantidade e os campos incluídos
 - [x] Permitir baixar o CSV do pacote aprovado para importação no CRM
 - [x] Validar o acesso pós-liberação com TypeScript e testes automatizados
+
+## Pesquisa de leads dentro do pacote liberado (19/10/2026)
+- [x] Permitir que o comprador selecione um segmento pré-definido no pacote liberado
+- [x] Buscar no catálogo até a quantidade contratada, respeitando B2B/B2C e região
+- [x] Mostrar os dados empresariais completos em tela e disponibilizar o mesmo resultado em CSV
+- [x] Corrigir a conversão de nomes de estados para siglas na entrega filtrada
+- [x] Validar a pesquisa e a entrega com TypeScript e testes automatizados
