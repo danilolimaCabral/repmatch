@@ -1259,8 +1259,8 @@ export default function Home() {
           </div>
           <div className="pt-4 text-center text-xs text-muted-foreground/30">
             Criado por{" "}
-            <a href="https://itskilltech.com.br" target="_blank" rel="noopener noreferrer" className="text-primary/50 hover:text-primary transition-colors font-semibold">
-              Itskilltech
+            <a href="https://techdc.com.br" target="_blank" rel="noopener noreferrer" className="text-primary/50 hover:text-primary transition-colors font-semibold">
+              TechDC.com.br
             </a>
           </div>
         </div>
