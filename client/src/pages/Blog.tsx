@@ -166,9 +166,9 @@ export default function Blog() {
               <TrendingUp className="w-4 h-4 text-primary" />
               <span className="text-sm font-bold text-primary uppercase tracking-wide">Em Destaque</span>
             </div>
-            <div
-              className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-8 cursor-pointer hover:border-primary/40 transition-all group"
-              onClick={() => navigate(`/blog/${featured.slug}`)}
+            <a
+              href={`/blog/${featured.slug}`}
+              className="block rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-8 cursor-pointer hover:border-primary/40 transition-all group"
             >
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex-1">
@@ -196,7 +196,7 @@ export default function Blog() {
                   </div>
                 </div>
               </div>
-            </div>
+            </a>
           </div>
         )}
 
@@ -221,10 +221,10 @@ export default function Blog() {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {gridPosts.map((post) => (
-                <article
+                <a
                   key={post.slug}
+                  href={`/blog/${post.slug}`}
                   className="rounded-xl border border-border bg-card p-6 cursor-pointer hover:border-primary/40 hover:shadow-lg transition-all group flex flex-col"
-                  onClick={() => navigate(`/blog/${post.slug}`)}
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className={`text-xs ${CATEGORY_COLORS[post.category] ?? "bg-secondary text-muted-foreground"}`}>
@@ -253,7 +253,7 @@ export default function Blog() {
                       Ler <ArrowRight className="w-3 h-3" />
                     </span>
                   </div>
-                </article>
+                </a>
               ))}
             </div>
           )}
@@ -266,7 +266,7 @@ export default function Blog() {
           </div>
           <h3 className="text-2xl font-black mb-2">Pronto para encontrar seu representante ideal?</h3>
           <p className="text-muted-foreground mb-6 max-w-lg mx-auto text-sm">
-            O RepMatch conecta empresas com mais de 9.000 representantes verificados em todo o Brasil. Desbloqueie contatos a partir de R$ 9,90.
+            O RepMatch conecta empresas a representantes comerciais em todo o Brasil. Desbloqueie os contatos que fizerem sentido para sua operação, a partir de R$ 9,90.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" className="bg-primary text-primary-foreground font-bold px-8" onClick={() => navigate("/register")}>

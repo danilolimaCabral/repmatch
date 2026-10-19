@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
+import { getSeoRoute, renderSeoHtml } from "./seo";
 
 // Compatibility shim for import.meta.dirname (Node.js 21.2+ only)
 // This ensures compatibility with Node.js 18 and 20 used in Railway
@@ -31,6 +32,8 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     try {
+      const route = getSeoRoute(new URL(url, "http://localhost").pathname);
+      if (route.redirectTo) return res.redirect(308, route.redirectTo);
       const clientTemplate = path.resolve(
         __dirname,
         "../..",
@@ -44,8 +47,10 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`
       );
-      const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      const transformed = await vite.transformIndexHtml(url, template);
+      const page = renderSeoHtml(transformed, route.page);
+      if (route.page.robots?.includes("noindex")) res.set("X-Robots-Tag", route.page.robots);
+      res.status(route.status).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
@@ -109,6 +114,9 @@ export function serveStatic(app: Express) {
   // Demais arquivos estáticos: cache curto
   app.use(express.static(distPath, {
     maxAge: "1h",
+    // O HTML inicial precisa passar pelo fallback abaixo para receber title,
+    // description, canonical e JSON-LD específicos de cada URL.
+    index: false,
     setHeaders: (res, filePath) => {
       // HTML nunca deve ser cacheado por muito tempo (pode mudar)
       if (filePath.endsWith(".html")) {
@@ -117,9 +125,20 @@ export function serveStatic(app: Express) {
     },
   }));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  // Rotas da SPA recebem título, canonical e status HTTP corretos antes do
+  // JavaScript carregar. Assim URLs inexistentes não viram soft 404s.
+  app.use("*", async (req, res, next) => {
+    // Em um middleware montado em "*", Express remove o trecho que casou da
+    // requisição e req.path passa a ser "/". A URL original preserva a rota.
+    const route = getSeoRoute(new URL(req.originalUrl, "http://localhost").pathname);
+    if (route.redirectTo) return res.redirect(308, route.redirectTo);
     res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.sendFile(path.resolve(distPath, "index.html"));
+    if (route.page.robots?.includes("noindex")) res.set("X-Robots-Tag", route.page.robots);
+    try {
+      const template = await fs.promises.readFile(path.resolve(distPath, "index.html"), "utf-8");
+      res.status(route.status).type("html").send(renderSeoHtml(template, route.page));
+    } catch (error) {
+      next(error);
+    }
   });
 }

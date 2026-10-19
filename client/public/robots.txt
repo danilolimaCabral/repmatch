@@ -25,7 +25,6 @@ Disallow: /onboarding
 Disallow: /perfil
 Disallow: /verificacao
 Disallow: /api/
-Disallow: /manus-storage/
 
 # ─── Google (Googlebot) ─────────────────────────────────────────────────────
 User-agent: Googlebot

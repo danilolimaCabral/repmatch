@@ -5,7 +5,7 @@
   <!-- ─── Páginas Principais ──────────────────────────────────────── -->
   <url>
     <loc>https://repmatch.com.br/</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -147,14 +147,14 @@
   <!-- ─── Páginas de Suporte ──────────────────────────────────────── -->
   <url>
     <loc>https://repmatch.com.br/termos</loc>
-    <lastmod>2026-08-03</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.30</priority>
   </url>
 
   <url>
     <loc>https://repmatch.com.br/privacidade</loc>
-    <lastmod>2026-08-03</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.30</priority>
   </url>

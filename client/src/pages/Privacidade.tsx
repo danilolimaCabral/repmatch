@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowLeft, Shield, Eye, Database, UserX, Bell, Lock, Mail } from "lucide-react";
+import SEO from "@/components/SEO";
 
 const COMPANY_NAME = "RepMatch";
 const COMPANY_EMAIL = "privacidade@repmatch.com.br";
@@ -9,6 +10,11 @@ const LAST_UPDATE = "19 de outubro de 2026";
 export default function Privacidade() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SEO
+        title="Política de Privacidade e LGPD"
+        description="Entenda como o RepMatch trata e protege dados pessoais e empresariais, além dos direitos dos titulares nos termos da LGPD."
+        canonical="/privacidade"
+      />
       {/* Header */}
       <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">

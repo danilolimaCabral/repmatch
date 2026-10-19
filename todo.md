@@ -981,3 +981,11 @@
 - [x] Criar plano ilimitado de R$ 999 por 30 dias, com aceite de uso responsável e controle de acesso
 - [x] Exibir a lista permanente do comprador, exportável para Excel, e impedir o acesso a contatos revogados ou indisponíveis
 - [x] Validar importação idempotente, deduplicação, tipagem, 51 testes, build e publicação Railway
+
+## SEO técnico e indexação por URL (19/10/2026)
+- [x] Servir title, descrição, canonical, Open Graph e JSON-LD próprios no HTML inicial de cada rota pública
+- [x] Responder aliases históricos com redirect permanente 308 e URLs/slugs inexistentes com 404 real
+- [x] Proteger login, cadastro, recuperação de senha, painéis e administração com meta e cabeçalho noindex
+- [x] Incluir metadados próprios em Termos e Privacidade, que já constam no sitemap
+- [x] Permitir rastreamento do asset público de marca e atualizar lastmod apenas nas páginas revisadas
+- [x] Validar 22 de 22 URLs do sitemap em modo de produção local, além de TypeScript, 56 testes e build

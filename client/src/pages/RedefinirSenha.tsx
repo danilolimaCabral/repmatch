@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Lock, CheckCircle2, Loader2, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import SEO from "@/components/SEO";
 
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
@@ -81,6 +82,7 @@ export default function RedefinirSenha() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <SEO title="Redefinir senha" canonical="/redefinir-senha" noIndex />
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Link href="/login">

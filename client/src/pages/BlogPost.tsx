@@ -439,7 +439,7 @@ export default function BlogPost() {
         <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-8 text-center">
           <h3 className="text-2xl font-black mb-2">Encontre representantes verificados agora</h3>
           <p className="text-muted-foreground mb-6 text-sm max-w-lg mx-auto">
-            Mais de 9.000 representantes comerciais em todo o Brasil. Filtre por região, segmento e experiência.
+            Pesquise representantes comerciais por região, segmento e experiência para encontrar opções compatíveis com sua operação.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" className="bg-primary text-primary-foreground font-bold px-8" onClick={() => navigate("/register")}>

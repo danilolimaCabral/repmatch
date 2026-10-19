@@ -37,7 +37,7 @@ function setLink(rel: string, href: string) {
 
 export default function SEO({
   title,
-  description = "RepMatch é o maior marketplace de representantes comerciais do Brasil. Conectamos empresas com representantes qualificados.",
+  description = "RepMatch conecta empresas a representantes comerciais e apoia operações de prospecção B2B no Brasil.",
   keywords,
   canonical,
   ogImage = DEFAULT_IMAGE,
@@ -46,7 +46,7 @@ export default function SEO({
   structuredData,
 }: SEOProps) {
   const fullTitle = title
-    ? `${title} | ${SITE_NAME}`
+    ? title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`
     : `${SITE_NAME} — Marketplace de Representantes Comerciais no Brasil`;
 
   const canonicalUrl = canonical ? `${BASE_URL}${canonical}` : BASE_URL;

@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowLeft, FileText, AlertTriangle, CreditCard, Ban, Scale, Shield } from "lucide-react";
+import SEO from "@/components/SEO";
 
 const COMPANY_NAME = "RepMatch";
 const COMPANY_EMAIL = "contato@repmatch.com.br";
@@ -8,6 +9,11 @@ const LAST_UPDATE = "19 de outubro de 2026";
 export default function Termos() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SEO
+        title="Termos de Uso"
+        description="Leia os termos de uso do RepMatch para empresas, representantes comerciais e serviços de prospecção."
+        canonical="/termos"
+      />
       {/* Header */}
       <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">

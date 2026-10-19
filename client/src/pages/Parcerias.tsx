@@ -22,7 +22,7 @@ const PARTNERSHIP_TYPES = [
     border: "rgba(34,197,94,0.2)",
     title: "Associações & Conselhos",
     subtitle: "CORE, SEBRAE, CNI, FIESP e similares",
-    description: "Integre sua base de representantes e empresas ao maior marketplace B2B do Brasil. Ofereça benefícios exclusivos aos seus associados.",
+    description: "Integre sua base de representantes e empresas a uma plataforma B2B especializada. Ofereça benefícios exclusivos aos seus associados.",
     benefits: [
       "Selo verificado para associados no perfil",
       "Destaque nos resultados de busca",
@@ -91,8 +91,8 @@ const ACTIVE_PARTNERS = [
 
 // ─── Números de impacto ───────────────────────────────────────────────────────
 const STATS = [
-  { icon: Users, value: "173 mil+", label: "Representantes na base" },
-  { icon: Globe, value: "27", label: "Estados cobertos" },
+  { icon: Users, value: "Brasil", label: "Cobertura de atuação" },
+  { icon: Globe, value: "B2B", label: "Foco comercial" },
   { icon: BarChart3, value: "R$ 9,90", label: "Custo por conexão" },
 ];
 
@@ -212,12 +212,12 @@ export default function Parcerias() {
 
           <h1 className="mb-6 text-4xl font-black leading-tight text-white sm:text-5xl md:text-7xl" style={{ textShadow: "0 4px 32px rgba(0,0,0,0.8)" }}>
             Cresça junto com o{" "}
-            <span style={{ color: "#22c55e", textShadow: "0 0 40px rgba(34,197,94,0.4)" }}>maior marketplace</span>
+            <span style={{ color: "#22c55e", textShadow: "0 0 40px rgba(34,197,94,0.4)" }}>plataforma de parcerias</span>
             <br />de representantes do Brasil
           </h1>
 
           <p className="text-white/70 text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.6)" }}>
-            Mais de 173 mil representantes comerciais. Cobertura em 27 estados.
+            Conecte empresas, representantes e parceiros comerciais em uma operação nacional.
             Seja você uma associação, empresa de tecnologia ou distribuidora —
             temos um modelo de parceria feito para você.
           </p>

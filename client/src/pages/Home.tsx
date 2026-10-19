@@ -857,7 +857,7 @@ export default function Home() {
               <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
               <div>
                 <p className="font-semibold text-foreground text-sm">Verificação de Identidade com IA</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Comparamos a foto da CNH/RG com a selfie do representante usando reconhecimento facial DeepFace (ArcFace), com precisão de 99,4%.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">A verificação de identidade usa análise de documentos e selfie como etapa adicional de segurança.</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
@@ -1040,7 +1040,7 @@ export default function Home() {
               { icon: Shield, title: "Acesso por plano", desc: "Representantes Free acessam vagas Bronze e Silver. Premium acessa Gold. Elite acessa Platinum.", highlight: false },
               { icon: MessageSquare, title: "Chat dentro da plataforma", desc: "Negocie direto com o candidato sem sair do RepMatch. Contatos só revelados quando ambas as partes concordam.", highlight: false },
               { icon: BarChart3, title: "Painel de controle", desc: "Dashboard separado para empresas e representantes com histórico de candidaturas, vagas e performance.", highlight: false },
-              { icon: TrendingUp, title: "Base de 173 mil+", desc: "Base comercial nacional segmentada por estado, segmento e experiência para tornar a prospecção mais objetiva.", highlight: false },
+              { icon: TrendingUp, title: "Cobertura nacional", desc: "Base comercial organizada por região, segmento e experiência para tornar a prospecção mais objetiva.", highlight: false },
             ].map(({ icon: Icon, title, desc, highlight }) => (
               <div
                 key={title}
@@ -1167,7 +1167,7 @@ export default function Home() {
             <span className="text-gradient-green">em grupo de WhatsApp.</span>
           </h2>
           <p className="text-muted-foreground text-lg mb-12 max-w-xl mx-auto">
-            Mais de 173 mil representantes comerciais, filtráveis por região e segmento. Desbloqueie o contato direto por R$ 9,90 — sem mensalidade.
+            Pesquise representantes por região e segmento. Desbloqueie apenas os contatos que interessam à sua empresa, a partir de R$ 9,90.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap">
             <button

@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CheckCircle2, XCircle, Loader2, Mail } from "lucide-react";
+import SEO from "@/components/SEO";
 
 export default function VerificarEmail() {
   const [status, setStatus] = useState<"loading" | "success" | "error" | "no-token">("loading");
@@ -38,6 +39,7 @@ export default function VerificarEmail() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <SEO title="Verificar e-mail" canonical="/verificar-email" noIndex />
       <div className="w-full max-w-md">
         <Card>
           <CardHeader className="text-center">

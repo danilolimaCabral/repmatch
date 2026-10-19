@@ -312,7 +312,8 @@ describe("AdminDashboard mobile layout", () => {
     expect(robotsSource).toContain("Allow: /pacotes-leads");
     expect(homeSource).toContain('href="/pacotes-leads"');
     expect(homeSource).toContain("trpc.cnpjBase.stats.useQuery()");
-    expect(homeSource).toContain("173 mil representantes comerciais");
+    expect(homeSource).toContain("Pesquise representantes por região e segmento");
+    expect(homeSource).not.toContain("173 mil representantes comerciais");
     expect(publicPageSources.Parcerias).not.toContain("173k+");
     expect(brazilMapSource).toContain("end={173987}");
     expect(sitemapSource).toContain("https://repmatch.com.br/contatos-b2c");
