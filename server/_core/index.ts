@@ -247,7 +247,14 @@ async function ensurePurchaseInterestTable() {
       INDEX consumer_lead_access_status_created_idx (status, created_at)
     )
   `));
-  await db.execute(sql.raw(`ALTER TABLE consumer_lead_accesses ADD COLUMN IF NOT EXISTS selection_limit int NOT NULL DEFAULT 500`));
+  // MySQL/TiDB da Railway não suporta ADD COLUMN IF NOT EXISTS em todas as
+  // versões. A tabela recém-criada já contém a coluna; nos bancos existentes,
+  // tenta acrescentá-la e ignora somente o erro de coluna duplicada.
+  try {
+    await db.execute(sql.raw(`ALTER TABLE consumer_lead_accesses ADD COLUMN selection_limit int NOT NULL DEFAULT 500`));
+  } catch (error: any) {
+    if (!/duplicate column|duplicate field|already exists/i.test(String(error?.message ?? error))) throw error;
+  }
   await db.execute(sql.raw(`
     CREATE TABLE IF NOT EXISTS saved_consumer_leads (
       id int AUTO_INCREMENT NOT NULL,
