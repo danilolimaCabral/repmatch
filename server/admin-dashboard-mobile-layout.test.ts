@@ -212,6 +212,9 @@ describe("AdminDashboard mobile layout", () => {
     expect(dashboardSource).toContain('label: "Campanhas B2B/B2C"');
     expect(dashboardSource).toContain("Confirmar PIX recebido");
     expect(dashboardSource).toContain("Campanhas B2B/B2C");
+    expect(dashboardSource).toContain("Pacotes de leads B2B/B2C");
+    expect(dashboardSource).toContain('activeTab === "comercial" || activeTab === "desbloqueios"');
+    expect(dashboardSource).toContain("QR Code emitido e pagamento pendente também aparece aqui");
     expect(dashboardSource).toContain("confirmLeadPixMutation");
     expect(dashboardSource).toContain("confirmUnlimitedPixMutation");
     expect(routersSource).toContain("confirmLeadPix: protectedProcedure");

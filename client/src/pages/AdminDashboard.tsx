@@ -210,8 +210,8 @@ export default function AdminDashboard() {
     { audience: leadPreviewAudience },
     { enabled: activeTab === "comercial" },
   );
-  const { data: leadOrders, refetch: refetchLeadOrders } = trpc.leadPackages.adminList.useQuery(undefined, { enabled: activeTab === "comercial", refetchInterval: 15_000 });
-  const { data: unlimitedAccesses, refetch: refetchUnlimitedAccesses } = trpc.leadPackages.adminUnlimitedAccesses.useQuery(undefined, { enabled: activeTab === "comercial", refetchInterval: 15_000 });
+  const { data: leadOrders, refetch: refetchLeadOrders } = trpc.leadPackages.adminList.useQuery(undefined, { enabled: activeTab === "comercial" || activeTab === "desbloqueios", refetchInterval: 15_000 });
+  const { data: unlimitedAccesses, refetch: refetchUnlimitedAccesses } = trpc.leadPackages.adminUnlimitedAccesses.useQuery(undefined, { enabled: activeTab === "comercial" || activeTab === "desbloqueios", refetchInterval: 15_000 });
   const updateLeadPackagePriceMutation = trpc.admin.updateLeadPackagePrice.useMutation({
     onSuccess: (result) => {
       toast.success(`Pacote ${result.audience.toUpperCase()} atualizado para ${result.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`);
@@ -1758,7 +1758,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <Button size="sm" variant="outline" onClick={() => setActiveTab("comercial")} className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
-                    <SlidersHorizontal className="mr-1 h-4 w-4" />Campanhas B2B/B2C
+                    <SlidersHorizontal className="mr-1 h-4 w-4" />Campanhas B2B/B2C ({(leadOrders ?? []).filter(order => ["pending_payment", "pending_approval"].includes(order.status)).length})
                   </Button>
                   <Badge className="bg-amber-900/30 text-amber-300 border border-amber-700/40 px-3 py-1">
                     {(unlockRequestsRaw ?? []).filter(r => r.status === "pending_approval").length} pendentes
@@ -1768,6 +1768,42 @@ export default function AdminDashboard() {
                   </Button>
                 </div>
               </div>
+
+              {(() => {
+                const pendingCampaigns = (leadOrders ?? []).filter((order) => ["pending_payment", "pending_approval", "approved"].includes(order.status));
+                if (!pendingCampaigns.length) return null;
+                return (
+                  <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="flex items-center gap-2 font-bold text-emerald-950"><SlidersHorizontal className="h-5 w-5" />Pacotes de leads B2B/B2C</h2>
+                        <p className="mt-1 text-sm text-emerald-900/80">QR Code emitido e pagamento pendente também aparece aqui. Confirme o PIX e depois libere a preparação ou entrega.</p>
+                      </div>
+                      <Button size="sm" variant="outline" className="self-start border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100" onClick={() => { refetchLeadOrders(); refetchUnlimitedAccesses(); }}><RefreshCw className="mr-1.5 h-4 w-4" />Atualizar</Button>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {pendingCampaigns.map((order) => (
+                        <article key={order.id} className="rounded-xl border border-emerald-200 bg-white p-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-950">Pedido #{order.id} · {order.quantity.toLocaleString("pt-BR")} empresas {order.audience.toUpperCase()}</p>
+                              <p className="mt-1 break-all text-xs text-slate-600">{order.buyerName || "Cliente"} · {order.buyerEmail || "E-mail não informado"}</p>
+                              <p className="mt-1 text-xs text-slate-600">{order.segment || "Todos os segmentos"} · {order.region || "Nacional"} · {Number(order.totalAmount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                              {order.mpPaymentId && <p className="mt-2 text-xs font-medium text-blue-700">QR Code PIX emitido · Pagamento #{order.mpPaymentId}</p>}
+                            </div>
+                            <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${order.status === "pending_payment" ? "bg-blue-100 text-blue-800" : order.status === "pending_approval" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>{order.status === "pending_payment" ? "Verificando PIX" : order.status === "pending_approval" ? "PIX confirmado" : "Em preparação"}</span>
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {order.status === "pending_payment" && <Button size="sm" className="bg-blue-600 hover:bg-blue-700" disabled={confirmLeadPixMutation.isPending} onClick={() => confirmLeadPixMutation.mutate({ orderId: order.id })}>{confirmLeadPixMutation.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <CheckCheck className="mr-1 h-3.5 w-3.5" />}Confirmar PIX recebido</Button>}
+                            {order.status === "pending_approval" && <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "approved" })}><CheckCheck className="mr-1 h-3.5 w-3.5" />Liberar preparação</Button>}
+                            {order.status === "approved" && <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "delivered" })}><CheckCircle className="mr-1 h-3.5 w-3.5" />Marcar como entregue</Button>}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })()}
 
               {/* Filters */}
               <div className="flex flex-wrap gap-3 mb-5">

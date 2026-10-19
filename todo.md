@@ -946,3 +946,9 @@
 - [x] Reduzir o prazo do QR Code de campanhas para um minuto
 - [x] Exibir “Pedido solicitado, verificando o PIX” quando o QR expirar
 - [x] Validar o novo tempo e o estado de pedido por testes
+
+## Pedidos B2B/B2C visíveis na fila admin (19/10/2026)
+- [x] Carregar pedidos de campanhas mesmo fora da aba Comercial
+- [x] Mostrar contador e atalho direto para pacotes B2B/B2C pendentes na tela de Desbloqueios
+- [x] Exibir a quantidade de pedidos aguardando PIX ou prontos para aprovação
+- [x] Validar o acesso administrativo com TypeScript e testes automatizados
