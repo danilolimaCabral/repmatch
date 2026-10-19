@@ -13,7 +13,7 @@ import {
   Loader2, Star, CheckCircle, Clock, XCircle, Award, TrendingUp,
   ChevronRight, Eye, Crown, Medal, Linkedin, Search, BadgeCheck, Pencil, Shield,
   BarChart3, Target, Zap, ArrowUpRight, ArrowDownRight, MessageSquare, Send,
-  ShoppingCart, Trash2, Upload, X as XIcon, QrCode, BookUser, Phone, Mail, ExternalLink, Menu, Lock, Instagram
+  ShoppingCart, Trash2, Upload, X as XIcon, QrCode, BookUser, Phone, Mail, ExternalLink, Menu, Lock, Instagram, CreditCard
 } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
@@ -521,6 +521,30 @@ export default function CompanyDashboard() {
     }
   };
 
+  const openMarketCardCheckout = async (kind: "lead_package" | "market_search_unlimited", resourceId: number) => {
+    try {
+      const response = await fetch("/api/mp/checkout-pro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, resourceId }) });
+      const data = await response.json();
+      if (!response.ok || !data.initPoint) throw new Error(data.error ?? "Não foi possível abrir o checkout.");
+      toast.info("Escolha PIX ou cartão de crédito no Mercado Pago.");
+      window.open(data.initPoint, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao abrir checkout por cartão.");
+    }
+  };
+
+  const startMarketPackageCardCheckout = async (quantity: 1000 | 2000) => {
+    if (!user) { navigate("/register?purchase=leads&returnTo=/dashboard/company"); return; }
+    const order = await createMarketLeadOrder.mutateAsync({ audience: marketAudience, quantity, segment: marketPackageSegment || undefined, region: "Nacional", legalConsent: true });
+    await openMarketCardCheckout("lead_package", order.orderId);
+  };
+
+  const startMarketMonthlyCardCheckout = async () => {
+    if (!user) { navigate("/register?purchase=leads&returnTo=/dashboard/company"); return; }
+    const access = await createMarketUnlimited.mutateAsync();
+    await openMarketCardCheckout("market_search_unlimited", access.accessId);
+  };
+
 
   const downloadSavedLeadSpreadsheet = async () => {
     const { rows } = await downloadSavedMarketLeads.mutateAsync();
@@ -558,6 +582,35 @@ export default function CompanyDashboard() {
   const { data: availableNowData } = trpc.representatives.countAvailableNow.useQuery(undefined, { staleTime: 60_000 });
 
   const utils = trpc.useUtils();
+  const { data: representativeMonthlyAccess, refetch: refetchRepresentativeMonthlyAccess } = trpc.representativeMonthly.myAccess.useQuery(undefined, { enabled: activeTab === "search", refetchInterval: 20_000 });
+  const { data: representativeMonthlyRequest, refetch: refetchRepresentativeMonthlyRequest } = trpc.representativeMonthly.myRequest.useQuery(undefined, { enabled: activeTab === "search", refetchInterval: 20_000 });
+  const createRepresentativeMonthlyAccess = trpc.representativeMonthly.createAccess.useMutation({ onError: (error) => toast.error(error.message) });
+  const unlockWithRepresentativeMonthlyPlan = trpc.representativeMonthly.unlockRepresentative.useMutation({
+    onSuccess: (result) => {
+      toast.success(result.alreadyUnlocked ? "Este representante já estava liberado." : `Contato desbloqueado. Restam ${result.remaining} créditos no plano.`);
+      refetchRepresentativeMonthlyAccess();
+      utils.representatives.listForCompany.invalidate();
+      utils.representatives.autoMatch.invalidate();
+      utils.contacts.myUnlockedContacts.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const openRepresentativeMonthlyCheckout = async (accessId: number) => {
+    try {
+      const response = await fetch("/api/mp/checkout-pro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "representative_monthly", resourceId: accessId }) });
+      const data = await response.json();
+      if (!response.ok || !data.initPoint) throw new Error(data.error ?? "Não foi possível abrir o checkout.");
+      toast.info("Escolha PIX ou cartão de crédito no Mercado Pago.");
+      window.open(data.initPoint, "_blank", "noopener,noreferrer");
+      refetchRepresentativeMonthlyRequest();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao abrir checkout.");
+    }
+  };
+  const startRepresentativeMonthlyCheckout = async () => {
+    const request = await createRepresentativeMonthlyAccess.mutateAsync();
+    await openRepresentativeMonthlyCheckout(request.accessId);
+  };
   const ensureLeadBuyerProfile = trpc.companies.ensureLeadBuyerProfile.useMutation({
     onSuccess: () => utils.companies.myProfile.invalidate(),
     onError: (error) => toast.error(error.message),
@@ -871,7 +924,7 @@ export default function CompanyDashboard() {
                   <Clock className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-blue-800">⏳ PIX confirmado — aguardando liberação</p>
+                  <p className="text-sm font-bold text-blue-800">⏳ Pagamento confirmado — liberando contatos automaticamente</p>
                   <p className="text-xs text-blue-700 mt-0.5">
                     O pagamento foi identificado. O administrador irá liberar seus contatos pelo painel em breve.
                   </p>
@@ -1490,16 +1543,12 @@ export default function CompanyDashboard() {
                       <span className="text-lg font-bold text-emerald-700">{(cart.length * contactUnlockPrice).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                     </div>
                     <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 leading-relaxed">
-                      Você libera telefone, e-mail, cidade e apresentação profissional de cada perfil. Após o PIX ser confirmado, o pedido segue para liberação manual no painel administrativo.
+                      Você libera telefone, e-mail, cidade e apresentação profissional de cada perfil. Após a confirmação do Mercado Pago, os contatos são liberados automaticamente na sua conta.
                     </p>
-                    <Button
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2"
-                      onClick={() => setCartStep("pix_form")}
-                      disabled={createUnlockRequest.isPending || checkoutLoading}
-                    >
-                      <QrCode className="w-4 h-4" />
-                      Gerar QR Code PIX
-                    </Button>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2" onClick={() => setCartStep("pix_form")} disabled={createUnlockRequest.isPending || checkoutLoading}><QrCode className="w-4 h-4" />Gerar QR Code PIX</Button>
+                      <Button variant="outline" className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold flex items-center justify-center gap-2" disabled={createUnlockRequest.isPending || checkoutLoading} onClick={async () => { try { setCheckoutLoading(true); const request = await createUnlockRequest.mutateAsync({ repIds: cart.map((item) => item.id), paymentMethod: "stripe" }); const response = await fetch("/api/mp/checkout-pro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "unlock_batch", resourceId: request.requestId }) }); const data = await response.json(); if (!response.ok || !data.initPoint) throw new Error(data.error ?? "Não foi possível abrir o checkout."); toast.info("Escolha cartão ou PIX no Mercado Pago."); window.open(data.initPoint, "_blank", "noopener,noreferrer"); } catch (error) { toast.error(error instanceof Error ? error.message : "Erro ao abrir checkout."); } finally { setCheckoutLoading(false); } }}><CreditCard className="w-4 h-4" />Pagar com cartão</Button>
+                    </div>
                   </>
                 )}
               </div>
@@ -1673,6 +1722,14 @@ export default function CompanyDashboard() {
                 <p className="text-sm">Você já usou seu desbloqueio gratuito. Para ver mais contatos, desbloqueie por <strong>{contactUnlockPriceLabel} cada</strong>.</p>
               </div>
             )}
+            <section className="mb-5 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-4 shadow-sm sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div><p className="text-xs font-extrabold uppercase tracking-[.13em] text-violet-700">Plano mensal para recrutamento</p><h2 className="mt-1 text-xl font-black text-slate-900">100 representantes por 30 dias</h2><p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">Desbloqueie até 100 perfis no mês por R$ 599. O carrinho e os contatos avulsos continuam disponíveis quando preferir pagar só pelo que usar.</p></div>
+                <div className="shrink-0 sm:text-right"><p className="text-2xl font-black text-violet-800">R$ 599<span className="text-xs font-semibold text-slate-500">/mês</span></p>{representativeMonthlyAccess?.access ? <p className="mt-1 text-xs font-bold text-violet-700">{representativeMonthlyAccess.remaining} de {representativeMonthlyAccess.access.unlockLimit} desbloqueios restantes</p> : representativeMonthlyRequest?.status === "pending_approval" ? <p className="mt-1 text-xs font-bold text-amber-700">Pagamento em análise</p> : null}</div>
+              </div>
+              {!representativeMonthlyAccess?.access && <Button onClick={representativeMonthlyRequest?.status === "pending_payment" ? () => openRepresentativeMonthlyCheckout(representativeMonthlyRequest.id) : startRepresentativeMonthlyCheckout} disabled={createRepresentativeMonthlyAccess.isPending} className="mt-4 min-h-11 bg-violet-700 text-white hover:bg-violet-800"><CreditCard className="mr-2 h-4 w-4" />{representativeMonthlyRequest?.status === "pending_payment" ? "Concluir com PIX ou cartão" : representativeMonthlyRequest?.status === "pending_approval" ? "Pagamento em análise" : "Assinar plano mensal"}</Button>}
+              {representativeMonthlyAccess?.access && <p className="mt-4 text-xs text-slate-500">Plano ativo até {representativeMonthlyAccess.access.expiresAt ? new Date(representativeMonthlyAccess.access.expiresAt).toLocaleDateString("pt-BR") : "o fim da vigência"}. Use o botão “Desbloquear com plano” nos perfis.</p>}
+            </section>
 
             {/* Filters */}
             <div className="flex flex-wrap gap-3 mb-4">
@@ -1935,6 +1992,11 @@ export default function CompanyDashboard() {
                             <Button size="sm" variant="outline" className="w-full mt-4 text-xs border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => { setReviewRepId(rep.id); setReviewRepName(rep.fullName ?? ""); setReviewModalOpen(true); }}>
                               <Star className="w-3 h-3 mr-1 fill-amber-400 text-amber-400" /> Avaliar Representante
                             </Button>
+                          ) : representativeMonthlyAccess?.access ? (
+                            <Button size="sm" className="w-full mt-4 bg-violet-700 hover:bg-violet-800 text-white text-xs font-semibold" disabled={unlockWithRepresentativeMonthlyPlan.isPending || representativeMonthlyAccess.remaining === 0}
+                              onClick={() => unlockWithRepresentativeMonthlyPlan.mutate({ representativeId: rep.id })}>
+                              {unlockWithRepresentativeMonthlyPlan.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <CheckCircle className="w-3 h-3 mr-1" />}{representativeMonthlyAccess.remaining === 0 ? "Limite mensal atingido" : `Desbloquear com plano · ${representativeMonthlyAccess.remaining} restantes`}
+                            </Button>
                           ) : cart.some(c => c.id === rep.id) ? (
                             <Button size="sm" variant="outline" className="w-full mt-4 text-xs border-emerald-300 text-emerald-700 bg-emerald-50"
                               onClick={() => removeFromCart(rep.id)}>
@@ -2017,9 +2079,9 @@ export default function CompanyDashboard() {
                     {([1000, 2000] as const).map((quantity) => {
                       const configuredPrice = marketCatalog?.[marketAudience]?.price ?? (marketAudience === "b2b" ? 179 : 149);
                       const price = getLeadPackagePrice(marketAudience, configuredPrice, quantity);
-                      return <Card key={quantity} className={`overflow-hidden border shadow-sm ${quantity === 2000 ? "border-emerald-400 ring-1 ring-emerald-200" : "border-slate-200"}`}><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className={quantity === 2000 ? "bg-emerald-600 text-white hover:bg-emerald-600" : "bg-slate-100 text-slate-700 hover:bg-slate-100"}>{quantity === 2000 ? "Mais escolhido" : "Comece agora"}</Badge><Users className="h-5 w-5 text-emerald-600" /></div><h3 className="mt-4 text-2xl font-black text-slate-900">{quantity.toLocaleString("pt-BR")}</h3><p className="text-sm text-slate-600">empresas {marketAudience.toUpperCase()} para seu time prospectar</p><p className="mt-5 text-3xl font-black text-emerald-700">{price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p><p className="mt-1 text-xs text-slate-500">CNPJ, segmento, região e contatos empresariais quando disponíveis.</p><Button onClick={() => startMarketPackagePix(quantity)} disabled={marketPixLoading} className="mt-5 min-h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60">{marketPixLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}Gerar PIX agora</Button></CardContent></Card>;
+                      return <Card key={quantity} className={`overflow-hidden border shadow-sm ${quantity === 2000 ? "border-emerald-400 ring-1 ring-emerald-200" : "border-slate-200"}`}><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className={quantity === 2000 ? "bg-emerald-600 text-white hover:bg-emerald-600" : "bg-slate-100 text-slate-700 hover:bg-slate-100"}>{quantity === 2000 ? "Mais escolhido" : "Comece agora"}</Badge><Users className="h-5 w-5 text-emerald-600" /></div><h3 className="mt-4 text-2xl font-black text-slate-900">{quantity.toLocaleString("pt-BR")}</h3><p className="text-sm text-slate-600">empresas {marketAudience.toUpperCase()} para seu time prospectar</p><p className="mt-5 text-3xl font-black text-emerald-700">{price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p><p className="mt-1 text-xs text-slate-500">CNPJ, segmento, região e contatos empresariais quando disponíveis.</p><div className="mt-5 grid gap-2 sm:grid-cols-2"><Button onClick={() => startMarketPackagePix(quantity)} disabled={marketPixLoading} className="min-h-12 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60">{marketPixLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}Gerar PIX agora</Button><Button variant="outline" onClick={() => startMarketPackageCardCheckout(quantity)} disabled={marketPixLoading} className="min-h-12 border-emerald-300 text-emerald-800 hover:bg-emerald-50"><CreditCard className="mr-2 h-4 w-4" />Cartão</Button></div></CardContent></Card>;
                     })}
-                    <Card className="overflow-hidden border-emerald-300 bg-gradient-to-br from-emerald-950 to-emerald-800 text-white shadow-sm"><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className="bg-emerald-300 text-emerald-950 hover:bg-emerald-300">Melhor para equipes</Badge><Crown className="h-5 w-5 text-emerald-200" /></div><h3 className="mt-4 text-2xl font-black">Ilimitado</h3><p className="text-sm text-emerald-100">Pesquise quantas empresas quiser durante 30 dias.</p><p className="mt-5 text-3xl font-black">R$ 499<span className="text-sm font-semibold text-emerald-100">/mês</span></p><p className="mt-1 text-xs text-emerald-100">Filtros, contatos disponíveis e exportação para seu CRM.</p><Button onClick={startMarketUnlimitedPix} disabled={marketPixLoading} className="mt-5 min-h-12 w-full border border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 disabled:opacity-60">{marketPixLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}Gerar PIX agora</Button></CardContent></Card>
+                    <Card className="overflow-hidden border-emerald-300 bg-gradient-to-br from-emerald-950 to-emerald-800 text-white shadow-sm"><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className="bg-emerald-300 text-emerald-950 hover:bg-emerald-300">Melhor para equipes</Badge><Crown className="h-5 w-5 text-emerald-200" /></div><h3 className="mt-4 text-2xl font-black">Ilimitado</h3><p className="text-sm text-emerald-100">Pesquise quantas empresas quiser durante 30 dias.</p><p className="mt-5 text-3xl font-black">{(marketCatalog?.unlimitedMonthly?.price ?? 599).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="text-sm font-semibold text-emerald-100">/mês</span></p><p className="mt-1 text-xs text-emerald-100">Filtros, contatos disponíveis e exportação para seu CRM.</p><div className="mt-5 grid gap-2 sm:grid-cols-2"><Button onClick={startMarketUnlimitedPix} disabled={marketPixLoading} className="min-h-12 border border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 disabled:opacity-60">{marketPixLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}PIX</Button><Button onClick={startMarketMonthlyCardCheckout} disabled={marketPixLoading} className="min-h-12 bg-emerald-300 text-emerald-950 hover:bg-emerald-200"><CreditCard className="mr-2 h-4 w-4" />Cartão</Button></div></CardContent></Card>
                   </div>
                   <Card className="border-dashed border-emerald-300 bg-emerald-50/50 shadow-none"><CardContent className="p-5"><div className="flex items-start gap-3"><Eye className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" /><div><p className="font-black text-slate-900">Veja como seu lote chega</p><p className="mt-1 text-sm text-slate-600">A amostra abaixo mostra os campos organizados para importar no CRM. Dados individuais só são liberados depois da confirmação do PIX.</p></div></div><div className="mt-4 overflow-hidden rounded-xl border border-emerald-100 bg-white"><div className="grid grid-cols-3 gap-2 border-b border-emerald-100 bg-emerald-100/60 px-3 py-2 text-[10px] font-extrabold uppercase tracking-wide text-emerald-900"><span>Empresa</span><span>Localização</span><span>Contato</span></div><div className="grid grid-cols-3 gap-2 px-3 py-3 text-xs text-slate-600"><span className="truncate">Empresa {marketAudience.toUpperCase()} •••</span><span className="truncate">Cidade · UF</span><span className="truncate">Telefone/e-mail*</span></div></div><p className="mt-3 text-xs text-slate-500">Inclui CNPJ, razão social, segmento/CNAE, porte, endereço, cidade/UF e, quando disponível, telefone, e-mail, site e Instagram empresarial.</p></CardContent></Card>
                   <Dialog open={!!marketPixData} onOpenChange={(open) => { if (!open) setMarketPixData(null); }}>
@@ -2068,7 +2130,7 @@ export default function CompanyDashboard() {
                 <CardContent className="p-7 text-center sm:p-10">
                   <ShoppingCart className="mx-auto h-10 w-10 text-emerald-600" />
                   <h2 className="mt-4 text-xl font-black text-slate-900">Nenhum pacote liberado ainda</h2>
-                  <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Depois que o administrador confirmar o PIX e liberar o pedido, o pacote aparecerá aqui automaticamente para download.</p>
+                  <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Depois que o Mercado Pago confirmar o pagamento, o pacote aparece aqui automaticamente para você escolher os leads.</p>
                   <div className="mt-5 flex flex-wrap justify-center gap-3">
                     <Button onClick={() => setActiveTab("marketB2B")} className="bg-emerald-600 text-white hover:bg-emerald-700"><Building2 className="mr-2 h-4 w-4" />Buscar B2B</Button>
                     <Button variant="outline" onClick={() => setActiveTab("marketB2C")} className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"><Users className="mr-2 h-4 w-4" />Buscar B2C</Button>

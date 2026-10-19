@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
-import { representatives, companies, users, unlockRequests, unlockRequestItems, leadPackageOrders, marketLeadAccesses, consumerLeadOrders, consumerLeadAccesses } from "../../drizzle/schema";
+import { representatives, companies, users, unlockRequests, unlockRequestItems, unlockedContacts, leadPackageOrders, marketLeadAccesses, consumerLeadOrders, consumerLeadAccesses, representativeMonthlyAccesses } from "../../drizzle/schema";
 import { and, eq } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE, isValidCpf, isValidPayerDocument, normalizeCpf, normalizePayerDocument, type PayerDocumentType } from "@shared/const";
 import { notifyOwner } from "../_core/notification";
@@ -57,6 +57,85 @@ export const MP_PLANS = {
 } as const;
 
 export type MPPlanKey = keyof typeof MP_PLANS;
+
+type CheckoutResourceKind = "lead_package" | "market_search_unlimited" | "consumer_lead_package" | "consumer_lead_monthly" | "representative_monthly" | "unlock_batch";
+
+// Checkout hospedado pelo Mercado Pago: mantém PIX e habilita cartão sem a
+// aplicação receber dados sensíveis do cartão.
+mpRouter.post("/checkout-pro", async (req: Request, res: Response) => {
+  try {
+    const { kind, resourceId } = req.body as { kind?: CheckoutResourceKind; resourceId?: number };
+    const sessionUser = await getAuthUser(req);
+    if (!sessionUser) return res.status(401).json({ error: "Entre na sua conta para continuar o pagamento." });
+    if (!kind || !resourceId) return res.status(400).json({ error: "Pedido inválido para checkout." });
+    const db = await getDb();
+    if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
+
+    let amount = 0;
+    let title = "Pagamento RepMatch";
+    let metadata: Record<string, string | number> = { type: kind, user_id: sessionUser.id };
+    let returnPath = "/dashboard/company";
+
+    if (kind === "lead_package") {
+      const [order] = await db.select().from(leadPackageOrders).where(and(eq(leadPackageOrders.id, resourceId), eq(leadPackageOrders.userId, sessionUser.id))).limit(1);
+      if (!order || order.status !== "pending_payment") return res.status(404).json({ error: "Pedido de leads não disponível para pagamento." });
+      amount = Number(order.totalAmount);
+      title = `Pacote ${order.audience.toUpperCase()} — ${order.quantity.toLocaleString("pt-BR")} leads`;
+      metadata = { type: "lead_package", order_id: order.id, user_id: sessionUser.id, audience: order.audience };
+      returnPath = "/pacotes-leads";
+    } else if (kind === "market_search_unlimited") {
+      const [access] = await db.select().from(marketLeadAccesses).where(and(eq(marketLeadAccesses.id, resourceId), eq(marketLeadAccesses.userId, sessionUser.id))).limit(1);
+      if (!access || access.status !== "pending_payment") return res.status(404).json({ error: "Plano B2B não disponível para pagamento." });
+      amount = Number(access.amount);
+      title = "Plano B2B Ilimitado — 30 dias";
+      metadata = { type: "market_search_unlimited", access_id: access.id, user_id: sessionUser.id };
+    } else if (kind === "consumer_lead_package") {
+      const [order] = await db.select().from(consumerLeadOrders).where(and(eq(consumerLeadOrders.id, resourceId), eq(consumerLeadOrders.userId, sessionUser.id))).limit(1);
+      if (!order || order.status !== "pending_payment") return res.status(404).json({ error: "Pacote B2C não disponível para pagamento." });
+      amount = Number(order.totalAmount);
+      title = `Pacote B2C — ${order.quantity} contatos`;
+      metadata = { type: "consumer_lead_package", order_id: order.id, user_id: sessionUser.id, quantity: order.quantity };
+      returnPath = "/contatos-b2c";
+    } else if (kind === "consumer_lead_monthly") {
+      const [access] = await db.select().from(consumerLeadAccesses).where(and(eq(consumerLeadAccesses.id, resourceId), eq(consumerLeadAccesses.userId, sessionUser.id))).limit(1);
+      if (!access || access.status !== "pending_payment") return res.status(404).json({ error: "Plano B2C não disponível para pagamento." });
+      amount = Number(access.amount);
+      title = `Plano B2C — ${access.selectionLimit} contatos / 30 dias`;
+      metadata = { type: "consumer_lead_unlimited", access_id: access.id, user_id: sessionUser.id };
+      returnPath = "/contatos-b2c";
+    } else if (kind === "representative_monthly") {
+      const [access] = await db.select().from(representativeMonthlyAccesses).where(and(eq(representativeMonthlyAccesses.id, resourceId), eq(representativeMonthlyAccesses.userId, sessionUser.id))).limit(1);
+      if (!access || access.status !== "pending_payment") return res.status(404).json({ error: "Plano de representantes não disponível para pagamento." });
+      amount = Number(access.amount);
+      title = `Plano Representantes — ${access.unlockLimit} desbloqueios / 30 dias`;
+      metadata = { type: "representative_monthly", access_id: access.id, user_id: sessionUser.id };
+    } else {
+      const [company] = await db.select({ id: companies.id }).from(companies).where(eq(companies.userId, sessionUser.id)).limit(1);
+      if (!company) return res.status(403).json({ error: "Empresa não encontrada." });
+      const [request] = await db.select().from(unlockRequests).where(and(eq(unlockRequests.id, resourceId), eq(unlockRequests.companyId, company.id))).limit(1);
+      if (!request || request.status !== "pending_payment") return res.status(404).json({ error: "Carrinho não disponível para pagamento." });
+      amount = Number(request.totalAmount);
+      title = "Desbloqueio de representantes";
+      metadata = { type: "unlock_batch", request_id: request.id, user_id: sessionUser.id };
+    }
+
+    const origin = req.headers.origin ?? "https://repmatch.com.br";
+    const preference = new Preference(mp);
+    const pref = await preference.create({ body: {
+      items: [{ id: `${kind}_${resourceId}`, title, quantity: 1, unit_price: amount, currency_id: "BRL" }],
+      payer: { email: sessionUser.email ?? undefined, name: sessionUser.name ?? undefined },
+      metadata,
+      back_urls: { success: `${origin}${returnPath}?payment=success`, failure: `${origin}${returnPath}?payment=failed`, pending: `${origin}${returnPath}?payment=pending` },
+      auto_return: "approved",
+      payment_methods: { installments: 12 },
+      statement_descriptor: "REPMATCH",
+    }});
+    return res.json({ preferenceId: pref.id, initPoint: pref.init_point, sandboxInitPoint: pref.sandbox_init_point });
+  } catch (error) {
+    console.error("[MP] checkout-pro error:", error);
+    return res.status(500).json({ error: "Não foi possível abrir o checkout. Tente novamente." });
+  }
+});
 
 // ─── Criar preferência para desbloqueio em lote (Checkout Pro) ───────────────
 mpRouter.post("/unlock-preference", async (req: Request, res: Response) => {
@@ -483,40 +562,57 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
         const db = await getDb();
         if (!db) return res.json({ received: true });
 
-        // ── Plano B2C PF ilimitado: PIX confirmado, ativação manual ──────────
+        // ── Plano B2C PF mensal: ativação automática após pagamento ─────────
         if (meta?.type === "consumer_lead_unlimited") {
           const accessId = Number(meta.access_id);
           if (accessId) {
             const [access] = await db.select({ id: consumerLeadAccesses.id, status: consumerLeadAccesses.status, amount: consumerLeadAccesses.amount })
               .from(consumerLeadAccesses).where(eq(consumerLeadAccesses.id, accessId)).limit(1);
             if (access?.status === "pending_payment") {
-              await db.update(consumerLeadAccesses).set({ status: "pending_approval", mpPaymentId: String(result.id), adminNotes: "PIX confirmado pelo Mercado Pago — aguardando ativação manual por 30 dias." }).where(eq(consumerLeadAccesses.id, accessId));
-              void notifyOwner({ title: `PIX confirmado — Plano B2C PF #${accessId}`, content: `Pagamento de R$ ${Number(access.amount).toFixed(2)} confirmado. Acesse Admin > Comercial para ativar 30 dias de acesso à base B2C.` }).catch((error) => console.error("[MP Webhook] consumer unlimited notification error:", error));
+              const startsAt = new Date();
+              const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+              await db.update(consumerLeadAccesses).set({ status: "active", startsAt, expiresAt, mpPaymentId: String(result.id), adminNotes: "Ativado automaticamente pelo Mercado Pago por 30 dias." }).where(eq(consumerLeadAccesses.id, accessId));
+              void notifyOwner({ title: `Plano B2C ativado automaticamente #${accessId}`, content: `Pagamento de R$ ${Number(access.amount).toFixed(2)} confirmado e plano ativado até ${expiresAt.toLocaleDateString("pt-BR")}.` }).catch((error) => console.error("[MP Webhook] consumer monthly notification error:", error));
             }
           }
-        // ── Pacote B2C PF: PIX confirmado, liberação manual ──────────────────
+        // ── Plano mensal de representantes: ativação automática ─────────────
+        } else if (meta?.type === "representative_monthly") {
+          const accessId = Number(meta.access_id);
+          if (accessId) {
+            const [access] = await db.select({ id: representativeMonthlyAccesses.id, status: representativeMonthlyAccesses.status, amount: representativeMonthlyAccesses.amount, unlockLimit: representativeMonthlyAccesses.unlockLimit })
+              .from(representativeMonthlyAccesses).where(eq(representativeMonthlyAccesses.id, accessId)).limit(1);
+            if (access?.status === "pending_payment") {
+              const startsAt = new Date();
+              const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+              await db.update(representativeMonthlyAccesses).set({ status: "active", startsAt, expiresAt, mpPaymentId: String(result.id), adminNotes: "Ativado automaticamente pelo Mercado Pago por 30 dias." }).where(eq(representativeMonthlyAccesses.id, accessId));
+              void notifyOwner({ title: `Plano de representantes ativado #${accessId}`, content: `${access.unlockLimit} desbloqueios liberados automaticamente até ${expiresAt.toLocaleDateString("pt-BR")}.` }).catch((error) => console.error("[MP Webhook] representative monthly notification error:", error));
+            }
+          }
+        // ── Pacote B2C PF: liberação automática ───────────────────────────────
         } else if (meta?.type === "consumer_lead_package") {
           const orderId = Number(meta.order_id);
           if (orderId) {
             const [order] = await db.select({ id: consumerLeadOrders.id, status: consumerLeadOrders.status, quantity: consumerLeadOrders.quantity, totalAmount: consumerLeadOrders.totalAmount })
               .from(consumerLeadOrders).where(eq(consumerLeadOrders.id, orderId)).limit(1);
             if (order?.status === "pending_payment") {
-              await db.update(consumerLeadOrders).set({ status: "pending_approval", mpPaymentId: String(result.id), adminNotes: "PIX confirmado pelo Mercado Pago — aguardando liberação manual da base B2C." }).where(eq(consumerLeadOrders.id, orderId));
-              void notifyOwner({ title: `PIX confirmado — pacote B2C PF #${orderId}`, content: `Pagamento de R$ ${Number(order.totalAmount).toFixed(2)} para ${order.quantity} contatos B2C confirmado. Acesse Admin > Comercial para liberar o pacote.` }).catch((error) => console.error("[MP Webhook] consumer order notification error:", error));
+              await db.update(consumerLeadOrders).set({ status: "approved", mpPaymentId: String(result.id), adminNotes: "Liberado automaticamente após pagamento confirmado pelo Mercado Pago." }).where(eq(consumerLeadOrders.id, orderId));
+              void notifyOwner({ title: `Pacote B2C liberado automaticamente #${orderId}`, content: `${order.quantity} créditos B2C liberados após pagamento de R$ ${Number(order.totalAmount).toFixed(2)}.` }).catch((error) => console.error("[MP Webhook] consumer order notification error:", error));
             }
           }
-        // ── Plano Pesquisa Ilimitada: PIX confirmado, ativação manual ─────────
+        // ── Plano Pesquisa Ilimitada B2B: ativação automática ────────────────
         } else if (meta?.type === "market_search_unlimited") {
           const accessId = Number(meta.access_id);
           if (accessId) {
             const [access] = await db.select({ id: marketLeadAccesses.id, status: marketLeadAccesses.status, amount: marketLeadAccesses.amount })
               .from(marketLeadAccesses).where(eq(marketLeadAccesses.id, accessId)).limit(1);
             if (access?.status === "pending_payment") {
-              await db.update(marketLeadAccesses).set({ status: "pending_approval", mpPaymentId: String(result.id), adminNotes: "PIX confirmado pelo Mercado Pago — aguardando ativação manual por 30 dias." }).where(eq(marketLeadAccesses.id, accessId));
-              void notifyOwner({ title: `PIX confirmado — Plano Ilimitado #${accessId}`, content: `Pagamento de R$ ${Number(access.amount).toFixed(2)} confirmado. Acesse Admin > Comercial para ativar 30 dias de pesquisa ilimitada.` }).catch((error) => console.error("[MP Webhook] unlimited notification error:", error));
+              const startsAt = new Date();
+              const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+              await db.update(marketLeadAccesses).set({ status: "active", startsAt, expiresAt, mpPaymentId: String(result.id), adminNotes: "Ativado automaticamente pelo Mercado Pago por 30 dias." }).where(eq(marketLeadAccesses.id, accessId));
+              void notifyOwner({ title: `Plano B2B ativado automaticamente #${accessId}`, content: `Pesquisa B2B liberada até ${expiresAt.toLocaleDateString("pt-BR")}.` }).catch((error) => console.error("[MP Webhook] unlimited notification error:", error));
             }
           }
-        // ── Pacote de leads: PIX confirmado, entrega manual ──────────────────
+        // ── Pacote de leads: liberação automática ─────────────────────────────
         } else if (meta?.type === "lead_package") {
           const orderId = Number(meta.order_id);
           if (orderId) {
@@ -524,17 +620,17 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
               .from(leadPackageOrders).where(eq(leadPackageOrders.id, orderId)).limit(1);
             if (leadOrder && leadOrder.status === "pending_payment") {
               await db.update(leadPackageOrders).set({
-                status: "pending_approval",
+                status: "approved",
                 mpPaymentId: String(result.id),
-                adminNotes: "PIX confirmado pelo Mercado Pago — aguardando revisão e entrega manual.",
+                adminNotes: "Liberado automaticamente após pagamento confirmado pelo Mercado Pago.",
               }).where(eq(leadPackageOrders.id, orderId));
               void notifyOwner({
-                title: `PIX confirmado — pacote ${leadOrder.audience.toUpperCase()} #${orderId}`,
-                content: `Pagamento de R$ ${Number(leadOrder.totalAmount).toFixed(2)} para ${leadOrder.quantity.toLocaleString("pt-BR")} leads confirmado. Acesse Admin > Comercial para revisar e entregar manualmente.`,
+                title: `Pacote ${leadOrder.audience.toUpperCase()} liberado #${orderId}`,
+                content: `${leadOrder.quantity.toLocaleString("pt-BR")} créditos liberados automaticamente após pagamento de R$ ${Number(leadOrder.totalAmount).toFixed(2)}.`,
               }).catch((error) => console.error("[MP Webhook] lead order notification error:", error));
             }
           }
-        // ── Desbloqueio em lote: pagamento confirmado, liberação manual ───────
+        // ── Desbloqueio em lote: liberação automática ─────────────────────────
         } else if (meta?.type === "unlock_batch") {
           const requestId = Number(meta.request_id);
 
@@ -543,24 +639,29 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
               .from(unlockRequests).where(eq(unlockRequests.id, requestId)).limit(1);
 
             if (unlockReq && unlockReq.status === "pending_payment") {
-              const items = await db.select({ id: unlockRequestItems.id })
+              const items = await db.select({ id: unlockRequestItems.id, representativeId: unlockRequestItems.representativeId, priceUnit: unlockRequestItems.priceUnit })
                 .from(unlockRequestItems)
                 .where(eq(unlockRequestItems.unlockRequestId, requestId));
 
               await db.update(unlockRequests)
                 .set({
-                  status: "pending_approval",
+                  status: "approved",
                   stripePaymentId: String(result.id),
-                  adminNotes: "PIX confirmado pelo Mercado Pago — aguardando liberação manual.",
+                  adminNotes: "Contatos liberados automaticamente após pagamento confirmado pelo Mercado Pago.",
                 })
                 .where(eq(unlockRequests.id, requestId));
+              for (const item of items) {
+                const [alreadyUnlocked] = await db.select({ id: unlockedContacts.id }).from(unlockedContacts)
+                  .where(and(eq(unlockedContacts.companyId, unlockReq.companyId), eq(unlockedContacts.representativeId, item.representativeId))).limit(1);
+                if (!alreadyUnlocked) await db.insert(unlockedContacts).values({ companyId: unlockReq.companyId, representativeId: item.representativeId, pricePaid: item.priceUnit, stripePaymentId: String(result.id) });
+              }
 
               void notifyOwner({
-                title: `PIX confirmado — liberar pedido #${requestId}`,
-                content: `O Mercado Pago confirmou R$ ${Number(unlockReq.totalAmount).toFixed(2)} para ${items.length} contato(s). Acesse Admin > Desbloqueios para liberar manualmente.`,
+                title: `Contatos liberados automaticamente #${requestId}`,
+                content: `${items.length} contato(s) liberados após pagamento de R$ ${Number(unlockReq.totalAmount).toFixed(2)}.`,
               }).catch((error) => console.error("[MP Webhook] owner notification error:", error));
 
-              console.log(`[MP Webhook] PIX approved for request #${requestId}; awaiting manual approval for ${items.length} contact(s)`);
+              console.log(`[MP Webhook] payment approved for request #${requestId}; automatically released ${items.length} contact(s)`);
             }
           }
         } else {

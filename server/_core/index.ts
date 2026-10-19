@@ -233,6 +233,7 @@ async function ensurePurchaseInterestTable() {
       legal_consent boolean NOT NULL DEFAULT false,
       status enum('pending_payment','pending_approval','active','rejected','expired','cancelled') NOT NULL DEFAULT 'pending_payment',
       amount decimal(10,2) NOT NULL,
+      selection_limit int NOT NULL DEFAULT 500,
       mp_payment_id varchar(100),
       reviewed_by int,
       reviewed_at timestamp NULL,
@@ -246,6 +247,7 @@ async function ensurePurchaseInterestTable() {
       INDEX consumer_lead_access_status_created_idx (status, created_at)
     )
   `));
+  await db.execute(sql.raw(`ALTER TABLE consumer_lead_accesses ADD COLUMN IF NOT EXISTS selection_limit int NOT NULL DEFAULT 500`));
   await db.execute(sql.raw(`
     CREATE TABLE IF NOT EXISTS saved_consumer_leads (
       id int AUTO_INCREMENT NOT NULL,
@@ -259,6 +261,40 @@ async function ensurePurchaseInterestTable() {
       INDEX saved_consumer_leads_user_created_idx (user_id, created_at),
       INDEX saved_consumer_leads_order_idx (consumer_lead_order_id),
       INDEX saved_consumer_leads_access_idx (consumer_lead_access_id)
+    )
+  `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS representative_monthly_accesses (
+      id int AUTO_INCREMENT NOT NULL,
+      company_id int NOT NULL,
+      user_id int NOT NULL,
+      status enum('pending_payment','pending_approval','active','rejected','expired','cancelled') NOT NULL DEFAULT 'pending_payment',
+      amount decimal(10,2) NOT NULL,
+      unlock_limit int NOT NULL DEFAULT 100,
+      mp_payment_id varchar(100),
+      reviewed_by int,
+      reviewed_at timestamp NULL,
+      starts_at timestamp NULL,
+      expires_at timestamp NULL,
+      admin_notes text,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX rep_monthly_access_company_status_expiry_idx (company_id, status, expires_at),
+      INDEX rep_monthly_access_user_status_expiry_idx (user_id, status, expires_at),
+      INDEX rep_monthly_access_status_created_idx (status, created_at)
+    )
+  `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS representative_monthly_unlocks (
+      id int AUTO_INCREMENT NOT NULL,
+      representative_monthly_access_id int NOT NULL,
+      company_id int NOT NULL,
+      representative_id int NOT NULL,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY rep_monthly_unlock_access_rep_unique (representative_monthly_access_id, representative_id),
+      INDEX rep_monthly_unlock_access_created_idx (representative_monthly_access_id, created_at)
     )
   `));
   console.log("[db] commercial catalog tables ready");

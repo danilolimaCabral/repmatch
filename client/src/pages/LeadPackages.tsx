@@ -12,6 +12,7 @@ import {
   Building2,
   CheckCircle2,
   CircleDollarSign,
+  CreditCard,
   Database,
   FileCheck2,
   Loader2,
@@ -232,11 +233,31 @@ export default function LeadPackages() {
     }
   }
 
+  async function openCardCheckout() {
+    if (!pendingOrder && !pendingUnlimitedAccess) return;
+    try {
+      const response = await fetch("/api/mp/checkout-pro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: pendingUnlimitedAccess ? "market_search_unlimited" : "lead_package",
+          resourceId: pendingUnlimitedAccess?.accessId ?? pendingOrder!.orderId,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.initPoint) throw new Error(data.error ?? "Não foi possível abrir o checkout.");
+      toast.info("Abrindo checkout seguro do Mercado Pago...");
+      window.open(data.initPoint, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao abrir checkout por cartão.");
+    }
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f5f8f7] text-slate-950">
       <SEO
         title="Leads B2B e B2C para Campanhas | Empresas Ativas por Segmento"
-        description="Monte uma campanha com 1.000 ou 2.000 empresas B2B ou B2C, com recorte por segmento e região. Pagamento por PIX, análise e entrega assistida."
+        description="Monte uma campanha com 1.000 ou 2.000 empresas B2B ou B2C, com recorte por segmento e região. Pagamento por PIX ou cartão, análise e entrega assistida."
         keywords="comprar leads B2B, lista de empresas ativas, leads atacado, prospecção B2B, empresas por CNAE, campanha B2C"
         canonical="/pacotes-leads"
         structuredData={leadStructuredData}
@@ -263,7 +284,7 @@ export default function LeadPackages() {
               <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-emerald-50">
                 <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />Segmentação assistida</span>
                 <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />Empresas com CNPJ</span>
-                <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />Pagamento por PIX</span>
+                <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />Pagamento por PIX ou cartão</span>
               </div>
             </div>
 
@@ -358,12 +379,12 @@ export default function LeadPackages() {
               <button onClick={beginCheckout} disabled={createOrder.isPending || catalogLoading} className="mt-6 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-3.5 text-sm font-extrabold text-emerald-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60">
                 {createOrder.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Solicitar por PIX <ArrowRight className="h-4 w-4" />
               </button>
-              <div className="mt-4 flex gap-2 text-xs leading-relaxed text-slate-300"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Após o PIX confirmado, o pedido entra para revisão e entrega manual. Nenhum lote é liberado automaticamente.</div>
+              <div className="mt-4 flex gap-2 text-xs leading-relaxed text-slate-300"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Você pode pagar por PIX ou cartão. Após a confirmação, o pedido entra para revisão e entrega manual.</div>
               <div className="mt-6 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 p-4">
                 <p className="text-xs font-extrabold uppercase tracking-[.13em] text-emerald-300">Para quem pesquisa todo dia</p>
                 <p className="mt-2 text-lg font-black">Plano Pesquisa Ilimitada</p>
                 <p className="mt-1 text-sm text-slate-200">Pesquise quantas empresas quiser por 30 dias, com contato e dados comerciais disponíveis.</p>
-                <div className="mt-3 flex items-center justify-between"><strong className="text-2xl">{formatBRL(catalog?.unlimitedMonthly?.price ?? 499)}<span className="text-xs font-semibold text-slate-300">/mês</span></strong>{unlimitedAccess?.expiresAt ? <span className="rounded-full bg-emerald-300 px-2 py-1 text-[10px] font-black text-emerald-950">ATIVO ATÉ {new Date(unlimitedAccess.expiresAt).toLocaleDateString("pt-BR")}</span> : unlimitedRequest?.status === "pending_payment" ? <span className="rounded-full bg-amber-200 px-2 py-1 text-[10px] font-black text-amber-950">PIX PENDENTE</span> : unlimitedRequest?.status === "pending_approval" ? <span className="rounded-full bg-blue-200 px-2 py-1 text-[10px] font-black text-blue-950">EM ANÁLISE</span> : null}</div>
+                <div className="mt-3 flex items-center justify-between"><strong className="text-2xl">{formatBRL(catalog?.unlimitedMonthly?.price ?? 599)}<span className="text-xs font-semibold text-slate-300">/mês</span></strong>{unlimitedAccess?.expiresAt ? <span className="rounded-full bg-emerald-300 px-2 py-1 text-[10px] font-black text-emerald-950">ATIVO ATÉ {new Date(unlimitedAccess.expiresAt).toLocaleDateString("pt-BR")}</span> : unlimitedRequest?.status === "pending_payment" ? <span className="rounded-full bg-amber-200 px-2 py-1 text-[10px] font-black text-amber-950">PAGAMENTO PENDENTE</span> : unlimitedRequest?.status === "pending_approval" ? <span className="rounded-full bg-blue-200 px-2 py-1 text-[10px] font-black text-blue-950">EM ANÁLISE</span> : null}</div>
                 <button onClick={beginUnlimitedCheckout} disabled={createUnlimitedAccess.isPending || !!unlimitedAccess || unlimitedRequest?.status === "pending_approval"} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-3 text-sm font-extrabold text-emerald-800 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60">{createUnlimitedAccess.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : unlimitedRequest?.status === "pending_payment" ? <QrCode className="h-4 w-4" /> : <Database className="h-4 w-4" />}{unlimitedAccess ? "Acesso ilimitado ativo" : unlimitedRequest?.status === "pending_payment" ? "Retomar pagamento PIX" : unlimitedRequest?.status === "pending_approval" ? "PIX em análise" : "Assinar pesquisa ilimitada"}</button>
                 {unlimitedRequest?.status === "pending_approval" && <p className="mt-3 text-center text-xs font-medium text-blue-100">Pagamento identificado. Aguardando a liberação administrativa.</p>}
               </div>
@@ -431,6 +452,7 @@ export default function LeadPackages() {
                 <button onClick={generatePix} disabled={pixLoading} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60">
                   {pixLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Gerar QR Code PIX
                 </button>
+                <button onClick={openCardCheckout} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300 px-4 py-3 font-bold text-emerald-800 transition hover:bg-emerald-50"><CreditCard className="h-4 w-4" />Pagar com cartão de crédito</button>
               </>
             ) : (
               <div className="mt-6 text-center">

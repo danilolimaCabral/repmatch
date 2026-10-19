@@ -60,13 +60,12 @@ describe("AdminDashboard mobile layout", () => {
     expect(companyDashboardSource).toContain("contactUnlockPriceLabel");
   });
 
-  it("queues a Mercado Pago PIX confirmation for manual admin release", () => {
-    expect(mpRoutesSource).toContain('status: "pending_approval"');
-    expect(mpRoutesSource).toContain("awaiting manual approval");
-    expect(mpRoutesSource).not.toContain('status: "approved", reviewedAt');
-    expect(dashboardSource).toContain("PIX confirmado — liberar");
-    expect(dashboardSource).toContain("Liberar contatos");
-    expect(routersSource).toContain("confirmPix: protectedProcedure");
+  it("releases Mercado Pago payments automatically and keeps Admin as monitoring", () => {
+    expect(mpRoutesSource).toContain('status: "approved"');
+    expect(mpRoutesSource).toContain("automatically released");
+    expect(mpRoutesSource).toContain("Ativado automaticamente pelo Mercado Pago");
+    expect(mpRoutesSource).toContain("unlockedContacts");
+    expect(dashboardSource).toContain("Pagamento Mercado Pago confirmado");
     expect(dashboardSource).toContain("Confirmar PIX");
     expect(dashboardSource).toContain("Desbloqueios de contatos por PIX");
     expect(dashboardSource).toContain("Ver solicitações");
@@ -324,7 +323,8 @@ describe("AdminDashboard mobile layout", () => {
   it("keeps the B2C PF catalog separate, with its own prices and individual selection", () => {
     expect(consumerLeadConstantsSource).toContain("50: 99");
     expect(consumerLeadConstantsSource).toContain("100: 199");
-    expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_UNLIMITED_MONTHLY_PRICE = 999");
+    expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_MONTHLY_PRICE = 599");
+    expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT = 500");
     expect(consumerLeadRouterSource).toContain("consumerLeadPackagesRouter");
     expect(consumerLeadRouterSource).toContain("saveLeadFromPackage");
     expect(consumerLeadRouterSource).toContain("saveLeadFromUnlimited");

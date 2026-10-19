@@ -260,6 +260,13 @@
       "when": 1792425632731,
       "tag": "0036_sleepy_metal_master",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "5",
+      "when": 1792431475280,
+      "tag": "0037_ancient_sumo",
+      "breakpoints": true
     }
   ]
 }

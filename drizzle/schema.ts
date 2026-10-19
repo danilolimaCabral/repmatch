@@ -549,13 +549,14 @@ export const consumerLeadOrders = mysqlTable("consumer_lead_orders", {
 }));
 export type ConsumerLeadOrder = typeof consumerLeadOrders.$inferSelect;
 
-// ─── Acesso ilimitado mensal à base B2C PF ─────────────────────────────────────
+// ─── Plano mensal B2C PF (franquia de contatos selecionáveis) ──────────────────
 export const consumerLeadAccesses = mysqlTable("consumer_lead_accesses", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("user_id").notNull(),
   legalConsent: boolean("legal_consent").notNull().default(false),
   status: mysqlEnum("status", ["pending_payment", "pending_approval", "active", "rejected", "expired", "cancelled"]).default("pending_payment").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  selectionLimit: int("selection_limit").default(500).notNull(),
   mpPaymentId: varchar("mp_payment_id", { length: 100 }),
   reviewedBy: int("reviewed_by"),
   reviewedAt: timestamp("reviewed_at"),
@@ -585,6 +586,41 @@ export const savedConsumerLeads = mysqlTable("saved_consumer_leads", {
   userLeadUnique: uniqueIndex("saved_consumer_leads_user_lead_unique").on(t.userId, t.consumerLeadId),
 }));
 export type SavedConsumerLead = typeof savedConsumerLeads.$inferSelect;
+
+// ─── Plano mensal de desbloqueio de representantes ─────────────────────────────
+export const representativeMonthlyAccesses = mysqlTable("representative_monthly_accesses", {
+  id: int("id").autoincrement().primaryKey(),
+  companyId: int("company_id").notNull(),
+  userId: int("user_id").notNull(),
+  status: mysqlEnum("status", ["pending_payment", "pending_approval", "active", "rejected", "expired", "cancelled"]).default("pending_payment").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  unlockLimit: int("unlock_limit").default(100).notNull(),
+  mpPaymentId: varchar("mp_payment_id", { length: 100 }),
+  reviewedBy: int("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  startsAt: timestamp("starts_at"),
+  expiresAt: timestamp("expires_at"),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  companyStatusExpiryIdx: index("rep_monthly_access_company_status_expiry_idx").on(t.companyId, t.status, t.expiresAt),
+  userStatusExpiryIdx: index("rep_monthly_access_user_status_expiry_idx").on(t.userId, t.status, t.expiresAt),
+  statusCreatedIdx: index("rep_monthly_access_status_created_idx").on(t.status, t.createdAt),
+}));
+export type RepresentativeMonthlyAccess = typeof representativeMonthlyAccesses.$inferSelect;
+
+export const representativeMonthlyUnlocks = mysqlTable("representative_monthly_unlocks", {
+  id: int("id").autoincrement().primaryKey(),
+  representativeMonthlyAccessId: int("representative_monthly_access_id").notNull(),
+  companyId: int("company_id").notNull(),
+  representativeId: int("representative_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  accessCreatedIdx: index("rep_monthly_unlock_access_created_idx").on(t.representativeMonthlyAccessId, t.createdAt),
+  accessRepUnique: uniqueIndex("rep_monthly_unlock_access_rep_unique").on(t.representativeMonthlyAccessId, t.representativeId),
+}));
+export type RepresentativeMonthlyUnlock = typeof representativeMonthlyUnlocks.$inferSelect;
 
 // ─── Unlock Requests (Carrinho de desbloqueios via Pix ou Stripe) ───────────────
 export const unlockRequests = mysqlTable("unlock_requests", {

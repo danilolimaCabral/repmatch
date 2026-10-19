@@ -6,8 +6,12 @@ export const CONSUMER_LEAD_PACKAGE_PRICES: Record<ConsumerLeadPackageQuantity, n
   100: 199,
 };
 
-export const CONSUMER_LEAD_UNLIMITED_MONTHLY_PRICE = 999;
-export const CONSUMER_LEAD_UNLIMITED_DURATION_DAYS = 30;
+export const CONSUMER_LEAD_MONTHLY_PRICE = 599;
+export const CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT = 500;
+export const CONSUMER_LEAD_MONTHLY_DURATION_DAYS = 30;
+// Aliases temporários para não quebrar pedidos ou integrações já gravados.
+export const CONSUMER_LEAD_UNLIMITED_MONTHLY_PRICE = CONSUMER_LEAD_MONTHLY_PRICE;
+export const CONSUMER_LEAD_UNLIMITED_DURATION_DAYS = CONSUMER_LEAD_MONTHLY_DURATION_DAYS;
 
 export function isConsumerLeadPackageQuantity(value: number): value is ConsumerLeadPackageQuantity {
   return (CONSUMER_LEAD_PACKAGE_QUANTITIES as readonly number[]).includes(value);

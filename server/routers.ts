@@ -58,6 +58,7 @@ import { resolveIbgeMunicipality } from "./ibge";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
 import { consumerLeadPackagesRouter } from "./consumerLeadRouter";
+import { representativeMonthlyRouter } from "./representativeMonthlyRouter";
 
 
 /// ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -67,7 +68,7 @@ const LEAD_PACKAGE_B2B_PRICE_KEY = "lead_package_b2b_price";
 const LEAD_PACKAGE_B2C_PRICE_KEY = "lead_package_b2c_price";
 const MARKET_SEARCH_UNLIMITED_PRICE_KEY = "market_search_unlimited_monthly_price";
 const DEFAULT_LEAD_PACKAGE_TWO_THOUSAND_PRICES = { b2b: DEFAULT_LEAD_PACKAGE_PRICES.b2b[2000], b2c: DEFAULT_LEAD_PACKAGE_PRICES.b2c[2000] } as const;
-const DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE = 499;
+const DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE = 599;
 
 function normalizeContactUnlockPrice(value: string | null | undefined): number {
   const parsed = Number(value);
@@ -1634,6 +1635,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
 
   // ─── Precificação comercial ──────────────────────────────────────────────────
   consumerLeadPackages: consumerLeadPackagesRouter,
+  representativeMonthly: representativeMonthlyRouter,
   pricing: router({
     contactUnlockPrice: publicProcedure.query(async () => {
       const db = await getDb();
@@ -3181,13 +3183,13 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }),
   }),
 
-  // ─── Unlock Requests (Carrinho de desbloqueios via PIX) ───────────────────────
+  // ─── Unlock Requests (Carrinho de desbloqueios via PIX ou Checkout Pro) ──────
   unlockRequests: router({
     // Empresa cria um pedido de desbloqueio (carrinho)
     create: protectedProcedure
       .input(z.object({
         repIds: z.array(z.number()).min(1).max(50),
-        paymentMethod: z.literal("pix"),
+        paymentMethod: z.enum(["pix", "stripe"]),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
