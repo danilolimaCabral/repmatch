@@ -323,7 +323,7 @@ describe("AdminDashboard mobile layout", () => {
   it("keeps the B2C PF catalog separate, with its own prices and individual selection", () => {
     expect(consumerLeadConstantsSource).toContain("50: 99");
     expect(consumerLeadConstantsSource).toContain("100: 199");
-    expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_MONTHLY_PRICE = 599");
+    expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_MONTHLY_PRICE = 499");
     expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT = 500");
     expect(consumerLeadRouterSource).toContain("consumerLeadPackagesRouter");
     expect(consumerLeadRouterSource).toContain("saveLeadFromPackage");

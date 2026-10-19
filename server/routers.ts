@@ -68,7 +68,7 @@ const LEAD_PACKAGE_B2B_PRICE_KEY = "lead_package_b2b_price";
 const LEAD_PACKAGE_B2C_PRICE_KEY = "lead_package_b2c_price";
 const MARKET_SEARCH_UNLIMITED_PRICE_KEY = "market_search_unlimited_monthly_price";
 const DEFAULT_LEAD_PACKAGE_TWO_THOUSAND_PRICES = { b2b: DEFAULT_LEAD_PACKAGE_PRICES.b2b[2000], b2c: DEFAULT_LEAD_PACKAGE_PRICES.b2c[2000] } as const;
-const DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE = 599;
+const DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE = 499;
 
 function normalizeContactUnlockPrice(value: string | null | undefined): number {
   const parsed = Number(value);

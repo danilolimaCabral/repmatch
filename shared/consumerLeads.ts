@@ -6,7 +6,7 @@ export const CONSUMER_LEAD_PACKAGE_PRICES: Record<ConsumerLeadPackageQuantity, n
   100: 199,
 };
 
-export const CONSUMER_LEAD_MONTHLY_PRICE = 599;
+export const CONSUMER_LEAD_MONTHLY_PRICE = 499;
 export const CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT = 500;
 export const CONSUMER_LEAD_MONTHLY_DURATION_DAYS = 30;
 // Aliases temporários para não quebrar pedidos ou integrações já gravados.
