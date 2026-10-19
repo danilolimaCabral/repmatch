@@ -3,7 +3,8 @@
 ## Ativos oficiais preservados
 
 - **Logo:** `/manus-storage/repmatch-logo-nobg_ec328e76.png`
-- **Vídeo do hero:** `/hero-bg.mp4` (ativo de runtime já usado na home e nas parcerias)
+- **Banner do hero da home:** `/manus-storage/Banner-Moderno_6a9f2769.gif` (GIF fornecido pelo usuário)
+- **Vídeo de parcerias:** `/hero-bg.mp4` (ativo de runtime usado na página de parcerias)
 - **Marca:** RepMatch
 
 ## Sistema visual da home — impacto comercial
@@ -11,7 +12,7 @@
 - **Modo:** redesign preserve; rotas, preços, copy de conformidade, formulários, CTAs e fluxos de checkout não são alterados.
 - **Paleta:** grafite-esmeralda no hero (`#061f14` / `#071d14`), verde RepMatch como cor de ação, superfícies claras no restante da página para leitura e conversão.
 - **Tipografia:** Bricolage Grotesque para títulos e Plus Jakarta Sans para leitura, ambas já carregadas pelo produto.
-- **Composição:** um hero cinematográfico com o vídeo oficial, conteúdo alinhado à esquerda e um painel de caminhos comerciais à direita. Seções seguintes permanecem leves e orientadas à ação.
+- **Composição:** um hero cinematográfico com o banner oficial fornecido, conteúdo alinhado à esquerda e um painel de caminhos comerciais à direita. Seções seguintes permanecem leves e orientadas à ação.
 - **Movimento:** entradas curtas e luz ambiente no hero; todas as animações se desligam com `prefers-reduced-motion`.
 - **Acessibilidade:** texto branco com contraste alto sobre overlay escuro; alvos de toque com no mínimo 44 px; sem depender do vídeo para entendimento da mensagem.
 

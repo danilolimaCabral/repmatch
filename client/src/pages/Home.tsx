@@ -87,6 +87,7 @@ function VagasDestaque() {
 }
 
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
+const HERO_BACKGROUND_URL = "/manus-storage/Banner-Moderno_6a9f2769.gif";
 
 // ─── Live Counter Section ────────────────────────────────────────────────────
 function LiveCounterSection() {
@@ -689,17 +690,13 @@ export default function Home() {
 
       {/* ─── Hero ───────────────────────────────────────────────────────────── */}
       <section className="impact-hero relative isolate min-h-[760px] overflow-hidden bg-emerald-950 px-4 pb-16 pt-32 text-white sm:px-6 lg:min-h-[780px] lg:pb-20 lg:pt-36">
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35 mix-blend-screen"
-        >
-          <source src="/hero-bg.mp4" type="video/mp4" />
-        </video>
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(100deg,rgba(3,31,19,0.99)_0%,rgba(3,31,19,0.94)_38%,rgba(3,31,19,0.58)_70%,rgba(3,31,19,0.88)_100%)]" />
+        <img
+          src={HERO_BACKGROUND_URL}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60 sm:opacity-80"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(100deg,rgba(3,31,19,0.97)_0%,rgba(3,31,19,0.92)_42%,rgba(3,31,19,0.55)_72%,rgba(3,31,19,0.86)_100%)]" />
         <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
         <div className="impact-hero__orb impact-hero__orb--one" aria-hidden="true" />
         <div className="impact-hero__orb impact-hero__orb--two" aria-hidden="true" />
