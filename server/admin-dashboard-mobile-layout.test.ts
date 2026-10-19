@@ -250,23 +250,40 @@ describe("AdminDashboard mobile layout", () => {
     expect(routersSource).toContain("const pendingOrders = await db.select");
   });
 
-  it("shows released lead packages in the buyer dashboard and permits CSV download after admin approval", () => {
+  it("shows released lead packages in the buyer dashboard and lets the buyer choose leads after admin approval", () => {
     expect(companyDashboardSource).toContain('id: "leadPackages", label: "Pacotes de Leads"');
     expect(companyDashboardSource).toContain("Pacote liberado");
-    expect(companyDashboardSource).toContain("Baixar CSV para CRM");
-    expect(companyDashboardSource).toContain("downloadLeadPackageCsv");
+    expect(companyDashboardSource).toContain("Escolher leads do pacote");
+    expect(companyDashboardSource).toContain("Baixar minha lista em CSV");
+    expect(companyDashboardSource).toContain("downloadSavedLeadCsv");
+    expect(routersSource).toContain("downloadSavedLeads: protectedProcedure");
     expect(routersSource).toContain('["approved", "delivered"].includes(order.status)');
     expect(dashboardSource).toContain("Liberar pacote ao comprador");
   });
 
-  it("lets the buyer search the released lead package by segment before exporting the same results", () => {
+  it("lets the buyer search the released lead package by a predefined segment before choosing results", () => {
     expect(routersSource).toContain("searchReleasedPackage: protectedProcedure");
     expect(routersSource).toContain("getMarketLeadStateCode(order.region)");
     expect(routersSource).toContain("MARKET_LEAD_STATE_CODES");
     expect(companyDashboardSource).toContain("Buscar dentro do seu pacote");
-    expect(companyDashboardSource).toContain("Buscar leads");
+    expect(companyDashboardSource).toContain("Escolher leads do pacote");
     expect(companyDashboardSource).toContain("leads encontrados");
-    expect(companyDashboardSource).toContain("Use o botão “Baixar CSV para CRM”");
+    expect(companyDashboardSource).toContain("Adicione somente os que interessam à sua lista");
+  });
+
+  it("stores only the leads chosen by the buyer and enforces the accumulated package credit limit", () => {
+    expect(routersSource).toContain("getLeadCredits: protectedProcedure");
+    expect(routersSource).toContain("saveLeadFromPackage: protectedProcedure");
+    expect(routersSource).toContain("mySavedLeads: protectedProcedure");
+    expect(routersSource).toContain("FOR UPDATE");
+    expect(routersSource).toContain("Você usou todos os créditos de leads");
+    expect(routersSource).not.toContain("downloadDeliveredOrder");
+    expect(routersSource).toContain("savedMarketLeads");
+    expect(companyDashboardSource).toContain('label: "Minha Lista de Leads"');
+    expect(companyDashboardSource).toContain("Saldo acumulado");
+    expect(companyDashboardSource).toContain("Escolher leads do pacote");
+    expect(companyDashboardSource).toContain("Próximos 50");
+    expect(companyDashboardSource).toContain("Funcionários: não informado pela fonte");
   });
 
   it("shows a one-minute PIX timer and preserves the order as awaiting verification after expiry", () => {

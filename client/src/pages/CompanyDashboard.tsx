@@ -246,15 +246,20 @@ function ThemeToggleCompact() {
 
 export default function CompanyDashboard() {
   const { user, logout } = useAuth();
-  const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search" | "marketB2B" | "marketB2C" | "leadPackages" | "messages" | "contacts">("overview");
+  const [location, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search" | "marketB2B" | "marketB2C" | "leadPackages" | "savedLeads" | "messages" | "contacts">(() => {
+    const tab = new URLSearchParams(location.split("?")[1] ?? "").get("tab");
+    return tab === "leadPackages" || tab === "savedLeads" ? tab : "overview";
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const leadBuyerProfileRecoveryStarted = useRef(false);
   const [activeChatRepId, setActiveChatRepId] = useState<number | null>(null);
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
   const [marketSearch, setMarketSearch] = useState("");
   const [marketPackageSegment, setMarketPackageSegment] = useState("");
   const [openedLeadPackageId, setOpenedLeadPackageId] = useState<number | null>(null);
   const [openedLeadPackageSegment, setOpenedLeadPackageSegment] = useState("");
+  const [openedLeadPackageOffset, setOpenedLeadPackageOffset] = useState(0);
   const [marketPixData, setMarketPixData] = useState<{ qrCode: string; qrCodeBase64: string; label: string; price: number } | null>(null);
   const [marketPixLoading, setMarketPixLoading] = useState(false);
   const [marketPixSeconds, setMarketPixSeconds] = useState(60);
@@ -405,9 +410,13 @@ export default function CompanyDashboard() {
   const createMarketUnlimited = trpc.leadPackages.createUnlimitedAccess.useMutation({ onError: (error) => toast.error(error.message) });
   const { data: marketAccess } = trpc.leadPackages.myUnlimitedAccess.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 20_000 });
   const { data: marketRequest } = trpc.leadPackages.myUnlimitedRequest.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 15_000 });
-  const { data: myLeadPackages } = trpc.leadPackages.myOrders.useQuery(undefined, { enabled: !!user, refetchInterval: 20_000 });
-  const downloadLeadPackage = trpc.leadPackages.downloadDeliveredOrder.useMutation({ onError: (error) => toast.error(error.message) });
-  const openedLeadPackageInput = useMemo(() => ({ orderId: openedLeadPackageId ?? 0, segment: openedLeadPackageSegment || undefined }), [openedLeadPackageId, openedLeadPackageSegment]);
+  const { data: myLeadPackages, isLoading: myLeadPackagesLoading } = trpc.leadPackages.myOrders.useQuery(undefined, { enabled: !!user, refetchInterval: 20_000 });
+  const openedLeadPackageInput = useMemo(() => ({
+    orderId: openedLeadPackageId ?? 0,
+    segment: openedLeadPackageSegment || undefined,
+    offset: openedLeadPackageOffset,
+    limit: 50,
+  }), [openedLeadPackageId, openedLeadPackageSegment, openedLeadPackageOffset]);
   const { data: openedLeadPackageResults, isFetching: openedLeadPackageLoading } = trpc.leadPackages.searchReleasedPackage.useQuery(openedLeadPackageInput, { enabled: activeTab === "leadPackages" && !!openedLeadPackageId });
   const { data: marketResults, isFetching: marketLoading } = trpc.leadPackages.searchUnlimitedCatalog.useQuery(
     { audience: marketAudience, query: marketSearch || undefined, limit: 50 },
@@ -491,18 +500,19 @@ export default function CompanyDashboard() {
     }
   };
 
-  const downloadLeadPackageCsv = async (orderId: number) => {
-    const { rows } = await downloadLeadPackage.mutateAsync({ orderId, segment: openedLeadPackageId === orderId ? openedLeadPackageSegment || undefined : undefined });
-    const headers = ["Razão social", "Nome fantasia", "CNPJ", "CNAE", "Segmento", "Porte", "Cidade", "Estado", "CEP", "Endereço", "Telefone", "E-mail", "Site", "Instagram"];
+
+  const downloadSavedLeadCsv = async () => {
+    const { rows } = await downloadSavedMarketLeads.mutateAsync();
+    const headers = ["Razão social", "Nome fantasia", "CNPJ", "CNAE", "Segmento", "Porte", "Data de abertura", "Cidade", "Estado", "CEP", "Endereço", "Telefone", "E-mail", "Site", "Instagram"];
     const quote = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
-    const content = [headers.map(quote).join(";"), ...rows.map((row) => [row.razaoSocial, row.nomeFantasia, row.cnpj, row.cnaeDescricao, row.segmento, row.porte, row.cidade, row.estado, row.cep, row.endereco, row.telefone, row.email, row.site, row.instagram].map(quote).join(";"))].join("\n");
+    const content = [headers.map(quote).join(";"), ...rows.map((row) => [row.razaoSocial, row.nomeFantasia, row.cnpj, row.cnaeDescricao, row.segmento, row.porte, row.dataAbertura, row.cidade, row.estado, row.cep, row.endereco, row.telefone, row.email, row.site, row.instagram].map(quote).join(";"))].join("\n");
     const url = URL.createObjectURL(new Blob(["\ufeff", content], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `repmatch-pacote-leads-${orderId}.csv`;
+    anchor.download = "repmatch-minha-lista-de-leads.csv";
     anchor.click();
     URL.revokeObjectURL(url);
-    toast.success(`${rows.length.toLocaleString("pt-BR")} leads liberados para importação no CRM.`);
+    toast.success(`${rows.length.toLocaleString("pt-BR")} leads da sua lista foram exportados.`);
   };
 
   // ─── Auto-Match: ativa quando não há filtros manuais ativos ───────────────────
@@ -520,6 +530,29 @@ export default function CompanyDashboard() {
   const { data: availableNowData } = trpc.representatives.countAvailableNow.useQuery(undefined, { staleTime: 60_000 });
 
   const utils = trpc.useUtils();
+  const ensureLeadBuyerProfile = trpc.companies.ensureLeadBuyerProfile.useMutation({
+    onSuccess: () => utils.companies.myProfile.invalidate(),
+    onError: (error) => toast.error(error.message),
+  });
+  const { data: leadCredits } = trpc.leadPackages.getLeadCredits.useQuery(undefined, { enabled: !!user, refetchInterval: 20_000 });
+  const { data: savedMarketLeads, isLoading: savedMarketLeadsLoading } = trpc.leadPackages.mySavedLeads.useQuery(undefined, { enabled: activeTab === "savedLeads" || activeTab === "leadPackages" });
+  const saveMarketLead = trpc.leadPackages.saveLeadFromPackage.useMutation({
+    onSuccess: (result) => {
+      utils.leadPackages.getLeadCredits.invalidate();
+      utils.leadPackages.mySavedLeads.invalidate();
+      utils.leadPackages.searchReleasedPackage.invalidate();
+      toast.success(result.alreadySaved ? "Este lead já está na sua lista." : `Lead salvo. Restam ${result.remaining.toLocaleString("pt-BR")} créditos.`);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const downloadSavedMarketLeads = trpc.leadPackages.downloadSavedLeads.useMutation({ onError: (error) => toast.error(error.message) });
+
+  useEffect(() => {
+    if (!profileLoading && !profile && !myLeadPackagesLoading && (myLeadPackages?.length ?? 0) > 0 && !leadBuyerProfileRecoveryStarted.current) {
+      leadBuyerProfileRecoveryStarted.current = true;
+      ensureLeadBuyerProfile.mutate();
+    }
+  }, [profileLoading, profile, myLeadPackagesLoading, myLeadPackages, ensureLeadBuyerProfile]);
 
   const cnpjQuery = trpc.companies.lookupCnpj.useQuery(
     { cnpj: cnpjLookup },
@@ -642,12 +675,12 @@ export default function CompanyDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!profileLoading && !profile) {
+    if (!profileLoading && !profile && !myLeadPackagesLoading && (myLeadPackages?.length ?? 0) === 0) {
       // Se o perfil da empresa não existe, enviar para onboarding com type=company
       // O parâmetro ?type=company evita o loop pois o Onboarding não redireciona de volta quando há URL param
       navigate("/onboarding?type=company");
     }
-  }, [profileLoading, profile, navigate]);
+  }, [profileLoading, profile, myLeadPackagesLoading, myLeadPackages, navigate]);
 
   // Computed chart data
   const jobStatusData = useMemo(() => {
@@ -668,7 +701,7 @@ export default function CompanyDashboard() {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name: name.split(" ")[0], value }));
   }, [myJobs]);
 
-  if (profileLoading) {
+  if (profileLoading || (!profile && (myLeadPackagesLoading || ensureLeadBuyerProfile.isPending))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
@@ -705,6 +738,7 @@ export default function CompanyDashboard() {
     { id: "marketB2B", label: "Buscar B2B", icon: Building2 },
     { id: "marketB2C", label: "Buscar B2C", icon: Users },
     { id: "leadPackages", label: "Pacotes de Leads", icon: ShoppingCart },
+    { id: "savedLeads", label: "Minha Lista de Leads", icon: BookUser },
     { id: "contacts", label: "Meus Contatos", icon: BookUser },
     { id: "messages", label: "Mensagens", icon: MessageSquare },
     { id: "profile", label: "Perfil da Empresa", icon: Building2 },
@@ -2029,8 +2063,7 @@ export default function CompanyDashboard() {
                           <p className="mt-1 text-sm text-slate-600">{order.segment || "Todos os segmentos"} · {order.region || "Cobertura nacional"}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Button variant="outline" onClick={() => { setOpenedLeadPackageId(order.id); setOpenedLeadPackageSegment(order.segment ?? ""); }} className="min-h-12 border-emerald-300 text-emerald-700 hover:bg-emerald-50"><Search className="mr-2 h-4 w-4" />Buscar leads</Button>
-                          <Button onClick={() => downloadLeadPackageCsv(order.id)} disabled={downloadLeadPackage.isPending} className="min-h-12 shrink-0 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"><ExternalLink className="mr-2 h-4 w-4" />Baixar CSV para CRM</Button>
+                          <Button onClick={() => { setOpenedLeadPackageId(order.id); setOpenedLeadPackageSegment(order.segment ?? ""); setOpenedLeadPackageOffset(0); }} className="min-h-12 shrink-0 bg-emerald-600 text-white hover:bg-emerald-700"><Search className="mr-2 h-4 w-4" />Escolher leads do pacote</Button>
                         </div>
                       </div>
                       <div className="mt-5 grid gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 sm:grid-cols-3">
@@ -2046,16 +2079,16 @@ export default function CompanyDashboard() {
                               <p className="mt-1 text-sm text-slate-600">Escolha o segmento. A pesquisa traz até {order.quantity.toLocaleString("pt-BR")} empresas do seu lote, com os dados empresariais disponíveis.</p>
                             </div>
                             <label className="block text-sm font-bold text-slate-700">Segmento
-                              <select value={openedLeadPackageSegment} onChange={(event) => setOpenedLeadPackageSegment(event.target.value)} className="mt-1 min-h-11 w-full min-w-52 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-emerald-500 sm:w-60">
+                              <select value={openedLeadPackageSegment} onChange={(event) => { setOpenedLeadPackageSegment(event.target.value); setOpenedLeadPackageOffset(0); }} className="mt-1 min-h-11 w-full min-w-52 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-emerald-500 sm:w-60">
                                 <option value="">Todos os segmentos</option>
                                 {SEGMENTS.map((segment) => <option key={segment} value={segment}>{segment}</option>)}
                               </select>
                             </label>
                           </div>
                           {openedLeadPackageLoading ? <div className="py-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-emerald-600" /></div> : openedLeadPackageResults ? <>
-                            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm"><span className="font-bold text-emerald-900">{openedLeadPackageResults.total.toLocaleString("pt-BR")} leads encontrados</span><span className="text-emerald-800">Limite do pacote: {order.quantity.toLocaleString("pt-BR")}</span></div>
-                            {openedLeadPackageResults.total === 0 ? <p className="mt-4 text-sm text-slate-600">Nenhum lead disponível com este segmento e região. Escolha outro segmento ou todos os segmentos.</p> : <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200"><table className="min-w-[720px] w-full text-left text-xs"><thead className="bg-slate-50 text-slate-600"><tr><th className="px-3 py-3 font-bold">Empresa</th><th className="px-3 py-3 font-bold">Segmento/CNAE</th><th className="px-3 py-3 font-bold">Localização</th><th className="px-3 py-3 font-bold">Contato</th></tr></thead><tbody className="divide-y divide-slate-100">{openedLeadPackageResults.rows.slice(0, 50).map((lead) => <tr key={lead.id}><td className="px-3 py-3 font-semibold text-slate-800">{lead.nomeFantasia || lead.razaoSocial}<span className="mt-0.5 block font-normal text-slate-500">{lead.cnpj || "CNPJ não informado"}</span></td><td className="px-3 py-3 text-slate-600">{lead.segmento || lead.cnaeDescricao || "Não informado"}</td><td className="px-3 py-3 text-slate-600">{lead.cidade || "Cidade não informada"}{lead.estado ? ` · ${lead.estado}` : ""}</td><td className="px-3 py-3 text-slate-600">{lead.telefone || "Telefone não informado"}<span className="mt-0.5 block">{lead.email || "E-mail não informado"}</span></td></tr>)}</tbody></table></div>}
-                            {openedLeadPackageResults.total > 50 && <p className="mt-3 text-xs text-slate-500">Mostrando 50 registros na tela. Use o botão “Baixar CSV para CRM” para levar todos os {openedLeadPackageResults.total.toLocaleString("pt-BR")} leads encontrados.</p>}
+                            <div className="mt-4 grid gap-2 rounded-xl bg-emerald-50 px-3 py-3 text-sm sm:grid-cols-2"><span className="font-bold text-emerald-900">{openedLeadPackageResults.total.toLocaleString("pt-BR")} leads encontrados</span><span className="text-emerald-800">Limite deste pacote: {order.quantity.toLocaleString("pt-BR")}</span><span className="font-bold text-emerald-900">Saldo acumulado: {leadCredits?.remaining?.toLocaleString("pt-BR") ?? 0} crédito{(leadCredits?.remaining ?? 0) !== 1 ? "s" : ""}</span><span className="text-emerald-800">Usados: {leadCredits?.used?.toLocaleString("pt-BR") ?? 0} de {leadCredits?.total?.toLocaleString("pt-BR") ?? 0}</span></div>
+                            {(leadCredits?.remaining ?? 0) === 0 && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><strong>Créditos esgotados.</strong> Você já salvou todos os leads contratados. Compre outro pacote para somar novos créditos.</div>}
+                            {openedLeadPackageResults.total === 0 ? <p className="mt-4 text-sm text-slate-600">Nenhum lead disponível com este segmento e região. Escolha outro segmento ou todos os segmentos.</p> : <><div className="mt-4 overflow-x-auto rounded-xl border border-slate-200"><table className="min-w-[1180px] w-full text-left text-xs"><thead className="bg-slate-50 text-slate-600"><tr><th className="px-3 py-3 font-bold">Empresa</th><th className="px-3 py-3 font-bold">Ramo e porte</th><th className="px-3 py-3 font-bold">Localização</th><th className="px-3 py-3 font-bold">Contato e presença</th><th className="px-3 py-3 font-bold">Sua lista</th></tr></thead><tbody className="divide-y divide-slate-100">{openedLeadPackageResults.rows.map((lead) => { const alreadySaved = openedLeadPackageResults.savedLeadIds.includes(lead.id); return <tr key={lead.id}><td className="px-3 py-3 font-semibold text-slate-800">{lead.nomeFantasia || lead.razaoSocial}<span className="mt-0.5 block font-normal text-slate-500">{lead.razaoSocial}{lead.cnpj ? ` · ${lead.cnpj}` : ""}</span></td><td className="px-3 py-3 text-slate-600">{lead.segmento || lead.cnaeDescricao || "Não informado"}<span className="mt-0.5 block">CNAE: {lead.cnaeDescricao || "Não informado"}</span><span className="mt-0.5 block">Porte: {lead.porte || "Não informado"}</span><span className="mt-0.5 block">Abertura: {lead.dataAbertura || "Não informada"}</span><span className="mt-0.5 block">Funcionários: não informado pela fonte</span></td><td className="px-3 py-3 text-slate-600">{lead.cidade || "Cidade não informada"}{lead.estado ? ` · ${lead.estado}` : ""}<span className="mt-0.5 block">{lead.endereco || "Endereço não informado"}</span><span className="mt-0.5 block">CEP: {lead.cep || "Não informado"}</span></td><td className="px-3 py-3 text-slate-600">{lead.telefone || "Telefone não informado"}<span className="mt-0.5 block">{lead.email || "E-mail não informado"}</span><span className="mt-0.5 block">{lead.site || "Site não informado"}</span><span className="mt-0.5 block">{lead.instagram || "Instagram não informado"}</span></td><td className="px-3 py-3"><Button size="sm" disabled={alreadySaved || saveMarketLead.isPending || (leadCredits?.remaining ?? 0) === 0} onClick={() => saveMarketLead.mutate({ orderId: order.id, marketLeadId: lead.id })} className={alreadySaved ? "bg-slate-100 text-slate-600 hover:bg-slate-100" : "bg-emerald-600 text-white hover:bg-emerald-700"}>{alreadySaved ? <><CheckCircle className="mr-1 h-3.5 w-3.5" />Salvo</> : <><Plus className="mr-1 h-3.5 w-3.5" />Adicionar</>}</Button></td></tr>})}</tbody></table></div><div className="mt-3 flex flex-col gap-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between"><p>Mostrando {openedLeadPackageResults.offset + 1}–{openedLeadPackageResults.offset + openedLeadPackageResults.rows.length} de {openedLeadPackageResults.total.toLocaleString("pt-BR")} registros. Adicione somente os que interessam à sua lista.</p><div className="flex gap-2"><Button size="sm" variant="outline" disabled={openedLeadPackageResults.offset === 0} onClick={() => setOpenedLeadPackageOffset((offset) => Math.max(0, offset - 50))}>Anterior</Button><Button size="sm" variant="outline" disabled={!openedLeadPackageResults.hasMore} onClick={() => setOpenedLeadPackageOffset((offset) => offset + 50)}>Próximos 50</Button></div></div></>}
                           </> : null}
                         </div>
                       )}
@@ -2064,6 +2097,25 @@ export default function CompanyDashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ─── Minha Lista de Leads ─────────────────────────────────────── */}
+        {activeTab === "savedLeads" && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <div className="mb-6 rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 sm:p-7">
+              <p className="text-xs font-extrabold uppercase tracking-[.14em] text-emerald-700">Sua base selecionada</p>
+              <h1 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">Minha Lista de Leads</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Aqui ficam os leads que você escolheu nos seus pacotes. Eles permanecem disponíveis na sua conta e podem ser exportados para o CRM quando quiser.</p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-emerald-100"><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Salvos</p><p className="mt-1 text-xl font-black text-slate-900">{leadCredits?.used?.toLocaleString("pt-BR") ?? 0}</p></div>
+                <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-emerald-100"><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Créditos restantes</p><p className="mt-1 text-xl font-black text-slate-900">{leadCredits?.remaining?.toLocaleString("pt-BR") ?? 0}</p></div>
+                <Button onClick={downloadSavedLeadCsv} disabled={!savedMarketLeads?.length || downloadSavedMarketLeads.isPending} className="min-h-12 self-center bg-emerald-600 text-white hover:bg-emerald-700"><ExternalLink className="mr-2 h-4 w-4" />Baixar minha lista em CSV</Button>
+              </div>
+            </div>
+            {savedMarketLeadsLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div> : !savedMarketLeads?.length ? <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center"><BookUser className="mx-auto h-10 w-10 text-emerald-500" /><h2 className="mt-4 text-xl font-black text-slate-800">Sua lista ainda está vazia</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Abra um pacote liberado, pesquise por segmento e adicione apenas os leads que interessam ao seu time.</p><Button onClick={() => setActiveTab("leadPackages")} className="mt-5 bg-emerald-600 text-white hover:bg-emerald-700"><ShoppingCart className="mr-2 h-4 w-4" />Ver pacotes liberados</Button></div> : <div className="grid gap-4 md:grid-cols-2">
+              {savedMarketLeads.map((lead) => <Card key={lead.savedId} className="border-emerald-100 shadow-sm"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-lg font-black text-slate-900">{lead.nomeFantasia || lead.razaoSocial}</h2><p className="mt-1 text-sm text-slate-500">{lead.razaoSocial}</p></div><Badge className="bg-emerald-100 text-emerald-800">Salvo</Badge></div><div className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Cadastro</p><p className="mt-1 font-semibold text-slate-800">CNPJ: {lead.cnpj}</p><p className="mt-1 text-slate-600">Porte: {lead.porte || "Não informado"}</p><p className="mt-1 text-slate-600">Abertura: {lead.dataAbertura || "Não informada"}</p><p className="mt-1 text-slate-600">Funcionários: não informado pela fonte</p></div><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Segmento e localização</p><p className="mt-1 font-semibold text-slate-800">{lead.segmento || lead.cnaeDescricao || "Não informado"}</p><p className="mt-1 text-slate-600">{lead.cidade || "Cidade não informada"}{lead.estado ? ` · ${lead.estado}` : ""}</p><p className="mt-1 text-slate-600">{lead.endereco || "Endereço não informado"}</p><p className="mt-1 text-slate-600">CEP: {lead.cep || "Não informado"}</p></div><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Contato</p><p className="mt-1 font-semibold text-slate-800">{lead.telefone || "Telefone não informado"}</p><p className="mt-1 break-all text-slate-600">{lead.email || "E-mail não informado"}</p></div><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Presença digital</p><p className="mt-1 break-all text-slate-600">{lead.site || "Site não informado"}</p><p className="mt-1 break-all text-slate-600">{lead.instagram || "Instagram não informado"}</p></div></div></CardContent></Card>)}
+            </div>}
           </div>
         )}
 

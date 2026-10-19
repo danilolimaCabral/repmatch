@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   CircleDollarSign,
   Database,
-  Download,
   FileCheck2,
   Loader2,
   LockKeyhole,
@@ -72,7 +71,6 @@ export default function LeadPackages() {
     onError: (error) => toast.error(error.message),
   });
   const createUnlimitedAccess = trpc.leadPackages.createUnlimitedAccess.useMutation({ onError: (error) => toast.error(error.message) });
-  const downloadDeliveredOrder = trpc.leadPackages.downloadDeliveredOrder.useMutation({ onError: (error) => toast.error(error.message) });
 
   const currentPackage = useMemo(
     () => catalog?.[audience] ?? { quantity: 2000, price: audience === "b2b" ? 179 : 149, available: 0, states: 0 },
@@ -194,18 +192,6 @@ export default function LeadPackages() {
     setPendingOrder(null);
     setPendingUnlimitedAccess(result);
     setPix(null);
-  }
-
-  async function exportOrderToCsv(orderId: number) {
-    const { rows } = await downloadDeliveredOrder.mutateAsync({ orderId });
-    const headers = ["Razão social", "Nome fantasia", "CNPJ", "CNAE", "Segmento", "Porte", "Cidade", "Estado", "CEP", "Endereço", "Telefone", "E-mail", "Site", "Instagram"];
-    const quote = (input: unknown) => `"${String(input ?? "").replaceAll('"', '""')}"`;
-    const csv = [headers.map(quote).join(";"), ...rows.map((row) => [row.razaoSocial, row.nomeFantasia, row.cnpj, row.cnaeDescricao, row.segmento, row.porte, row.cidade, row.estado, row.cep, row.endereco, row.telefone, row.email, row.site, row.instagram].map(quote).join(";"))].join("\n");
-    const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url; link.download = `repmatch-campanha-${orderId}.csv`; link.click();
-    URL.revokeObjectURL(url);
-    toast.success("CSV gerado para importação no CRM.");
   }
 
   async function generatePix() {
@@ -394,7 +380,7 @@ export default function LeadPackages() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`w-fit rounded-full px-3 py-1.5 text-xs font-bold ${pendingPayment ? "bg-amber-100 text-amber-800" : order.status === "pending_approval" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-700"}`}>{pendingPayment ? "Aguardando PIX" : order.status === "pending_approval" ? "PIX confirmado — em análise" : order.status === "approved" ? "Em preparação" : order.status === "delivered" ? "Entregue" : order.status}</span>
                       {pendingPayment && <button onClick={() => resumeCampaignPayment(order)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><QrCode className="h-3.5 w-3.5" />Retomar PIX</button>}
-                      {order.status === "delivered" && <button onClick={() => exportOrderToCsv(order.id)} disabled={downloadDeliveredOrder.isPending} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"><Download className="h-3.5 w-3.5" />Baixar CSV para CRM</button>}
+                      {["approved", "delivered"].includes(order.status) && <button onClick={() => navigate("/dashboard/company?tab=leadPackages")} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><Target className="h-3.5 w-3.5" />Escolher leads</button>}
                     </div>
                   </div>;
                 })}

@@ -150,6 +150,19 @@ async function ensurePurchaseInterestTable() {
       INDEX market_access_status_created_idx (status, created_at)
     )
   `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS saved_market_leads (
+      id int AUTO_INCREMENT NOT NULL,
+      user_id int NOT NULL,
+      lead_package_order_id int NOT NULL,
+      market_lead_id int NOT NULL,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY saved_market_leads_user_lead_unique (user_id, market_lead_id),
+      INDEX saved_market_leads_user_created_idx (user_id, created_at),
+      INDEX saved_market_leads_order_idx (lead_package_order_id)
+    )
+  `));
   console.log("[db] commercial catalog tables ready");
 }
 

@@ -225,6 +225,13 @@
       "when": 1792366386952,
       "tag": "0031_late_amphibian",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1792414006621,
+      "tag": "0032_nice_wrecker",
+      "breakpoints": true
     }
   ]
 }

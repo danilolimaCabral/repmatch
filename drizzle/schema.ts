@@ -12,6 +12,7 @@ import {
   tinyint,
   varchar,
   index,
+  uniqueIndex,
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
@@ -466,6 +467,21 @@ export const leadPackageOrders = mysqlTable("lead_package_orders", {
 }));
 export type LeadPackageOrder = typeof leadPackageOrders.$inferSelect;
 export type InsertLeadPackageOrder = typeof leadPackageOrders.$inferInsert;
+
+// ─── Leads escolhidos dentro dos pacotes adquiridos ───────────────────────────
+export const savedMarketLeads = mysqlTable("saved_market_leads", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  leadPackageOrderId: int("lead_package_order_id").notNull(),
+  marketLeadId: int("market_lead_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  userCreatedIdx: index("saved_market_leads_user_created_idx").on(t.userId, t.createdAt),
+  orderIdx: index("saved_market_leads_order_idx").on(t.leadPackageOrderId),
+  userLeadUnique: uniqueIndex("saved_market_leads_user_lead_unique").on(t.userId, t.marketLeadId),
+}));
+export type SavedMarketLead = typeof savedMarketLeads.$inferSelect;
+export type InsertSavedMarketLead = typeof savedMarketLeads.$inferInsert;
 
 // ─── Unlock Requests (Carrinho de desbloqueios via Pix ou Stripe) ───────────────
 export const unlockRequests = mysqlTable("unlock_requests", {

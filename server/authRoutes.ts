@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { randomBytes } from "crypto";
 import { getDb } from "./db";
-import { users, passwordResetTokens } from "../drizzle/schema";
+import { companies, users, passwordResetTokens } from "../drizzle/schema";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { notifyOwner } from "./_core/notification";
@@ -81,10 +81,20 @@ export function registerAuthRoutes(app: Express) {
         passwordHash,
         emailVerified: false,
         emailVerificationToken,
+        userType: leadBuyer ? "company" : "pending",
         lastSignedIn: new Date(),
       });
-      const [newUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      const [newUser] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
       if (!newUser) { res.status(500).json({ error: "Erro ao criar usuário." }); return; }
+      if (leadBuyer) {
+        await db.insert(companies).values({
+          userId: newUser.id,
+          companyName: name?.trim() || "Comprador de Leads",
+          phone: normalizedPhone,
+          segment: "Prospecção B2B/B2C",
+          description: "Conta criada para compra e seleção de leads empresariais.",
+        });
+      }
       const token = await signToken(newUser.id);
       res.cookie(RM_COOKIE, token, COOKIE_OPTS);
       // Notify owner with verification link

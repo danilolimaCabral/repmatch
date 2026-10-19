@@ -965,3 +965,11 @@
 - [x] Mostrar os dados empresariais completos em tela e disponibilizar o mesmo resultado em CSV
 - [x] Corrigir a conversão de nomes de estados para siglas na entrega filtrada
 - [x] Validar a pesquisa e a entrega com TypeScript e testes automatizados
+
+## Créditos acumuláveis e Minha Lista de Leads (19/10/2026)
+- [ ] Permitir selecionar leads individuais dentro do pacote liberado
+- [ ] Salvar os leads escolhidos permanentemente na conta do comprador
+- [ ] Somar os créditos de todos os pacotes liberados e limitar seleções ao saldo disponível
+- [ ] Bloquear novas seleções ao esgotar créditos e orientar a compra de outro pacote
+- [ ] Exibir uma área Minha Lista de Leads com exportação CSV dos registros salvos
+- [ ] Validar persistência, limite e agregação de créditos com TypeScript e testes automatizados

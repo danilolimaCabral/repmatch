@@ -46,7 +46,7 @@ import {
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings, leadPackageOrders, marketLeads, marketLeadAccesses } from "../drizzle/schema";
+import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings, leadPackageOrders, marketLeads, marketLeadAccesses, savedMarketLeads } from "../drizzle/schema";
 import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count, like, or } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { DEFAULT_LEAD_PACKAGE_PRICES, getLeadPackagePrice } from "@shared/leadPackages";
@@ -586,6 +586,20 @@ export const appRouter = router({
   companies: router({
     myProfile: protectedProcedure.query(async ({ ctx }) => {
       return (await getCompanyByUserId(ctx.user.id)) ?? null;
+    }),
+
+    ensureLeadBuyerProfile: protectedProcedure.mutation(async ({ ctx }) => {
+      const existing = await getCompanyByUserId(ctx.user.id);
+      if (existing) return { success: true, created: false };
+      await createCompany({
+        userId: ctx.user.id,
+        companyName: ctx.user.name?.trim() || "Comprador de Leads",
+        phone: ctx.user.phone ?? undefined,
+        segment: "Prospecção B2B/B2C",
+        description: "Conta criada para compra e seleção de leads empresariais.",
+      });
+      await updateUserType(ctx.user.id, "company");
+      return { success: true, created: true };
     }),
 
     updateProfile: protectedProcedure
@@ -1376,8 +1390,90 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       return db.select().from(leadPackageOrders).where(eq(leadPackageOrders.userId, ctx.user.id)).orderBy(desc(leadPackageOrders.createdAt));
     }),
 
+    getLeadCredits: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { total: 0, used: 0, remaining: 0 };
+      const [packageTotals] = await db.select({ total: sql<number>`COALESCE(SUM(${leadPackageOrders.quantity}), 0)` })
+        .from(leadPackageOrders)
+        .where(and(eq(leadPackageOrders.userId, ctx.user.id), inArray(leadPackageOrders.status, ["approved", "delivered"])));
+      const [savedTotals] = await db.select({ total: count() }).from(savedMarketLeads).where(eq(savedMarketLeads.userId, ctx.user.id));
+      const total = Number(packageTotals?.total ?? 0);
+      const used = Number(savedTotals?.total ?? 0);
+      return { total, used, remaining: Math.max(0, total - used) };
+    }),
+
+    saveLeadFromPackage: protectedProcedure
+      .input(z.object({ orderId: z.number().int().positive(), marketLeadId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        return db.transaction(async (tx) => {
+          // Todas as seleções do mesmo comprador usam este bloqueio para não ultrapassar o saldo em cliques simultâneos.
+          await tx.execute(sql`SELECT ${users.id} FROM ${users} WHERE ${users.id} = ${ctx.user.id} FOR UPDATE`);
+          const [order] = await tx.select().from(leadPackageOrders)
+            .where(and(eq(leadPackageOrders.id, input.orderId), eq(leadPackageOrders.userId, ctx.user.id)))
+            .limit(1);
+          if (!order || !["approved", "delivered"].includes(order.status)) throw new TRPCError({ code: "FORBIDDEN", message: "Este pacote ainda não foi liberado." });
+          const [lead] = await tx.select().from(marketLeads).where(eq(marketLeads.id, input.marketLeadId)).limit(1);
+          const stateCode = getMarketLeadStateCode(order.region);
+          if (!lead || !lead.available || ![order.audience, "both"].includes(lead.audience) || (stateCode && lead.estado !== stateCode)) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Este lead não pertence ao escopo do pacote." });
+          }
+          const [alreadySaved] = await tx.select({ id: savedMarketLeads.id }).from(savedMarketLeads)
+            .where(and(eq(savedMarketLeads.userId, ctx.user.id), eq(savedMarketLeads.marketLeadId, lead.id))).limit(1);
+          if (!alreadySaved) {
+            const [packageTotals] = await tx.select({ total: sql<number>`COALESCE(SUM(${leadPackageOrders.quantity}), 0)` })
+              .from(leadPackageOrders)
+              .where(and(eq(leadPackageOrders.userId, ctx.user.id), inArray(leadPackageOrders.status, ["approved", "delivered"])));
+            const [savedTotals] = await tx.select({ total: count() }).from(savedMarketLeads).where(eq(savedMarketLeads.userId, ctx.user.id));
+            if (Number(savedTotals?.total ?? 0) >= Number(packageTotals?.total ?? 0)) {
+              throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Você usou todos os créditos de leads. Contrate outro pacote para continuar." });
+            }
+            await tx.insert(savedMarketLeads).values({ userId: ctx.user.id, leadPackageOrderId: order.id, marketLeadId: lead.id });
+          }
+          const [packageTotals] = await tx.select({ total: sql<number>`COALESCE(SUM(${leadPackageOrders.quantity}), 0)` })
+            .from(leadPackageOrders)
+            .where(and(eq(leadPackageOrders.userId, ctx.user.id), inArray(leadPackageOrders.status, ["approved", "delivered"])));
+          const [savedTotals] = await tx.select({ total: count() }).from(savedMarketLeads).where(eq(savedMarketLeads.userId, ctx.user.id));
+          const total = Number(packageTotals?.total ?? 0);
+          const used = Number(savedTotals?.total ?? 0);
+          return { success: true, alreadySaved: !!alreadySaved, total, used, remaining: Math.max(0, total - used) };
+        });
+      }),
+
+    mySavedLeads: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select({
+        savedId: savedMarketLeads.id, savedAt: savedMarketLeads.createdAt, packageOrderId: savedMarketLeads.leadPackageOrderId,
+        id: marketLeads.id, razaoSocial: marketLeads.razaoSocial, nomeFantasia: marketLeads.nomeFantasia, cnpj: marketLeads.cnpj,
+        cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento, porte: marketLeads.porte, dataAbertura: marketLeads.dataAbertura,
+        cidade: marketLeads.cidade, estado: marketLeads.estado, cep: marketLeads.cep, endereco: marketLeads.endereco,
+        telefone: marketLeads.telefone, email: marketLeads.email, site: marketLeads.site, instagram: marketLeads.instagram,
+      }).from(savedMarketLeads).innerJoin(marketLeads, eq(savedMarketLeads.marketLeadId, marketLeads.id))
+        .where(eq(savedMarketLeads.userId, ctx.user.id)).orderBy(desc(savedMarketLeads.createdAt));
+    }),
+
+    downloadSavedLeads: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const rows = await db.select({
+        razaoSocial: marketLeads.razaoSocial, nomeFantasia: marketLeads.nomeFantasia, cnpj: marketLeads.cnpj,
+        cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento, porte: marketLeads.porte, dataAbertura: marketLeads.dataAbertura,
+        cidade: marketLeads.cidade, estado: marketLeads.estado, cep: marketLeads.cep, endereco: marketLeads.endereco,
+        telefone: marketLeads.telefone, email: marketLeads.email, site: marketLeads.site, instagram: marketLeads.instagram,
+      }).from(savedMarketLeads).innerJoin(marketLeads, eq(savedMarketLeads.marketLeadId, marketLeads.id))
+        .where(eq(savedMarketLeads.userId, ctx.user.id)).orderBy(desc(savedMarketLeads.createdAt));
+      return { rows };
+    }),
+
     searchReleasedPackage: protectedProcedure
-      .input(z.object({ orderId: z.number().int().positive(), segment: z.string().trim().max(120).optional() }))
+      .input(z.object({
+        orderId: z.number().int().positive(),
+        segment: z.string().trim().max(120).optional(),
+        offset: z.number().int().min(0).max(100_000).default(0),
+        limit: z.number().int().min(1).max(100).default(50),
+      }))
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -1386,41 +1482,32 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           .limit(1);
         if (!order || !["approved", "delivered"].includes(order.status)) throw new TRPCError({ code: "FORBIDDEN", message: "Este pacote ainda não foi liberado." });
 
-        const selectedSegment = input.segment || order.segment || undefined;
+        // O segmento é escolhido no momento da pesquisa; o briefing do pedido não restringe os créditos acumulados.
+        const selectedSegment = input.segment || undefined;
         const stateCode = getMarketLeadStateCode(order.region);
         const availableForAudience = and(eq(marketLeads.available, true), inArray(marketLeads.audience, [order.audience, "both"]));
         const regionScope = stateCode ? and(availableForAudience, eq(marketLeads.estado, stateCode)) : availableForAudience;
         const deliveryScope = selectedSegment ? and(regionScope, like(marketLeads.segmento, `%${selectedSegment}%`)) : regionScope;
+        const [totalResult] = await db.select({ total: count() }).from(marketLeads).where(deliveryScope);
         const rows = await db.select({
           id: marketLeads.id, razaoSocial: marketLeads.razaoSocial, nomeFantasia: marketLeads.nomeFantasia, cnpj: marketLeads.cnpj,
-          cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento, porte: marketLeads.porte,
+          cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento, porte: marketLeads.porte, dataAbertura: marketLeads.dataAbertura,
           cidade: marketLeads.cidade, estado: marketLeads.estado, cep: marketLeads.cep, endereco: marketLeads.endereco,
           telefone: marketLeads.telefone, email: marketLeads.email, site: marketLeads.site, instagram: marketLeads.instagram,
-        }).from(marketLeads).where(deliveryScope).orderBy(asc(marketLeads.razaoSocial)).limit(order.quantity);
-        return { orderId: order.id, quantity: order.quantity, selectedSegment: selectedSegment ?? "Todos os segmentos", total: rows.length, rows };
-      }),
-
-    downloadDeliveredOrder: protectedProcedure
-      .input(z.object({ orderId: z.number().int().positive(), segment: z.string().trim().max(120).optional() }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const [order] = await db.select().from(leadPackageOrders)
-          .where(and(eq(leadPackageOrders.id, input.orderId), eq(leadPackageOrders.userId, ctx.user.id)))
-          .limit(1);
-        if (!order || !["approved", "delivered"].includes(order.status)) throw new TRPCError({ code: "FORBIDDEN", message: "O lote fica disponível para download após a liberação administrativa." });
-        const selectedSegment = input.segment || order.segment || undefined;
-        const stateCode = getMarketLeadStateCode(order.region);
-        const availableForAudience = and(eq(marketLeads.available, true), inArray(marketLeads.audience, [order.audience, "both"]));
-        const regionScope = stateCode ? and(availableForAudience, eq(marketLeads.estado, stateCode)) : availableForAudience;
-        const deliveryScope = selectedSegment ? and(regionScope, like(marketLeads.segmento, `%${selectedSegment}%`)) : regionScope;
-        const rows = await db.select({
-          razaoSocial: marketLeads.razaoSocial, nomeFantasia: marketLeads.nomeFantasia, cnpj: marketLeads.cnpj,
-          cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento, porte: marketLeads.porte,
-          cidade: marketLeads.cidade, estado: marketLeads.estado, cep: marketLeads.cep, endereco: marketLeads.endereco,
-          telefone: marketLeads.telefone, email: marketLeads.email, site: marketLeads.site, instagram: marketLeads.instagram,
-        }).from(marketLeads).where(deliveryScope).orderBy(asc(marketLeads.razaoSocial)).limit(order.quantity);
-        return { orderId: order.id, quantity: order.quantity, selectedSegment: selectedSegment ?? "Todos os segmentos", rows };
+        }).from(marketLeads).where(deliveryScope).orderBy(asc(marketLeads.razaoSocial)).limit(input.limit).offset(input.offset);
+        const savedRows = rows.length ? await db.select({ marketLeadId: savedMarketLeads.marketLeadId }).from(savedMarketLeads)
+          .where(and(eq(savedMarketLeads.userId, ctx.user.id), inArray(savedMarketLeads.marketLeadId, rows.map((row) => row.id)))) : [];
+        const total = Number(totalResult?.total ?? 0);
+        return {
+          orderId: order.id,
+          quantity: order.quantity,
+          selectedSegment: selectedSegment ?? "Todos os segmentos",
+          total,
+          offset: input.offset,
+          hasMore: input.offset + rows.length < total,
+          savedLeadIds: savedRows.map((row) => row.marketLeadId),
+          rows,
+        };
       }),
 
     adminList: protectedProcedure.query(async ({ ctx }) => {
