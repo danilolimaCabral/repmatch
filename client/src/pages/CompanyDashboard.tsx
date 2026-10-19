@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Moon, Sun } from "lucide-react";
+import * as XLSX from "xlsx";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { getLeadPackagePrice } from "@shared/leadPackages";
 import {
@@ -65,6 +66,26 @@ const STATUS_CONFIG = {
 };
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+
+function brazilianPhoneNumber(phone: string | null | undefined) {
+  let digits = (phone ?? "").replace(/\D/g, "");
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) digits = digits.slice(2);
+  if (digits.startsWith("0") && (digits.length === 11 || digits.length === 12)) digits = digits.slice(1);
+  return digits.length === 10 || digits.length === 11 ? digits : null;
+}
+
+function safeSpreadsheetCell(value: unknown) {
+  const text = String(value ?? "");
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
+}
+
+function LeadDirectContactActions({ phone, companyName }: { phone: string | null; companyName: string }) {
+  const number = brazilianPhoneNumber(phone);
+  if (!number) return null;
+  const message = `Olá! Encontrei a ${companyName} na RepMatch e gostaria de conversar sobre uma oportunidade comercial.`;
+  const whatsappUrl = `https://wa.me/55${number}?text=${encodeURIComponent(message)}`;
+  return <div className="mt-3 grid grid-cols-2 gap-2"><a href={`tel:+55${number}`} aria-label={`Ligar para ${companyName}`} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-bold text-emerald-800 transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"><Phone className="mr-2 h-4 w-4" />Ligar</a><a href={whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label={`Conversar no WhatsApp com ${companyName}`} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-600 px-3 text-sm font-bold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"><MessageSquare className="mr-2 h-4 w-4" />WhatsApp</a></div>;
+}
 
 async function startCheckout(productKey: string, userId: number, userEmail: string, userName: string, extraData?: { jobId?: number; repId?: number }) {
   try {
@@ -501,18 +522,25 @@ export default function CompanyDashboard() {
   };
 
 
-  const downloadSavedLeadCsv = async () => {
+  const downloadSavedLeadSpreadsheet = async () => {
     const { rows } = await downloadSavedMarketLeads.mutateAsync();
-    const headers = ["Razão social", "Nome fantasia", "CNPJ", "CNAE", "Segmento", "Porte", "Data de abertura", "Cidade", "Estado", "CEP", "Endereço", "Telefone", "E-mail", "Site", "Instagram"];
-    const quote = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
-    const content = [headers.map(quote).join(";"), ...rows.map((row) => [row.razaoSocial, row.nomeFantasia, row.cnpj, row.cnaeDescricao, row.segmento, row.porte, row.dataAbertura, row.cidade, row.estado, row.cep, row.endereco, row.telefone, row.email, row.site, row.instagram].map(quote).join(";"))].join("\n");
-    const url = URL.createObjectURL(new Blob(["\ufeff", content], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "repmatch-minha-lista-de-leads.csv";
-    anchor.click();
-    URL.revokeObjectURL(url);
-    toast.success(`${rows.length.toLocaleString("pt-BR")} leads da sua lista foram exportados.`);
+    if (!rows.length) { toast.info("Sua lista ainda não possui leads para exportar."); return; }
+    const spreadsheetRows = rows.map((row) => ({
+      "Razão social": safeSpreadsheetCell(row.razaoSocial), "Nome fantasia": safeSpreadsheetCell(row.nomeFantasia),
+      "CNPJ": safeSpreadsheetCell(row.cnpj), "CNAE / ramo": safeSpreadsheetCell(row.cnaeDescricao),
+      "Segmento": safeSpreadsheetCell(row.segmento), "Porte": safeSpreadsheetCell(row.porte),
+      "Data de abertura": safeSpreadsheetCell(row.dataAbertura), "Cidade": safeSpreadsheetCell(row.cidade),
+      "Estado": safeSpreadsheetCell(row.estado), "CEP": safeSpreadsheetCell(row.cep),
+      "Endereço": safeSpreadsheetCell(row.endereco), "Telefone": safeSpreadsheetCell(row.telefone),
+      "E-mail": safeSpreadsheetCell(row.email), "Site": safeSpreadsheetCell(row.site), "Instagram": safeSpreadsheetCell(row.instagram),
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(spreadsheetRows);
+    worksheet["!cols"] = [24, 24, 16, 34, 22, 14, 18, 20, 10, 12, 42, 18, 32, 32, 28].map((wch) => ({ wch }));
+    worksheet["!autofilter"] = { ref: `A1:O${spreadsheetRows.length + 1}` };
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Minha Lista de Leads");
+    XLSX.writeFile(workbook, "repmatch-minha-lista-de-leads.xlsx", { compression: true });
+    toast.success(`${rows.length.toLocaleString("pt-BR")} leads foram exportados em Excel.`);
   };
 
   // ─── Auto-Match: ativa quando não há filtros manuais ativos ───────────────────
@@ -2110,11 +2138,11 @@ export default function CompanyDashboard() {
               <div className="mt-5 flex flex-wrap gap-3">
                 <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-emerald-100"><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Salvos</p><p className="mt-1 text-xl font-black text-slate-900">{leadCredits?.used?.toLocaleString("pt-BR") ?? 0}</p></div>
                 <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-emerald-100"><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Créditos restantes</p><p className="mt-1 text-xl font-black text-slate-900">{leadCredits?.remaining?.toLocaleString("pt-BR") ?? 0}</p></div>
-                <Button onClick={downloadSavedLeadCsv} disabled={!savedMarketLeads?.length || downloadSavedMarketLeads.isPending} className="min-h-12 self-center bg-emerald-600 text-white hover:bg-emerald-700"><ExternalLink className="mr-2 h-4 w-4" />Baixar minha lista em CSV</Button>
+                <Button onClick={downloadSavedLeadSpreadsheet} disabled={!savedMarketLeads?.length || downloadSavedMarketLeads.isPending} className="min-h-12 self-center bg-emerald-600 text-white hover:bg-emerald-700"><ExternalLink className="mr-2 h-4 w-4" />Baixar lista em Excel</Button>
               </div>
             </div>
             {savedMarketLeadsLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div> : !savedMarketLeads?.length ? <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center"><BookUser className="mx-auto h-10 w-10 text-emerald-500" /><h2 className="mt-4 text-xl font-black text-slate-800">Sua lista ainda está vazia</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Abra um pacote liberado, pesquise por segmento e adicione apenas os leads que interessam ao seu time.</p><Button onClick={() => setActiveTab("leadPackages")} className="mt-5 bg-emerald-600 text-white hover:bg-emerald-700"><ShoppingCart className="mr-2 h-4 w-4" />Ver pacotes liberados</Button></div> : <div className="grid gap-4 md:grid-cols-2">
-              {savedMarketLeads.map((lead) => <Card key={lead.savedId} className="border-emerald-100 shadow-sm"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-lg font-black text-slate-900">{lead.nomeFantasia || lead.razaoSocial}</h2><p className="mt-1 text-sm text-slate-500">{lead.razaoSocial}</p></div><Badge className="bg-emerald-100 text-emerald-800">Salvo</Badge></div><div className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Cadastro</p><p className="mt-1 font-semibold text-slate-800">CNPJ: {lead.cnpj}</p><p className="mt-1 text-slate-600">Porte: {lead.porte || "Não informado"}</p><p className="mt-1 text-slate-600">Abertura: {lead.dataAbertura || "Não informada"}</p><p className="mt-1 text-slate-600">Funcionários: não informado pela fonte</p></div><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Segmento e localização</p><p className="mt-1 font-semibold text-slate-800">{lead.segmento || lead.cnaeDescricao || "Não informado"}</p><p className="mt-1 text-slate-600">{lead.cidade || "Cidade não informada"}{lead.estado ? ` · ${lead.estado}` : ""}</p><p className="mt-1 text-slate-600">{lead.endereco || "Endereço não informado"}</p><p className="mt-1 text-slate-600">CEP: {lead.cep || "Não informado"}</p></div><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Contato</p><p className="mt-1 font-semibold text-slate-800">{lead.telefone || "Telefone não informado"}</p><p className="mt-1 break-all text-slate-600">{lead.email || "E-mail não informado"}</p></div><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Presença digital</p><p className="mt-1 break-all text-slate-600">{lead.site || "Site não informado"}</p><p className="mt-1 break-all text-slate-600">{lead.instagram || "Instagram não informado"}</p></div></div></CardContent></Card>)}
+              {savedMarketLeads.map((lead) => <Card key={lead.savedId} className="border-emerald-100 shadow-sm"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-lg font-black text-slate-900">{lead.nomeFantasia || lead.razaoSocial}</h2><p className="mt-1 text-sm text-slate-500">{lead.razaoSocial}</p></div><Badge className="bg-emerald-100 text-emerald-800">Salvo</Badge></div><div className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Cadastro</p><p className="mt-1 font-semibold text-slate-800">CNPJ: {lead.cnpj}</p><p className="mt-1 text-slate-600">Porte: {lead.porte || "Não informado"}</p><p className="mt-1 text-slate-600">Abertura: {lead.dataAbertura || "Não informada"}</p><p className="mt-1 text-slate-600">Funcionários: não informado pela fonte</p></div><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Segmento e localização</p><p className="mt-1 font-semibold text-slate-800">{lead.segmento || lead.cnaeDescricao || "Não informado"}</p><p className="mt-1 text-slate-600">{lead.cidade || "Cidade não informada"}{lead.estado ? ` · ${lead.estado}` : ""}</p><p className="mt-1 text-slate-600">{lead.endereco || "Endereço não informado"}</p><p className="mt-1 text-slate-600">CEP: {lead.cep || "Não informado"}</p></div><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Contato</p><p className="mt-1 font-semibold text-slate-800">{lead.telefone || "Telefone não informado"}</p><p className="mt-1 break-all text-slate-600">{lead.email || "E-mail não informado"}</p><LeadDirectContactActions phone={lead.telefone} companyName={lead.nomeFantasia || lead.razaoSocial} /></div><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Presença digital</p><p className="mt-1 break-all text-slate-600">{lead.site || "Site não informado"}</p><p className="mt-1 break-all text-slate-600">{lead.instagram || "Instagram não informado"}</p></div></div></CardContent></Card>)}
             </div>}
           </div>
         )}

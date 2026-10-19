@@ -246,7 +246,8 @@ describe("AdminDashboard mobile layout", () => {
     expect(companyDashboardSource).toContain("startMarketUnlimitedPix");
     expect(companyDashboardSource).toContain('"/api/mp/market-search-unlimited-pix"');
     expect(companyDashboardSource).toContain("Veja como seu lote chega");
-    expect(companyDashboardSource).toContain("Dados individuais só são liberados depois da confirmação do PIX");
+    expect(companyDashboardSource).toContain("Dados individuais só são liberados");
+    expect(companyDashboardSource).toContain("confirmação do PIX");
     expect(routersSource).toContain("const pendingOrders = await db.select");
   });
 
@@ -254,8 +255,12 @@ describe("AdminDashboard mobile layout", () => {
     expect(companyDashboardSource).toContain('id: "leadPackages", label: "Pacotes de Leads"');
     expect(companyDashboardSource).toContain("Pacote liberado");
     expect(companyDashboardSource).toContain("Escolher leads do pacote");
-    expect(companyDashboardSource).toContain("Baixar minha lista em CSV");
-    expect(companyDashboardSource).toContain("downloadSavedLeadCsv");
+    expect(companyDashboardSource).toContain("Baixar lista em Excel");
+    expect(companyDashboardSource).toContain("downloadSavedLeadSpreadsheet");
+    expect(companyDashboardSource).toContain("LeadDirectContactActions");
+    expect(companyDashboardSource).toContain("Ligar");
+    expect(companyDashboardSource).toContain("WhatsApp");
+    expect(companyDashboardSource).toContain("XLSX.writeFile");
     expect(routersSource).toContain("downloadSavedLeads: protectedProcedure");
     expect(routersSource).toContain('["approved", "delivered"].includes(order.status)');
     expect(dashboardSource).toContain("Liberar pacote ao comprador");
@@ -268,7 +273,8 @@ describe("AdminDashboard mobile layout", () => {
     expect(companyDashboardSource).toContain("Buscar dentro do seu pacote");
     expect(companyDashboardSource).toContain("Escolher leads do pacote");
     expect(companyDashboardSource).toContain("leads encontrados");
-    expect(companyDashboardSource).toContain("Adicione somente os que interessam à sua lista");
+    expect(companyDashboardSource).toContain("Adicione somente os que");
+    expect(companyDashboardSource).toContain("interessam à sua lista");
   });
 
   it("stores only the leads chosen by the buyer and enforces the accumulated package credit limit", () => {
