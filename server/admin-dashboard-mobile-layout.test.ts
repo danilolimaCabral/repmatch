@@ -247,11 +247,11 @@ describe("AdminDashboard mobile layout", () => {
     expect(routersSource).toContain("const pendingOrders = await db.select");
   });
 
-  it("shows a five-minute PIX timer and preserves the order as awaiting release after expiry", () => {
-    expect(companyDashboardSource).toContain("const [marketPixSeconds, setMarketPixSeconds] = useState(300)");
+  it("shows a one-minute PIX timer and preserves the order as awaiting verification after expiry", () => {
+    expect(companyDashboardSource).toContain("const [marketPixSeconds, setMarketPixSeconds] = useState(60)");
     expect(companyDashboardSource).toContain("Pague em");
-    expect(companyDashboardSource).toContain("Pedido aguardando liberação");
-    expect(companyDashboardSource).toContain("O tempo do QR Code acabou.");
+    expect(companyDashboardSource).toContain("Pedido solicitado, verificando o PIX");
+    expect(companyDashboardSource).toContain("O QR Code expirou após um minuto");
     expect(companyDashboardSource).toContain("Fechar e gerar novo QR se necessário");
   });
 

@@ -941,3 +941,8 @@
 - [x] Ocultar o QR expirado e manter o pedido como aguardando confirmação/liberação
 - [x] Permitir gerar um novo QR quando o prazo acabar, sem duplicar o pedido
 - [x] Validar o temporizador e os estados de pagamento por testes
+
+## QR PIX de um minuto (19/10/2026)
+- [x] Reduzir o prazo do QR Code de campanhas para um minuto
+- [x] Exibir “Pedido solicitado, verificando o PIX” quando o QR expirar
+- [x] Validar o novo tempo e o estado de pedido por testes
