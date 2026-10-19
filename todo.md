@@ -923,6 +923,13 @@
 - [x] Mostrar no Admin uma prévia real de empresas e campos disponíveis para B2B e B2C
 - [x] Validar o fluxo de QR e a prévia com TypeScript e testes automatizados
 
+## Checkout PIX direto no painel Empresa (19/10/2026)
+- [x] Gerar o pedido e abrir o QR Code na própria aba B2B/B2C ao escolher 1.000 ou 2.000 empresas
+- [x] Reutilizar o CNPJ cadastrado da empresa como identificação do pagador no PIX
+- [x] Manter uma amostra mascarada dos campos entregues para importação no CRM
+- [x] Evitar pedidos duplicados ao repetir o toque no mesmo pacote pendente
+- [x] Validar o fluxo com TypeScript e testes automatizados
+
 ## Cards de pacotes B2B/B2C no painel (18/10/2026)
 - [x] Exibir três opções diretas por aba: 1.000 empresas, 2.000 empresas e pesquisa ilimitada
 - [x] Permitir escolher segmento de uma lista pré-definida antes de ir ao checkout

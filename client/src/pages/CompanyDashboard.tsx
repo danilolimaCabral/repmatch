@@ -253,6 +253,8 @@ export default function CompanyDashboard() {
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
   const [marketSearch, setMarketSearch] = useState("");
   const [marketPackageSegment, setMarketPackageSegment] = useState("");
+  const [marketPixData, setMarketPixData] = useState<{ qrCode: string; qrCodeBase64: string; label: string; price: number } | null>(null);
+  const [marketPixLoading, setMarketPixLoading] = useState(false);
   const [directChatInput, setDirectChatInput] = useState("");
   const [searchPage, setSearchPage] = useState(1);
   const [searchRegion, setSearchRegion] = useState<string | undefined>(undefined);
@@ -396,12 +398,75 @@ export default function CompanyDashboard() {
   const marketTabActive = activeTab === "marketB2B" || activeTab === "marketB2C";
   const marketAudience = activeTab === "marketB2C" ? "b2c" : "b2b";
   const { data: marketCatalog } = trpc.leadPackages.catalog.useQuery(undefined, { enabled: marketTabActive });
+  const createMarketLeadOrder = trpc.leadPackages.createOrder.useMutation({ onError: (error) => toast.error(error.message) });
+  const createMarketUnlimited = trpc.leadPackages.createUnlimitedAccess.useMutation({ onError: (error) => toast.error(error.message) });
   const { data: marketAccess } = trpc.leadPackages.myUnlimitedAccess.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 20_000 });
   const { data: marketRequest } = trpc.leadPackages.myUnlimitedRequest.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 15_000 });
   const { data: marketResults, isFetching: marketLoading } = trpc.leadPackages.searchUnlimitedCatalog.useQuery(
     { audience: marketAudience, query: marketSearch || undefined, limit: 50 },
     { enabled: marketTabActive && !!marketAccess },
   );
+
+  const startMarketPackagePix = async (quantity: 1000 | 2000) => {
+    if (!user) { navigate("/register?purchase=leads&returnTo=/dashboard/company"); return; }
+    const cnpjDigits = profile?.cnpj?.replace(/\D/g, "") ?? "";
+    if (cnpjDigits.length !== 14) {
+      toast.error("Complete o CNPJ no Perfil da Empresa para gerar o PIX empresarial.");
+      setActiveTab("profile");
+      return;
+    }
+    setMarketPixLoading(true);
+    try {
+      const order = await createMarketLeadOrder.mutateAsync({
+        audience: marketAudience,
+        quantity,
+        segment: marketPackageSegment || undefined,
+        region: "Nacional",
+        legalConsent: true,
+      });
+      const response = await fetch("/api/mp/lead-package-pix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.orderId,
+          userId: user.id,
+          userEmail: user.email ?? "",
+          userName: user.name ?? profile?.companyName ?? "Cliente RepMatch",
+          documentType: "CNPJ",
+          document: cnpjDigits,
+        }),
+      });
+      const pix = await response.json();
+      if (!response.ok || !pix.qrCode || !pix.qrCodeBase64) throw new Error(pix.error ?? "Não foi possível gerar o QR Code PIX.");
+      setMarketPixData({ qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, label: `${quantity.toLocaleString("pt-BR")} empresas ${marketAudience.toUpperCase()}`, price: Number(order.price) });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar o pagamento PIX.");
+    } finally {
+      setMarketPixLoading(false);
+    }
+  };
+
+  const startMarketUnlimitedPix = async () => {
+    if (!user) { navigate("/register?purchase=leads&returnTo=/dashboard/company"); return; }
+    const cnpjDigits = profile?.cnpj?.replace(/\D/g, "") ?? "";
+    if (cnpjDigits.length !== 14) { toast.error("Complete o CNPJ no Perfil da Empresa para gerar o PIX empresarial."); setActiveTab("profile"); return; }
+    setMarketPixLoading(true);
+    try {
+      const access = await createMarketUnlimited.mutateAsync();
+      const response = await fetch("/api/mp/market-search-unlimited-pix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessId: access.accessId, userId: user.id, userEmail: user.email ?? "", userName: user.name ?? profile?.companyName ?? "Cliente RepMatch", documentType: "CNPJ", document: cnpjDigits }),
+      });
+      const pix = await response.json();
+      if (!response.ok || !pix.qrCode || !pix.qrCodeBase64) throw new Error(pix.error ?? "Não foi possível gerar o QR Code PIX.");
+      setMarketPixData({ qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, label: "Plano Pesquisa Ilimitada · 30 dias", price: Number(access.price) });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar o pagamento PIX.");
+    } finally {
+      setMarketPixLoading(false);
+    }
+  };
 
   // ─── Auto-Match: ativa quando não há filtros manuais ativos ───────────────────
   const hasManualFilters = !!(searchRegion || searchSegment || searchTier || searchKycApproved || searchCoreActive || searchAvailability);
@@ -1846,10 +1911,12 @@ export default function CompanyDashboard() {
                     {([1000, 2000] as const).map((quantity) => {
                       const configuredPrice = marketCatalog?.[marketAudience]?.price ?? (marketAudience === "b2b" ? 179 : 149);
                       const price = getLeadPackagePrice(marketAudience, configuredPrice, quantity);
-                      return <Card key={quantity} className={`overflow-hidden border shadow-sm ${quantity === 2000 ? "border-emerald-400 ring-1 ring-emerald-200" : "border-slate-200"}`}><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className={quantity === 2000 ? "bg-emerald-600 text-white hover:bg-emerald-600" : "bg-slate-100 text-slate-700 hover:bg-slate-100"}>{quantity === 2000 ? "Mais escolhido" : "Comece agora"}</Badge><Users className="h-5 w-5 text-emerald-600" /></div><h3 className="mt-4 text-2xl font-black text-slate-900">{quantity.toLocaleString("pt-BR")}</h3><p className="text-sm text-slate-600">empresas {marketAudience.toUpperCase()} para seu time prospectar</p><p className="mt-5 text-3xl font-black text-emerald-700">{price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p><p className="mt-1 text-xs text-slate-500">CNPJ, segmento, região e contatos empresariais quando disponíveis.</p><Button onClick={() => navigate(`/pacotes-leads?audience=${marketAudience}&quantity=${quantity}&segment=${encodeURIComponent(marketPackageSegment)}`)} className="mt-5 min-h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700"><QrCode className="mr-2 h-4 w-4" />Escolher pacote</Button></CardContent></Card>;
+                      return <Card key={quantity} className={`overflow-hidden border shadow-sm ${quantity === 2000 ? "border-emerald-400 ring-1 ring-emerald-200" : "border-slate-200"}`}><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className={quantity === 2000 ? "bg-emerald-600 text-white hover:bg-emerald-600" : "bg-slate-100 text-slate-700 hover:bg-slate-100"}>{quantity === 2000 ? "Mais escolhido" : "Comece agora"}</Badge><Users className="h-5 w-5 text-emerald-600" /></div><h3 className="mt-4 text-2xl font-black text-slate-900">{quantity.toLocaleString("pt-BR")}</h3><p className="text-sm text-slate-600">empresas {marketAudience.toUpperCase()} para seu time prospectar</p><p className="mt-5 text-3xl font-black text-emerald-700">{price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p><p className="mt-1 text-xs text-slate-500">CNPJ, segmento, região e contatos empresariais quando disponíveis.</p><Button onClick={() => startMarketPackagePix(quantity)} disabled={marketPixLoading} className="mt-5 min-h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60">{marketPixLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}Gerar PIX agora</Button></CardContent></Card>;
                     })}
-                    <Card className="overflow-hidden border-emerald-300 bg-gradient-to-br from-emerald-950 to-emerald-800 text-white shadow-sm"><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className="bg-emerald-300 text-emerald-950 hover:bg-emerald-300">Melhor para equipes</Badge><Crown className="h-5 w-5 text-emerald-200" /></div><h3 className="mt-4 text-2xl font-black">Ilimitado</h3><p className="text-sm text-emerald-100">Pesquise quantas empresas quiser durante 30 dias.</p><p className="mt-5 text-3xl font-black">R$ 499<span className="text-sm font-semibold text-emerald-100">/mês</span></p><p className="mt-1 text-xs text-emerald-100">Filtros, contatos disponíveis e exportação para seu CRM.</p><Button onClick={() => navigate("/pacotes-leads?retomar=ilimitado")} className="mt-5 min-h-12 w-full border border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50"><Zap className="mr-2 h-4 w-4" />Assinar e pagar por PIX</Button></CardContent></Card>
+                    <Card className="overflow-hidden border-emerald-300 bg-gradient-to-br from-emerald-950 to-emerald-800 text-white shadow-sm"><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className="bg-emerald-300 text-emerald-950 hover:bg-emerald-300">Melhor para equipes</Badge><Crown className="h-5 w-5 text-emerald-200" /></div><h3 className="mt-4 text-2xl font-black">Ilimitado</h3><p className="text-sm text-emerald-100">Pesquise quantas empresas quiser durante 30 dias.</p><p className="mt-5 text-3xl font-black">R$ 499<span className="text-sm font-semibold text-emerald-100">/mês</span></p><p className="mt-1 text-xs text-emerald-100">Filtros, contatos disponíveis e exportação para seu CRM.</p><Button onClick={startMarketUnlimitedPix} disabled={marketPixLoading} className="mt-5 min-h-12 w-full border border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 disabled:opacity-60">{marketPixLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}Gerar PIX agora</Button></CardContent></Card>
                   </div>
+                  <Card className="border-dashed border-emerald-300 bg-emerald-50/50 shadow-none"><CardContent className="p-5"><div className="flex items-start gap-3"><Eye className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" /><div><p className="font-black text-slate-900">Veja como seu lote chega</p><p className="mt-1 text-sm text-slate-600">A amostra abaixo mostra os campos organizados para importar no CRM. Dados individuais só são liberados depois da confirmação do PIX.</p></div></div><div className="mt-4 overflow-hidden rounded-xl border border-emerald-100 bg-white"><div className="grid grid-cols-3 gap-2 border-b border-emerald-100 bg-emerald-100/60 px-3 py-2 text-[10px] font-extrabold uppercase tracking-wide text-emerald-900"><span>Empresa</span><span>Localização</span><span>Contato</span></div><div className="grid grid-cols-3 gap-2 px-3 py-3 text-xs text-slate-600"><span className="truncate">Empresa {marketAudience.toUpperCase()} •••</span><span className="truncate">Cidade · UF</span><span className="truncate">Telefone/e-mail*</span></div></div><p className="mt-3 text-xs text-slate-500">Inclui CNPJ, razão social, segmento/CNAE, porte, endereço, cidade/UF e, quando disponível, telefone, e-mail, site e Instagram empresarial.</p></CardContent></Card>
+                  <Dialog open={!!marketPixData} onOpenChange={(open) => { if (!open) setMarketPixData(null); }}><DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-3xl p-5 sm:p-6"><DialogHeader><DialogTitle className="text-xl font-black">PIX do pacote gerado</DialogTitle></DialogHeader>{marketPixData && <div className="text-center"><p className="mt-1 text-sm text-slate-600">{marketPixData.label} · {marketPixData.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p><div className="mx-auto mt-5 w-fit rounded-2xl border-2 border-emerald-200 bg-white p-3"><img src={`data:image/png;base64,${marketPixData.qrCodeBase64}`} alt="QR Code PIX do pacote" className="h-56 w-56" /></div><p className="mt-4 font-bold text-emerald-700">Escaneie ou copie o código PIX</p><p className="mt-1 text-xs leading-relaxed text-slate-500">Após o pagamento, o pedido fica disponível para aprovação e liberação administrativa.</p><Button onClick={() => navigator.clipboard.writeText(marketPixData.qrCode).then(() => toast.success("Código PIX copiado"))} className="mt-5 min-h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700"><QrCode className="mr-2 h-4 w-4" />Copiar código PIX</Button></div>}</DialogContent></Dialog>
                 </section>
               )
             ) : <>

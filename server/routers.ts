@@ -1321,6 +1321,23 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         const [setting] = await db.select({ value: platformSettings.value }).from(platformSettings).where(eq(platformSettings.key, key)).limit(1);
         const packagePrice = normalizeLeadPackagePrice(setting?.value, input.audience);
         const price = getLeadPackagePrice(input.audience, packagePrice, input.quantity);
+        const pendingOrders = await db.select({
+          id: leadPackageOrders.id,
+          quantity: leadPackageOrders.quantity,
+          segment: leadPackageOrders.segment,
+          region: leadPackageOrders.region,
+          totalAmount: leadPackageOrders.totalAmount,
+        }).from(leadPackageOrders).where(and(
+          eq(leadPackageOrders.userId, ctx.user.id),
+          eq(leadPackageOrders.audience, input.audience),
+          eq(leadPackageOrders.status, "pending_payment"),
+        )).orderBy(desc(leadPackageOrders.createdAt)).limit(10);
+        const existing = pendingOrders.find((order) =>
+          order.quantity === input.quantity
+          && (order.segment ?? "") === (input.segment ?? "")
+          && (order.region ?? "") === (input.region ?? ""),
+        );
+        if (existing) return { orderId: existing.id, price: Number(existing.totalAmount), quantity: existing.quantity, existing: true };
         const [result] = await db.insert(leadPackageOrders).values({
           userId: ctx.user.id,
           audience: input.audience,
@@ -1335,7 +1352,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         });
         const orderId = getMySqlInsertId(result);
         if (!orderId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível criar o pedido para pagamento." });
-        return { orderId, price, quantity: input.quantity };
+        return { orderId, price, quantity: input.quantity, existing: false };
       }),
 
     myOrders: protectedProcedure.query(async ({ ctx }) => {

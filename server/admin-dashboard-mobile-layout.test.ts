@@ -230,12 +230,21 @@ describe("AdminDashboard mobile layout", () => {
 
   it("offers B2B/B2C package cards with a segment choice and carries the selection to the cart", () => {
     expect(companyDashboardSource).toContain("Pacotes para prospecção");
-    expect(companyDashboardSource).toContain("Escolher pacote");
-    expect(companyDashboardSource).toContain("Assinar e pagar por PIX");
+    expect(companyDashboardSource).toContain("Gerar PIX agora");
     expect(companyDashboardSource).toContain("marketPackageSegment");
     expect(leadPackagesSource).toContain("requestedAudience");
     expect(leadPackagesSource).toContain("requestedQuantity");
     expect(leadPackagesSource).toContain("requestedSegment");
+  });
+
+  it("generates campaign PIX directly in the dashboard and previews the delivered CRM fields", () => {
+    expect(companyDashboardSource).toContain("startMarketPackagePix");
+    expect(companyDashboardSource).toContain('"/api/mp/lead-package-pix"');
+    expect(companyDashboardSource).toContain("startMarketUnlimitedPix");
+    expect(companyDashboardSource).toContain('"/api/mp/market-search-unlimited-pix"');
+    expect(companyDashboardSource).toContain("Veja como seu lote chega");
+    expect(companyDashboardSource).toContain("Dados individuais só são liberados depois da confirmação do PIX");
+    expect(routersSource).toContain("const pendingOrders = await db.select");
   });
 
   it("keeps commercial SEO indexable and removes generic job or review markup", () => {
