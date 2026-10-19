@@ -394,6 +394,7 @@ export default function CompanyDashboard() {
   const marketTabActive = activeTab === "marketB2B" || activeTab === "marketB2C";
   const marketAudience = activeTab === "marketB2C" ? "b2c" : "b2b";
   const { data: marketAccess } = trpc.leadPackages.myUnlimitedAccess.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 20_000 });
+  const { data: marketRequest } = trpc.leadPackages.myUnlimitedRequest.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 15_000 });
   const { data: marketResults, isFetching: marketLoading } = trpc.leadPackages.searchUnlimitedCatalog.useQuery(
     { audience: marketAudience, query: marketSearch || undefined, limit: 50 },
     { enabled: marketTabActive && !!marketAccess },
@@ -1805,7 +1806,44 @@ export default function CompanyDashboard() {
         {marketTabActive && (
           <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-6 rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 sm:p-7"><p className="text-xs font-extrabold uppercase tracking-[.14em] text-emerald-700">Prospecção para o seu time comercial</p><h1 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">Buscar empresas {marketAudience.toUpperCase()}</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">Encontre empresas para seu vendedor prospectar, trabalhar no RepMatch ou importar no CRM. O acesso é liberado pelo Plano Pesquisa Ilimitada.</p></div>
-            {!marketAccess ? <Card className="border-emerald-200 bg-white shadow-sm"><CardContent className="p-6 text-center sm:p-8"><Target className="mx-auto h-10 w-10 text-emerald-600" /><h2 className="mt-4 text-xl font-black text-slate-900">Ative pesquisas ilimitadas</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Por R$ 499 você pesquisa empresas por 30 dias, usa a base para prospecção e acompanha seus pedidos na própria plataforma.</p><Button onClick={() => navigate("/pacotes-leads")} className="mt-5 bg-emerald-600 text-white hover:bg-emerald-700">Ver plano e pagar por PIX</Button></CardContent></Card> : <><div className="mb-5 flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input value={marketSearch} onChange={(event) => setMarketSearch(event.target.value)} className="min-h-12 pl-10" placeholder="Buscar por empresa, cidade, CNAE ou segmento" /></div><Badge className="h-10 justify-center rounded-xl bg-emerald-100 px-4 text-emerald-800 hover:bg-emerald-100">Acesso ativo até {marketAccess.expiresAt ? new Date(marketAccess.expiresAt).toLocaleDateString("pt-BR") : ""}</Badge></div>{marketLoading ? <div className="py-16 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-emerald-600" /></div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{!marketResults?.length ? <p className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">Nenhuma empresa encontrada com estes filtros.</p> : marketResults.map((company) => <Card key={company.id} className="border-slate-200 bg-white"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-black text-slate-900">{company.nomeFantasia || company.razaoSocial}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{company.cnaeDescricao || company.segmento || "Empresa comercial"}</p></div><Badge className="shrink-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">{company.porte || "Empresa"}</Badge></div><div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600"><p>{company.cidade || "Cidade não informada"}{company.estado ? ` · ${company.estado}` : ""}</p><p className="truncate">{company.telefone || "Telefone não informado"}</p><p className="truncate">{company.email || "E-mail não informado"}</p></div></CardContent></Card>)}</div>}</>}
+            {!marketAccess ? (
+              marketRequest?.status === "pending_payment" ? (
+                <Card className="border-amber-200 bg-amber-50/60 shadow-sm">
+                  <CardContent className="p-6 text-center sm:p-8">
+                    <Clock className="mx-auto h-10 w-10 text-amber-600" />
+                    <p className="mt-4 text-xs font-extrabold uppercase tracking-[.14em] text-amber-700">Solicitação guardada no seu carrinho</p>
+                    <h2 className="mt-2 text-xl font-black text-slate-900">Aguardando pagamento PIX</h2>
+                    <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Seu Plano Pesquisa Ilimitada de R$ {Number(marketRequest.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} está reservado. Retome o pagamento para gerar ou copiar o QR Code.</p>
+                    <Button onClick={() => navigate("/pacotes-leads?retomar=ilimitado")} className="mt-5 bg-emerald-600 text-white hover:bg-emerald-700"><QrCode className="mr-2 h-4 w-4" />Retomar pagamento PIX</Button>
+                  </CardContent>
+                </Card>
+              ) : marketRequest?.status === "pending_approval" ? (
+                <Card className="border-blue-200 bg-blue-50/60 shadow-sm">
+                  <CardContent className="p-6 text-center sm:p-8">
+                    <CheckCircle className="mx-auto h-10 w-10 text-blue-600" />
+                    <p className="mt-4 text-xs font-extrabold uppercase tracking-[.14em] text-blue-700">PIX confirmado</p>
+                    <h2 className="mt-2 text-xl font-black text-slate-900">Aguardando sua liberação</h2>
+                    <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Recebemos seu pagamento. A equipe está conferindo a solicitação e ativará as pesquisas ilimitadas por 30 dias.</p>
+                    <Button variant="outline" onClick={() => navigate("/pacotes-leads")} className="mt-5 border-blue-300 text-blue-700 hover:bg-blue-100">Acompanhar solicitação</Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-emerald-200 bg-white shadow-sm">
+                  <CardContent className="p-6 text-center sm:p-8">
+                    <Target className="mx-auto h-10 w-10 text-emerald-600" />
+                    <h2 className="mt-4 text-xl font-black text-slate-900">Ative pesquisas ilimitadas</h2>
+                    <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Por R$ 499 você pesquisa empresas por 30 dias, usa a base para prospecção e acompanha seus pedidos na própria plataforma.</p>
+                    <Button onClick={() => navigate("/pacotes-leads")} className="mt-5 bg-emerald-600 text-white hover:bg-emerald-700">Ver plano e pagar por PIX</Button>
+                  </CardContent>
+                </Card>
+              )
+            ) : <>
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+                <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input value={marketSearch} onChange={(event) => setMarketSearch(event.target.value)} className="min-h-12 pl-10" placeholder="Buscar por empresa, cidade, CNAE ou segmento" /></div>
+                <Badge className="h-10 justify-center rounded-xl bg-emerald-100 px-4 text-emerald-800 hover:bg-emerald-100">Acesso ativo até {marketAccess.expiresAt ? new Date(marketAccess.expiresAt).toLocaleDateString("pt-BR") : ""}</Badge>
+              </div>
+              {marketLoading ? <div className="py-16 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-emerald-600" /></div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{!marketResults?.length ? <p className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">Nenhuma empresa encontrada com estes filtros.</p> : marketResults.map((company) => <Card key={company.id} className="border-slate-200 bg-white"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-black text-slate-900">{company.nomeFantasia || company.razaoSocial}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{company.cnaeDescricao || company.segmento || "Empresa comercial"}</p></div><Badge className="shrink-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">{company.porte || "Empresa"}</Badge></div><div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600"><p>{company.cidade || "Cidade não informada"}{company.estado ? ` · ${company.estado}` : ""}</p><p className="truncate">{company.telefone || "Telefone não informado"}</p><p className="truncate">{company.email || "E-mail não informado"}</p></div></CardContent></Card>)}</div>}
+            </>}
           </div>
         )}
 

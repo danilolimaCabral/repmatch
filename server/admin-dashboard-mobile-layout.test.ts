@@ -197,6 +197,17 @@ describe("AdminDashboard mobile layout", () => {
     expect(leadPackagesSource).toContain("conformidade com a LGPD");
   });
 
+  it("keeps pending PIX requests visible and resumable for campaigns and unlimited research", () => {
+    expect(routersSource).toContain("myUnlimitedRequest: protectedProcedure");
+    expect(routersSource).toContain('inArray(marketLeadAccesses.status, ["pending_payment", "pending_approval"])');
+    expect(companyDashboardSource).toContain("Solicitação guardada no seu carrinho");
+    expect(companyDashboardSource).toContain("Retomar pagamento PIX");
+    expect(leadPackagesSource).toContain("resumeCampaignPayment");
+    expect(leadPackagesSource).toContain("Retomar PIX");
+    expect(leadPackagesSource).toContain('retomar") === "ilimitado"');
+    expect(leadPackagesSource).toContain("PIX em análise");
+  });
+
   it("keeps commercial SEO indexable and removes generic job or review markup", () => {
     expect(seoSource).toContain("structuredData?:");
     expect(leadPackagesSource).toContain('canonical="/pacotes-leads"');

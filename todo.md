@@ -904,3 +904,9 @@
 - [x] Normalizar o payload de CPF/CNPJ antes da criação do pagamento
 - [x] Exibir retorno claro se o Mercado Pago não devolver QR Code
 - [x] Validar o fluxo com testes automatizados
+
+## Acompanhamento de compra e liberação do plano (18/10/2026)
+- [x] Exibir solicitação pendente de PIX no painel B2B/B2C do comprador
+- [x] Permitir retomar a geração do QR Code sem criar nova solicitação
+- [x] Exibir o status em análise e o período ativo após a liberação administrativa
+- [x] Validar o fluxo com TypeScript e testes automatizados

@@ -1200,12 +1200,32 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       return access ?? null;
     }),
 
+    myUnlimitedRequest: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [request] = await db.select().from(marketLeadAccesses)
+        .where(eq(marketLeadAccesses.userId, ctx.user.id))
+        .orderBy(desc(marketLeadAccesses.createdAt))
+        .limit(1);
+      return request ?? null;
+    }),
+
     createUnlimitedAccess: protectedProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const [setting] = await db.select({ value: platformSettings.value }).from(platformSettings)
         .where(eq(platformSettings.key, MARKET_SEARCH_UNLIMITED_PRICE_KEY)).limit(1);
       const price = normalizeMarketSearchUnlimitedPrice(setting?.value);
+      const [existing] = await db.select().from(marketLeadAccesses)
+        .where(and(
+          eq(marketLeadAccesses.userId, ctx.user.id),
+          inArray(marketLeadAccesses.status, ["pending_payment", "pending_approval"]),
+        ))
+        .orderBy(desc(marketLeadAccesses.createdAt))
+        .limit(1);
+      if (existing) {
+        return { accessId: existing.id, price: Number(existing.amount), durationDays: 30, existing: true };
+      }
       const [result] = await db.insert(marketLeadAccesses).values({
         userId: ctx.user.id,
         plan: "unlimited_monthly",
@@ -1214,7 +1234,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       });
       const accessId = getMySqlInsertId(result);
       if (!accessId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível criar a solicitação do plano." });
-      return { accessId, price, durationDays: 30 };
+      return { accessId, price, durationDays: 30, existing: false };
     }),
 
     searchUnlimitedCatalog: protectedProcedure
