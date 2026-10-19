@@ -22,6 +22,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Moon, Sun } from "lucide-react";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
+import { getLeadPackagePrice } from "@shared/leadPackages";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -251,6 +252,7 @@ export default function CompanyDashboard() {
   const [activeChatRepId, setActiveChatRepId] = useState<number | null>(null);
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
   const [marketSearch, setMarketSearch] = useState("");
+  const [marketPackageSegment, setMarketPackageSegment] = useState("");
   const [directChatInput, setDirectChatInput] = useState("");
   const [searchPage, setSearchPage] = useState(1);
   const [searchRegion, setSearchRegion] = useState<string | undefined>(undefined);
@@ -393,6 +395,7 @@ export default function CompanyDashboard() {
   });
   const marketTabActive = activeTab === "marketB2B" || activeTab === "marketB2C";
   const marketAudience = activeTab === "marketB2C" ? "b2c" : "b2b";
+  const { data: marketCatalog } = trpc.leadPackages.catalog.useQuery(undefined, { enabled: marketTabActive });
   const { data: marketAccess } = trpc.leadPackages.myUnlimitedAccess.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 20_000 });
   const { data: marketRequest } = trpc.leadPackages.myUnlimitedRequest.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 15_000 });
   const { data: marketResults, isFetching: marketLoading } = trpc.leadPackages.searchUnlimitedCatalog.useQuery(
@@ -1828,14 +1831,26 @@ export default function CompanyDashboard() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="border-emerald-200 bg-white shadow-sm">
-                  <CardContent className="p-6 text-center sm:p-8">
-                    <Target className="mx-auto h-10 w-10 text-emerald-600" />
-                    <h2 className="mt-4 text-xl font-black text-slate-900">Ative pesquisas ilimitadas</h2>
-                    <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Por R$ 499 você pesquisa empresas por 30 dias, usa a base para prospecção e acompanha seus pedidos na própria plataforma.</p>
-                    <Button onClick={() => navigate("/pacotes-leads")} className="mt-5 bg-emerald-600 text-white hover:bg-emerald-700">Ver plano e pagar por PIX</Button>
-                  </CardContent>
-                </Card>
+                <section className="space-y-5">
+                  <Card className="border-emerald-200 bg-white shadow-sm">
+                    <CardContent className="p-5 sm:p-6">
+                      <div className="flex items-start gap-3"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><Target className="h-5 w-5" /></div><div><p className="text-xs font-extrabold uppercase tracking-[.13em] text-emerald-700">Escolha seu público</p><h2 className="mt-1 text-xl font-black text-slate-900">Pacotes para prospecção {marketAudience.toUpperCase()}</h2><p className="mt-1 text-sm text-slate-600">Selecione um segmento e escolha o tamanho do seu lote. Você segue direto para o carrinho e QR Code PIX.</p></div></div>
+                      <label className="mt-5 block text-sm font-bold text-slate-700">Segmento que deseja prospectar
+                        <select value={marketPackageSegment} onChange={(event) => setMarketPackageSegment(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100">
+                          <option value="">Todos os segmentos</option>{SEGMENTS.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </label>
+                    </CardContent>
+                  </Card>
+                  <div className="grid gap-4 xl:grid-cols-3">
+                    {([1000, 2000] as const).map((quantity) => {
+                      const configuredPrice = marketCatalog?.[marketAudience]?.price ?? (marketAudience === "b2b" ? 179 : 149);
+                      const price = getLeadPackagePrice(marketAudience, configuredPrice, quantity);
+                      return <Card key={quantity} className={`overflow-hidden border shadow-sm ${quantity === 2000 ? "border-emerald-400 ring-1 ring-emerald-200" : "border-slate-200"}`}><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className={quantity === 2000 ? "bg-emerald-600 text-white hover:bg-emerald-600" : "bg-slate-100 text-slate-700 hover:bg-slate-100"}>{quantity === 2000 ? "Mais escolhido" : "Comece agora"}</Badge><Users className="h-5 w-5 text-emerald-600" /></div><h3 className="mt-4 text-2xl font-black text-slate-900">{quantity.toLocaleString("pt-BR")}</h3><p className="text-sm text-slate-600">empresas {marketAudience.toUpperCase()} para seu time prospectar</p><p className="mt-5 text-3xl font-black text-emerald-700">{price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p><p className="mt-1 text-xs text-slate-500">CNPJ, segmento, região e contatos empresariais quando disponíveis.</p><Button onClick={() => navigate(`/pacotes-leads?audience=${marketAudience}&quantity=${quantity}&segment=${encodeURIComponent(marketPackageSegment)}`)} className="mt-5 min-h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700"><QrCode className="mr-2 h-4 w-4" />Escolher pacote</Button></CardContent></Card>;
+                    })}
+                    <Card className="overflow-hidden border-emerald-300 bg-gradient-to-br from-emerald-950 to-emerald-800 text-white shadow-sm"><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className="bg-emerald-300 text-emerald-950 hover:bg-emerald-300">Melhor para equipes</Badge><Crown className="h-5 w-5 text-emerald-200" /></div><h3 className="mt-4 text-2xl font-black">Ilimitado</h3><p className="text-sm text-emerald-100">Pesquise quantas empresas quiser durante 30 dias.</p><p className="mt-5 text-3xl font-black">R$ 499<span className="text-sm font-semibold text-emerald-100">/mês</span></p><p className="mt-1 text-xs text-emerald-100">Filtros, contatos disponíveis e exportação para seu CRM.</p><Button onClick={() => navigate("/pacotes-leads?retomar=ilimitado")} className="mt-5 min-h-12 w-full border border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50"><Zap className="mr-2 h-4 w-4" />Assinar e pagar por PIX</Button></CardContent></Card>
+                  </div>
+                </section>
               )
             ) : <>
               <div className="mb-5 flex flex-col gap-3 sm:flex-row">

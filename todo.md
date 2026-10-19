@@ -922,3 +922,9 @@
 - [x] Registrar o identificador do pagamento emitido no pedido para rastreio administrativo
 - [x] Mostrar no Admin uma prévia real de empresas e campos disponíveis para B2B e B2C
 - [x] Validar o fluxo de QR e a prévia com TypeScript e testes automatizados
+
+## Cards de pacotes B2B/B2C no painel (18/10/2026)
+- [x] Exibir três opções diretas por aba: 1.000 empresas, 2.000 empresas e pesquisa ilimitada
+- [x] Permitir escolher segmento de uma lista pré-definida antes de ir ao checkout
+- [x] Levar o comprador ao carrinho com público, quantidade e segmento já selecionados
+- [x] Validar a navegação e os preços com TypeScript e testes automatizados

@@ -228,6 +228,16 @@ describe("AdminDashboard mobile layout", () => {
     expect(dashboardSource).toContain("QR Code PIX emitido pelo Mercado Pago");
   });
 
+  it("offers B2B/B2C package cards with a segment choice and carries the selection to the cart", () => {
+    expect(companyDashboardSource).toContain("Pacotes para prospecção");
+    expect(companyDashboardSource).toContain("Escolher pacote");
+    expect(companyDashboardSource).toContain("Assinar e pagar por PIX");
+    expect(companyDashboardSource).toContain("marketPackageSegment");
+    expect(leadPackagesSource).toContain("requestedAudience");
+    expect(leadPackagesSource).toContain("requestedQuantity");
+    expect(leadPackagesSource).toContain("requestedSegment");
+  });
+
   it("keeps commercial SEO indexable and removes generic job or review markup", () => {
     expect(seoSource).toContain("structuredData?:");
     expect(leadPackagesSource).toContain('canonical="/pacotes-leads"');

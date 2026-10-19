@@ -121,6 +121,16 @@ export default function LeadPackages() {
   }, [pendingOrder, pendingUnlimitedAccess, unlimitedRequest]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedAudience = params.get("audience");
+    const requestedQuantity = Number(params.get("quantity"));
+    const requestedSegment = params.get("segment");
+    if (requestedAudience === "b2b" || requestedAudience === "b2c") setAudience(requestedAudience);
+    if (requestedQuantity === 1000 || requestedQuantity === 2000) setQuantity(requestedQuantity);
+    if (requestedSegment) setSegment(requestedSegment);
+  }, []);
+
+  useEffect(() => {
     try {
       const raw = window.sessionStorage.getItem(PIX_CHECKOUT_SESSION_KEY);
       if (!raw) return;
