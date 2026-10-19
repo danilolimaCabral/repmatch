@@ -4,7 +4,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import SEO from "@/components/SEO";
 import { getLeadPackagePrice } from "@shared/leadPackages";
-import { formatCpf, isValidCpf, normalizeCpf } from "@shared/const";
+import { formatCnpj, formatCpf, isValidPayerDocument, normalizePayerDocument, type PayerDocumentType } from "@shared/const";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -52,8 +52,9 @@ export default function LeadPackages() {
   const [legalConsent, setLegalConsent] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<{ orderId: number; price: number; quantity: number } | null>(null);
   const [pendingUnlimitedAccess, setPendingUnlimitedAccess] = useState<{ accessId: number; price: number } | null>(null);
-  const [cpf, setCpf] = useState("");
-  const [cpfError, setCpfError] = useState("");
+  const [documentType, setDocumentType] = useState<PayerDocumentType>("CPF");
+  const [payerDocument, setPayerDocument] = useState("");
+  const [documentError, setDocumentError] = useState("");
   const [pixLoading, setPixLoading] = useState(false);
   const [pix, setPix] = useState<{ qrCode: string; qrCodeBase64: string } | null>(null);
   const [catalogSearch, setCatalogSearch] = useState("");
@@ -104,9 +105,11 @@ export default function LeadPackages() {
         label: "Empresas B2C",
         bullets: ["Empresas com atuação B2C ou mista", "Recorte por setor e área de atuação", "Preparação assistida antes da entrega"],
         helper: "Ideal para fornecedores, franquias, varejo, saúde, serviços e marcas de consumo.",
-      };
+  };
   const PackageIcon = packageCopy.icon;
   const hasInventory = currentPackage.available > 0;
+  const documentLabel = documentType === "CNPJ" ? "CNPJ da empresa pagadora" : "CPF do pagador";
+  const documentPlaceholder = documentType === "CNPJ" ? "00.000.000/0000-00" : "000.000.000-00";
 
   async function beginCheckout() {
     if (!user) {
@@ -149,12 +152,12 @@ export default function LeadPackages() {
 
   async function generatePix() {
     if ((!pendingOrder && !pendingUnlimitedAccess) || !user) return;
-    const digits = normalizeCpf(cpf);
-    if (!isValidCpf(digits)) {
-      setCpfError("Confira os 11 dígitos do CPF do pagador.");
+    const digits = normalizePayerDocument(documentType, payerDocument);
+    if (!isValidPayerDocument(documentType, digits)) {
+      setDocumentError(documentType === "CNPJ" ? "Confira os 14 dígitos do CNPJ do pagador." : "Confira os 11 dígitos do CPF do pagador.");
       return;
     }
-    setCpfError("");
+    setDocumentError("");
     setPixLoading(true);
     try {
       const isUnlimited = !!pendingUnlimitedAccess;
@@ -162,8 +165,8 @@ export default function LeadPackages() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(isUnlimited
-          ? { accessId: pendingUnlimitedAccess!.accessId, userId: user.id, userEmail: user.email ?? "", userName: user.name ?? "Cliente RepMatch", cpf: digits }
-          : { orderId: pendingOrder!.orderId, userId: user.id, userEmail: user.email ?? "", userName: user.name ?? "Cliente RepMatch", cpf: digits }),
+          ? { accessId: pendingUnlimitedAccess!.accessId, userId: user.id, userEmail: user.email ?? "", userName: user.name ?? "Cliente RepMatch", documentType, document: digits }
+          : { orderId: pendingOrder!.orderId, userId: user.id, userEmail: user.email ?? "", userName: user.name ?? "Cliente RepMatch", documentType, document: digits }),
       });
       const data = await response.json();
       if (!response.ok || !data.qrCode) throw new Error(data.error ?? "Não foi possível gerar o PIX.");
@@ -314,7 +317,51 @@ export default function LeadPackages() {
         </section>
       </main>
 
-      {(pendingOrder || pendingUnlimitedAccess) && <div className="fixed inset-0 z-50 flex items-end bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4"><div className="w-full rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-7"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Etapa final</p><h2 className="mt-1 text-xl font-black">{pendingUnlimitedAccess ? "Plano Pesquisa Ilimitada" : "Pagamento da campanha"}</h2><p className="mt-1 text-sm text-slate-600">{pendingUnlimitedAccess ? `30 dias de pesquisas ilimitadas · ${formatBRL(pendingUnlimitedAccess.price)}` : `${audience.toUpperCase()} · ${pendingOrder!.quantity.toLocaleString("pt-BR")} empresas · ${formatBRL(pendingOrder!.price)}`}</p></div><button onClick={() => { setPendingOrder(null); setPendingUnlimitedAccess(null); setCpfError(""); }} className="grid h-9 w-9 place-items-center rounded-full text-2xl text-slate-400 transition hover:bg-slate-100" aria-label="Fechar">×</button></div>{!pix ? <><label className="mt-6 block text-sm font-bold">CPF do pagador<input inputMode="numeric" autoComplete="off" value={cpf} onChange={(event) => { setCpf(formatCpf(event.target.value)); if (cpfError) setCpfError(""); }} placeholder="000.000.000-00" aria-invalid={!!cpfError} className={`mt-2 min-h-12 w-full rounded-xl border px-3 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 ${cpfError ? "border-red-400 bg-red-50" : "border-slate-200"}`} /></label>{cpfError && <p className="mt-2 text-sm font-medium text-red-700" role="alert">{cpfError}</p>}<p className="mt-2 text-xs leading-relaxed text-slate-500">O CPF é solicitado pelo Mercado Pago para emitir o PIX e não aparece na entrega do pedido.</p><button onClick={generatePix} disabled={pixLoading} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60">{pixLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Gerar QR Code PIX</button></> : <div className="mt-6 text-center"><img src={`data:image/png;base64,${pix.qrCodeBase64}`} className="mx-auto h-52 w-52" alt="QR Code PIX" /><p className="mt-4 font-black">PIX gerado com sucesso</p><p className="mt-1 text-xs leading-relaxed text-slate-500">A confirmação leva seu pedido para análise e ativação assistida.</p><button onClick={() => navigator.clipboard.writeText(pix.qrCode).then(() => toast.success("Código PIX copiado"))} className="mt-4 min-h-12 w-full rounded-xl border border-emerald-300 px-4 py-3 text-sm font-bold text-emerald-700">Copiar código PIX</button></div>}</div></div>}
+      {(pendingOrder || pendingUnlimitedAccess) && (
+        <div className="fixed inset-0 z-50 flex items-end bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4">
+          <div className="w-full rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-7">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Etapa final</p>
+                <h2 className="mt-1 text-xl font-black">{pendingUnlimitedAccess ? "Plano Pesquisa Ilimitada" : "Pagamento da campanha"}</h2>
+                <p className="mt-1 text-sm text-slate-600">{pendingUnlimitedAccess ? `30 dias de pesquisas ilimitadas · ${formatBRL(pendingUnlimitedAccess.price)}` : `${audience.toUpperCase()} · ${pendingOrder!.quantity.toLocaleString("pt-BR")} empresas · ${formatBRL(pendingOrder!.price)}`}</p>
+              </div>
+              <button onClick={() => { setPendingOrder(null); setPendingUnlimitedAccess(null); setDocumentError(""); }} className="grid h-9 w-9 place-items-center rounded-full text-2xl text-slate-400 transition hover:bg-slate-100" aria-label="Fechar">×</button>
+            </div>
+
+            {!pix ? (
+              <>
+                <fieldset className="mt-6">
+                  <legend className="text-sm font-bold text-slate-900">Tipo de documento do pagador</legend>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    {(["CPF", "CNPJ"] as const).map((type) => (
+                      <button key={type} type="button" onClick={() => { setDocumentType(type); setPayerDocument(""); setDocumentError(""); }} className={`min-h-12 rounded-xl border px-3 text-sm font-extrabold transition ${documentType === type ? "border-emerald-600 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"}`} aria-pressed={documentType === type}>
+                        {type === "CPF" ? "Pessoa física · CPF" : "Empresa · CNPJ"}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+                <label className="mt-5 block text-sm font-bold">
+                  {documentLabel}
+                  <input inputMode="numeric" autoComplete="off" value={payerDocument} onChange={(event) => { const next = documentType === "CNPJ" ? formatCnpj(event.target.value) : formatCpf(event.target.value); setPayerDocument(next); if (documentError) setDocumentError(""); }} placeholder={documentPlaceholder} aria-invalid={!!documentError} className={`mt-2 min-h-12 w-full rounded-xl border px-3 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 ${documentError ? "border-red-400 bg-red-50" : "border-slate-200"}`} />
+                </label>
+                {documentError && <p className="mt-2 text-sm font-medium text-red-700" role="alert">{documentError}</p>}
+                <p className="mt-2 text-xs leading-relaxed text-slate-500">O {documentType} é solicitado pelo Mercado Pago para emitir o PIX e não aparece na entrega do pedido.</p>
+                <button onClick={generatePix} disabled={pixLoading} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60">
+                  {pixLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Gerar QR Code PIX
+                </button>
+              </>
+            ) : (
+              <div className="mt-6 text-center">
+                <img src={`data:image/png;base64,${pix.qrCodeBase64}`} className="mx-auto h-52 w-52" alt="QR Code PIX" />
+                <p className="mt-4 font-black">PIX gerado com sucesso</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">A confirmação leva seu pedido para análise e ativação assistida.</p>
+                <button onClick={() => navigator.clipboard.writeText(pix.qrCode).then(() => toast.success("Código PIX copiado"))} className="mt-4 min-h-12 w-full rounded-xl border border-emerald-300 px-4 py-3 text-sm font-bold text-emerald-700">Copiar código PIX</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -112,3 +112,42 @@ export function isValidCpf(value?: string | null): boolean {
 
   return calculateDigit(9) === Number(cpf[9]) && calculateDigit(10) === Number(cpf[10]);
 }
+
+export type PayerDocumentType = "CPF" | "CNPJ";
+
+export function normalizeCnpj(value?: string | null): string {
+  return (value ?? "").replace(/\D/g, "").slice(0, 14);
+}
+
+export function formatCnpj(value?: string | null): string {
+  const digits = normalizeCnpj(value);
+  return digits
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
+/** Validação dos dois dígitos verificadores do CNPJ, sem consultar ou armazenar o documento. */
+export function isValidCnpj(value?: string | null): boolean {
+  const cnpj = normalizeCnpj(value);
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+
+  const calculateDigit = (base: string, weights: number[]) => {
+    const total = base.split("").reduce((sum, digit, index) => sum + Number(digit) * weights[index], 0);
+    const remainder = total % 11;
+    return remainder < 2 ? 0 : 11 - remainder;
+  };
+
+  const firstDigit = calculateDigit(cnpj.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const secondDigit = calculateDigit(cnpj.slice(0, 12) + firstDigit, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  return firstDigit === Number(cnpj[12]) && secondDigit === Number(cnpj[13]);
+}
+
+export function normalizePayerDocument(type: PayerDocumentType, value?: string | null): string {
+  return type === "CNPJ" ? normalizeCnpj(value) : normalizeCpf(value);
+}
+
+export function isValidPayerDocument(type: PayerDocumentType, value?: string | null): boolean {
+  return type === "CNPJ" ? isValidCnpj(value) : isValidCpf(value);
+}

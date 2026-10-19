@@ -892,3 +892,9 @@
 - [x] Aplicar máscara automática e mensagem de correção clara no checkout de campanhas
 - [x] Proteger o backend contra CPF inválido e nome de pagador vazio
 - [x] Cobrir a validação com testes automatizados
+
+## Checkout B2B com CNPJ (18/10/2026)
+- [x] Oferecer escolha entre CPF e CNPJ no checkout de campanhas
+- [x] Aplicar máscara e validação dos dígitos verificadores do CNPJ
+- [x] Enviar a identificação empresarial correta ao Mercado Pago nos pagamentos PIX
+- [x] Cobrir CPF e CNPJ por testes automatizados

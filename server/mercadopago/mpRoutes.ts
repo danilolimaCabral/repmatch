@@ -3,7 +3,7 @@ import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
 import { representatives, companies, users, unlockRequests, unlockRequestItems, leadPackageOrders, marketLeadAccesses } from "../../drizzle/schema";
 import { and, eq } from "drizzle-orm";
-import { CONTACT_UNLOCK_PRICE, isValidCpf, normalizeCpf } from "@shared/const";
+import { CONTACT_UNLOCK_PRICE, isValidCpf, isValidPayerDocument, normalizeCpf, normalizePayerDocument, type PayerDocumentType } from "@shared/const";
 import { notifyOwner } from "../_core/notification";
 
 const mp = new MercadoPagoConfig({
@@ -23,10 +23,16 @@ function getPayerName(userName?: string) {
 
 function paymentErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : "";
-  if (/identification|cpf|payer|data.*invalid|invalid.*data/i.test(message)) {
-    return "Não foi possível validar os dados do pagador. Confira o CPF e tente novamente.";
+  if (/identification|cpf|cnpj|payer|data.*invalid|invalid.*data/i.test(message)) {
+    return "Não foi possível validar os dados do pagador. Confira o CPF ou CNPJ e tente novamente.";
   }
   return message || "Não foi possível gerar o PIX. Tente novamente.";
+}
+
+function getPayerDocument(documentType?: PayerDocumentType, document?: string, legacyCpf?: string) {
+  const type: PayerDocumentType = documentType === "CNPJ" ? "CNPJ" : "CPF";
+  const number = normalizePayerDocument(type, document ?? legacyCpf);
+  return { type, number, valid: isValidPayerDocument(type, number) };
 }
 
 // ─── Planos e preços ─────────────────────────────────────────────────────────
@@ -180,12 +186,12 @@ mpRouter.post("/unlock-pix", async (req: Request, res: Response) => {
 // ─── Gerar PIX para pacote de leads B2B/B2C ───────────────────────────────────
 mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
   try {
-    const { orderId, userId, userEmail, userName, cpf } = req.body as {
-      orderId: number; userId: number; userEmail: string; userName: string; cpf: string;
+    const { orderId, userId, userEmail, userName, documentType, document, cpf } = req.body as {
+      orderId: number; userId: number; userEmail: string; userName: string; documentType?: PayerDocumentType; document?: string; cpf?: string;
     };
     if (!orderId || !userId) return res.status(400).json({ error: "Dados inválidos" });
-    const payerCpf = normalizeCpf(cpf);
-    if (!isValidCpf(payerCpf)) return res.status(400).json({ error: "CPF inválido. Confira os 11 dígitos do pagador." });
+    const payerDocument = getPayerDocument(documentType, document, cpf);
+    if (!payerDocument.valid) return res.status(400).json({ error: `${payerDocument.type} inválido. Confira os dígitos do pagador.` });
     const db = await getDb();
     if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
     const [order] = await db.select({ id: leadPackageOrders.id, audience: leadPackageOrders.audience, quantity: leadPackageOrders.quantity, totalAmount: leadPackageOrders.totalAmount, status: leadPackageOrders.status })
@@ -204,7 +210,7 @@ mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
           email: userEmail,
           first_name: getPayerName(userName).firstName,
           last_name: getPayerName(userName).lastName,
-          identification: { type: "CPF", number: payerCpf },
+          identification: { type: payerDocument.type, number: payerDocument.number },
         },
         metadata: { type: "lead_package", order_id: orderId, user_id: userId, audience: order.audience },
       },
@@ -220,10 +226,10 @@ mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
 // ─── Gerar PIX para o Plano Pesquisa Ilimitada ─────────────────────────────────
 mpRouter.post("/market-search-unlimited-pix", async (req: Request, res: Response) => {
   try {
-    const { accessId, userId, userEmail, userName, cpf } = req.body as { accessId: number; userId: number; userEmail: string; userName: string; cpf: string };
+    const { accessId, userId, userEmail, userName, documentType, document, cpf } = req.body as { accessId: number; userId: number; userEmail: string; userName: string; documentType?: PayerDocumentType; document?: string; cpf?: string };
     if (!accessId || !userId) return res.status(400).json({ error: "Dados inválidos" });
-    const payerCpf = normalizeCpf(cpf);
-    if (!isValidCpf(payerCpf)) return res.status(400).json({ error: "CPF inválido. Confira os 11 dígitos do pagador." });
+    const payerDocument = getPayerDocument(documentType, document, cpf);
+    if (!payerDocument.valid) return res.status(400).json({ error: `${payerDocument.type} inválido. Confira os dígitos do pagador.` });
     const db = await getDb();
     if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
     const [access] = await db.select({ id: marketLeadAccesses.id, amount: marketLeadAccesses.amount, status: marketLeadAccesses.status })
@@ -232,7 +238,7 @@ mpRouter.post("/market-search-unlimited-pix", async (req: Request, res: Response
     const payment = new Payment(mp);
     const result = await payment.create({ body: {
       transaction_amount: Number(access.amount), description: "Plano Pesquisa Ilimitada — 30 dias | RepMatch", payment_method_id: "pix",
-      payer: { email: userEmail, first_name: getPayerName(userName).firstName, last_name: getPayerName(userName).lastName, identification: { type: "CPF", number: payerCpf } },
+      payer: { email: userEmail, first_name: getPayerName(userName).firstName, last_name: getPayerName(userName).lastName, identification: { type: payerDocument.type, number: payerDocument.number } },
       metadata: { type: "market_search_unlimited", access_id: accessId, user_id: userId },
     }});
     const txInfo = result.point_of_interaction?.transaction_data;
