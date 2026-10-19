@@ -483,6 +483,109 @@ export const savedMarketLeads = mysqlTable("saved_market_leads", {
 export type SavedMarketLead = typeof savedMarketLeads.$inferSelect;
 export type InsertSavedMarketLead = typeof savedMarketLeads.$inferInsert;
 
+// ─── Base B2C de pessoas físicas com consentimento declarado ──────────────────
+// Esta base é isolada do catálogo empresarial: armazena somente nome, telefone e
+// e-mail. Campos de operação/origem (vendedor, observações, propostas etc.) não
+// fazem parte deste schema e jamais são disponibilizados ao comprador.
+export const consumerLeadImportBatches = mysqlTable("consumer_lead_import_batches", {
+  id: int("id").autoincrement().primaryKey(),
+  sourceLabel: varchar("source_label", { length: 120 }).notNull(),
+  fileSha256: char("file_sha256", { length: 64 }).notNull().unique(),
+  consentAttested: boolean("consent_attested").default(false).notNull(),
+  consentPolicyVersion: varchar("consent_policy_version", { length: 60 }).notNull(),
+  totalRows: int("total_rows").default(0).notNull(),
+  acceptedRows: int("accepted_rows").default(0).notNull(),
+  duplicateRows: int("duplicate_rows").default(0).notNull(),
+  rejectedRows: int("rejected_rows").default(0).notNull(),
+  importedBy: int("imported_by"),
+  status: mysqlEnum("status", ["processing", "completed", "failed"]).default("processing").notNull(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ConsumerLeadImportBatch = typeof consumerLeadImportBatches.$inferSelect;
+
+export const consumerLeads = mysqlTable("consumer_leads", {
+  id: int("id").autoincrement().primaryKey(),
+  importBatchId: int("import_batch_id").notNull(),
+  fullName: varchar("full_name", { length: 700 }).notNull(),
+  phone: varchar("phone", { length: 120 }),
+  email: varchar("email", { length: 400 }),
+  phoneHash: char("phone_hash", { length: 64 }),
+  emailHash: char("email_hash", { length: 64 }),
+  contactKey: char("contact_key", { length: 64 }).notNull(),
+  consentStatus: mysqlEnum("consent_status", ["declared", "revoked"]).default("declared").notNull(),
+  available: boolean("available").default(true).notNull(),
+  consentDeclaredAt: timestamp("consent_declared_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  contactKeyUnique: uniqueIndex("consumer_leads_contact_key_unique").on(t.contactKey),
+  phoneUnique: uniqueIndex("consumer_leads_phone_hash_unique").on(t.phoneHash),
+  emailUnique: uniqueIndex("consumer_leads_email_hash_unique").on(t.emailHash),
+  availableConsentIdx: index("consumer_leads_available_consent_idx").on(t.available, t.consentStatus),
+  batchIdx: index("consumer_leads_batch_idx").on(t.importBatchId),
+}));
+export type ConsumerLead = typeof consumerLeads.$inferSelect;
+
+// ─── Pedidos de pacotes B2C PF: 50 ou 100 contatos ───────────────────────────
+export const consumerLeadOrders = mysqlTable("consumer_lead_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  quantity: int("quantity").notNull(),
+  legalConsent: boolean("legal_consent").default(false).notNull(),
+  paymentMethod: mysqlEnum("payment_method", ["pix"]).default("pix").notNull(),
+  status: mysqlEnum("status", ["pending_payment", "pending_approval", "approved", "rejected", "delivered", "cancelled"]).default("pending_payment").notNull(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  mpPaymentId: varchar("mp_payment_id", { length: 100 }),
+  adminNotes: text("admin_notes"),
+  reviewedBy: int("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  userCreatedIdx: index("consumer_lead_order_user_created_idx").on(t.userId, t.createdAt),
+  statusCreatedIdx: index("consumer_lead_order_status_created_idx").on(t.status, t.createdAt),
+}));
+export type ConsumerLeadOrder = typeof consumerLeadOrders.$inferSelect;
+
+// ─── Acesso ilimitado mensal à base B2C PF ─────────────────────────────────────
+export const consumerLeadAccesses = mysqlTable("consumer_lead_accesses", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  legalConsent: boolean("legal_consent").notNull().default(false),
+  status: mysqlEnum("status", ["pending_payment", "pending_approval", "active", "rejected", "expired", "cancelled"]).default("pending_payment").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  mpPaymentId: varchar("mp_payment_id", { length: 100 }),
+  reviewedBy: int("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  startsAt: timestamp("starts_at"),
+  expiresAt: timestamp("expires_at"),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  userStatusExpiryIdx: index("consumer_lead_access_user_status_expiry_idx").on(t.userId, t.status, t.expiresAt),
+  statusCreatedIdx: index("consumer_lead_access_status_created_idx").on(t.status, t.createdAt),
+}));
+export type ConsumerLeadAccess = typeof consumerLeadAccesses.$inferSelect;
+
+// ─── Contatos PF escolhidos pelo comprador ─────────────────────────────────────
+export const savedConsumerLeads = mysqlTable("saved_consumer_leads", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  consumerLeadOrderId: int("consumer_lead_order_id"),
+  consumerLeadAccessId: int("consumer_lead_access_id"),
+  consumerLeadId: int("consumer_lead_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  userCreatedIdx: index("saved_consumer_leads_user_created_idx").on(t.userId, t.createdAt),
+  orderIdx: index("saved_consumer_leads_order_idx").on(t.consumerLeadOrderId),
+  accessIdx: index("saved_consumer_leads_access_idx").on(t.consumerLeadAccessId),
+  userLeadUnique: uniqueIndex("saved_consumer_leads_user_lead_unique").on(t.userId, t.consumerLeadId),
+}));
+export type SavedConsumerLead = typeof savedConsumerLeads.$inferSelect;
+
 // ─── Unlock Requests (Carrinho de desbloqueios via Pix ou Stripe) ───────────────
 export const unlockRequests = mysqlTable("unlock_requests", {
   id: int("id").autoincrement().primaryKey(),

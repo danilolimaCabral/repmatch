@@ -57,6 +57,7 @@ import { consultarCnpj } from "./cnpja";
 import { resolveIbgeMunicipality } from "./ibge";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
+import { consumerLeadPackagesRouter } from "./consumerLeadRouter";
 
 
 /// ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1632,6 +1633,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
   }),
 
   // ─── Precificação comercial ──────────────────────────────────────────────────
+  consumerLeadPackages: consumerLeadPackagesRouter,
   pricing: router({
     contactUnlockPrice: publicProcedure.query(async () => {
       const db = await getDb();

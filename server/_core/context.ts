@@ -12,7 +12,7 @@ export type TrpcContext = {
 
 const JWT_SECRET = new TextEncoder().encode(ENV.cookieSecret || "repmatch-secret-key-2024");
 
-async function getAuthUser(req: CreateExpressContextOptions["req"]): Promise<User | null> {
+export async function getAuthUser(req: CreateExpressContextOptions["req"]): Promise<User | null> {
   try {
     const cookieHeader = req.headers.cookie || "";
     const match = cookieHeader.match(/(?:^|;\s*)rm_session=([^;]+)/);

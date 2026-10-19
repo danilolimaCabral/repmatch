@@ -232,6 +232,34 @@
       "when": 1792414006621,
       "tag": "0032_nice_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1792422878413,
+      "tag": "0033_messy_blink",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "5",
+      "when": 1792423909212,
+      "tag": "0034_bouncy_wind_dancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1792424096272,
+      "tag": "0035_demonic_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "5",
+      "when": 1792425632731,
+      "tag": "0036_sleepy_metal_master",
+      "breakpoints": true
     }
   ]
 }

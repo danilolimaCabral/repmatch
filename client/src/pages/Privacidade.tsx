@@ -4,7 +4,7 @@ import { ArrowLeft, Shield, Eye, Database, UserX, Bell, Lock, Mail } from "lucid
 const COMPANY_NAME = "RepMatch";
 const COMPANY_EMAIL = "privacidade@repmatch.com.br";
 const COMPANY_WHATSAPP = "41999499815";
-const LAST_UPDATE = "30 de abril de 2026";
+const LAST_UPDATE = "19 de outubro de 2026";
 
 export default function Privacidade() {
   return (
@@ -90,6 +90,14 @@ export default function Privacidade() {
               <li>Cookies analíticos (apenas com seu consentimento)</li>
               <li>Histórico de buscas e matches realizados na plataforma</li>
             </ul>
+
+            <SubTitle>2.4 Base de Contatos B2C</SubTitle>
+            <p className="text-muted-foreground">
+              Para a oferta de contatos B2C, tratamos somente nome, telefone e/ou e-mail de titulares cuja autorização de contato e compartilhamento comercial foi declarada pela fonte de origem. Não incluímos CPF, endereço, dados financeiros, responsável comercial, loja, proposta, observações de CRM ou histórico de atendimento nessa base.
+            </p>
+            <p className="text-muted-foreground">
+              Os contatos ficam cifrados em repouso. Antes da seleção, compradores veem apenas a disponibilidade de telefone e e-mail; os dados de identificação são exibidos exclusivamente após a escolha individual e ficam restritos à lista daquele comprador.
+            </p>
           </Section>
 
           {/* 3. Finalidades */}
@@ -108,6 +116,7 @@ export default function Privacidade() {
                     ["Criar e gerenciar sua conta", "Execução de contrato (Art. 7º, V)"],
                     ["Conectar representantes e empresas (match)", "Execução de contrato (Art. 7º, V)"],
                     ["Processar pagamentos via Stripe/PIX", "Execução de contrato (Art. 7º, V)"],
+                    ["Disponibilizar contato B2C selecionado a comprador autorizado", "Consentimento informado pela fonte de origem e execução do serviço (Arts. 7º, I e V)"],
                     ["Enviar notificações de match e vagas", "Legítimo interesse (Art. 7º, IX)"],
                     ["Melhorar a plataforma com analytics", "Consentimento (Art. 7º, I)"],
                     ["Cumprir obrigações legais e fiscais", "Obrigação legal (Art. 7º, II)"],
@@ -125,12 +134,13 @@ export default function Privacidade() {
 
           {/* 4. Compartilhamento */}
           <Section icon={<Lock className="w-5 h-5 text-green-500" />} title="4. Compartilhamento de Dados">
-            <p>Seus dados <strong>não são vendidos</strong> a terceiros. Compartilhamos apenas com:</p>
+            <p>Não comercializamos dados de conta de usuários. Quando aplicável, disponibilizamos contatos B2C individualmente selecionados para compradores identificados, exclusivamente para a finalidade comercial informada, sob aceite de uso responsável e com rastreabilidade de seleção.</p>
             <ul className="list-disc pl-6 space-y-2 text-muted-foreground mt-3">
-              <li><strong>Stripe Inc.</strong> — processamento de pagamentos com cartão. Política: <a href="https://stripe.com/br/privacy" className="text-green-400 hover:underline" target="_blank" rel="noopener noreferrer">stripe.com/br/privacy</a></li>
+              <li><strong>Mercado Pago e Stripe Inc.</strong> — processamento de pagamentos, conforme o meio escolhido; não armazenamos dados de cartão</li>
               <li><strong>BrasilAPI / Receita Federal</strong> — consulta pública de CNPJ (dados já públicos)</li>
               <li><strong>Autenticação própria</strong> — e-mail e senha com JWT</li>
               <li><strong>Empresas contratantes</strong> — apenas os dados do perfil que o representante optou por tornar visível</li>
+              <li><strong>Compradores B2C identificados</strong> — somente nome, telefone e/ou e-mail do contato que escolheram individualmente, conforme a finalidade contratada e o controle de acesso da plataforma</li>
               <li><strong>Autoridades públicas</strong> — quando exigido por lei ou ordem judicial</li>
             </ul>
             <p className="mt-4 text-muted-foreground">
@@ -179,6 +189,7 @@ export default function Privacidade() {
               <li><strong>Dados fiscais e de pagamento:</strong> 5 anos (obrigação legal — Código Tributário)</li>
               <li><strong>Logs de acesso:</strong> 6 meses (Marco Civil da Internet — Lei 12.965/2014)</li>
               <li><strong>Registros de consentimento:</strong> 5 anos após revogação</li>
+              <li><strong>Base B2C:</strong> enquanto houver finalidade e autorização válidas; contatos com oposição, revogação ou inconsistência de origem são indisponibilizados e seguem o fluxo de exclusão</li>
             </ul>
             <p className="mt-4 text-muted-foreground">
               Você pode solicitar a exclusão imediata da sua conta e dados pessoais a qualquer momento
@@ -196,6 +207,7 @@ export default function Privacidade() {
               <li><strong>Dados de pagamento:</strong> processados exclusivamente pelo Stripe (PCI DSS Level 1)</li>
               <li><strong>Banco de dados:</strong> acesso restrito com credenciais rotacionadas</li>
               <li><strong>Contatos mascarados:</strong> telefones e e-mails de representantes são ocultados até desbloqueio pago</li>
+              <li><strong>Base B2C cifrada:</strong> nome, telefone e e-mail são cifrados em repouso e só são decifrados na lista do comprador autorizado</li>
               <li><strong>Controle de acesso:</strong> cada usuário acessa apenas seus próprios dados</li>
               <li><strong>Monitoramento:</strong> logs de acesso e auditoria de operações sensíveis</li>
             </ul>

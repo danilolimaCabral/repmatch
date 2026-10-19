@@ -212,6 +212,9 @@ export default function AdminDashboard() {
   );
   const { data: leadOrders, refetch: refetchLeadOrders } = trpc.leadPackages.adminList.useQuery(undefined, { enabled: activeTab === "comercial" || activeTab === "desbloqueios", refetchInterval: 15_000 });
   const { data: unlimitedAccesses, refetch: refetchUnlimitedAccesses } = trpc.leadPackages.adminUnlimitedAccesses.useQuery(undefined, { enabled: activeTab === "comercial" || activeTab === "desbloqueios", refetchInterval: 15_000 });
+  const { data: consumerLeadPreview, refetch: refetchConsumerLeadPreview } = trpc.consumerLeadPackages.adminPreview.useQuery(undefined, { enabled: activeTab === "comercial" || activeTab === "desbloqueios" });
+  const { data: consumerLeadOrders, refetch: refetchConsumerLeadOrders } = trpc.consumerLeadPackages.adminList.useQuery(undefined, { enabled: activeTab === "comercial" || activeTab === "desbloqueios", refetchInterval: 15_000 });
+  const { data: consumerLeadAccesses, refetch: refetchConsumerLeadAccesses } = trpc.consumerLeadPackages.adminUnlimitedAccesses.useQuery(undefined, { enabled: activeTab === "comercial" || activeTab === "desbloqueios", refetchInterval: 15_000 });
   const updateLeadPackagePriceMutation = trpc.admin.updateLeadPackagePrice.useMutation({
     onSuccess: (result) => {
       toast.success(`Pacote ${result.audience.toUpperCase()} atualizado para ${result.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`);
@@ -233,6 +236,22 @@ export default function AdminDashboard() {
   });
   const confirmUnlimitedPixMutation = trpc.leadPackages.confirmUnlimitedPix.useMutation({
     onSuccess: () => { toast.success("PIX confirmado. O plano está pronto para ativação."); refetchUnlimitedAccesses(); },
+    onError: (error) => toast.error(error.message),
+  });
+  const reviewConsumerLeadOrderMutation = trpc.consumerLeadPackages.review.useMutation({
+    onSuccess: () => { toast.success("Status do pedido B2C atualizado."); refetchConsumerLeadOrders(); },
+    onError: (error) => toast.error(error.message),
+  });
+  const confirmConsumerLeadPixMutation = trpc.consumerLeadPackages.confirmPix.useMutation({
+    onSuccess: () => { toast.success("PIX confirmado. O pacote B2C está pronto para liberação."); refetchConsumerLeadOrders(); },
+    onError: (error) => toast.error(error.message),
+  });
+  const reviewConsumerUnlimitedMutation = trpc.consumerLeadPackages.reviewUnlimitedAccess.useMutation({
+    onSuccess: () => { toast.success("Plano B2C atualizado."); refetchConsumerLeadAccesses(); },
+    onError: (error) => toast.error(error.message),
+  });
+  const confirmConsumerUnlimitedPixMutation = trpc.consumerLeadPackages.confirmUnlimitedPix.useMutation({
+    onSuccess: () => { toast.success("PIX confirmado. O plano B2C está pronto para ativação."); refetchConsumerLeadAccesses(); },
     onError: (error) => toast.error(error.message),
   });
 
@@ -1006,6 +1025,18 @@ export default function AdminDashboard() {
                       {order.status === "approved" && <div className="mt-4"><Button size="sm" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "delivered" })}><CheckCircle className="mr-1 h-3.5 w-3.5" />Marcar como entregue</Button></div>}
                     </article>
                   ))}
+                </div>
+              </section>
+
+              <section className="mt-5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-indigo-700">Base separada de contatos PF</p><h2 className="mt-1 font-bold text-foreground">Contatos B2C — 50, 100 e ilimitado</h2><p className="mt-1 max-w-2xl text-sm text-muted-foreground">A prévia administrativa é apenas agregada. A aplicação não mostra nem exporta vendedor, proposta, observação ou outros campos internos.</p></div>
+                  <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => refetchConsumerLeadPreview()} className="border-indigo-300 text-indigo-800 hover:bg-indigo-100"><RefreshCw className="mr-2 h-4 w-4" />Atualizar base</Button><Button size="sm" variant="outline" onClick={() => window.open("/contatos-b2c", "_blank")}><ArrowUpRight className="mr-2 h-4 w-4" />Página de vendas</Button></div>
+                </div>
+                <div className="mt-5 grid grid-cols-3 gap-3">{[{ label: "Contatos ativos", value: consumerLeadPreview?.total }, { label: "Com telefone", value: consumerLeadPreview?.withPhone }, { label: "Com e-mail", value: consumerLeadPreview?.withEmail }].map((item) => <div key={item.label} className="rounded-xl bg-white p-3 ring-1 ring-indigo-100"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{item.label}</p><p className="mt-1 text-xl font-black text-slate-900">{item.value === undefined ? "…" : item.value.toLocaleString("pt-BR")}</p></div>)}</div>
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-xl border border-indigo-100 bg-white p-4"><p className="font-bold text-foreground">Pacotes B2C de contatos</p><p className="mt-1 text-xs text-muted-foreground">R$ 99 por 50 contatos · R$ 199 por 100 contatos</p><div className="mt-4 space-y-3">{!consumerLeadOrders?.length ? <p className="rounded-lg bg-slate-50 p-4 text-center text-sm text-muted-foreground">Nenhum pedido B2C até o momento.</p> : consumerLeadOrders.map((order) => <article key={order.id} className="rounded-xl border border-slate-200 p-3"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-bold text-slate-950">#{order.id} · {order.quantity} contatos B2C</p><p className="mt-1 break-all text-xs text-slate-600">{order.buyerName || "Cliente"} · {order.buyerEmail || "E-mail não informado"}</p></div><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">{Number(order.totalAmount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div><p className="mt-2 text-xs font-medium text-indigo-800">{order.status === "pending_payment" ? "Aguardando PIX" : order.status === "pending_approval" ? "PIX confirmado" : order.status === "approved" ? "Pronto para seleção" : order.status === "delivered" ? "Liberado" : order.status}</p>{order.status === "pending_payment" && <Button size="sm" className="mt-3 bg-blue-600 hover:bg-blue-700" disabled={confirmConsumerLeadPixMutation.isPending} onClick={() => confirmConsumerLeadPixMutation.mutate({ orderId: order.id })}><CheckCheck className="mr-1 h-3.5 w-3.5" />Confirmar PIX</Button>}{order.status === "pending_approval" && <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" className="bg-indigo-600 hover:bg-indigo-700" disabled={reviewConsumerLeadOrderMutation.isPending} onClick={() => reviewConsumerLeadOrderMutation.mutate({ orderId: order.id, status: "approved" })}><CheckCheck className="mr-1 h-3.5 w-3.5" />Liberar créditos</Button><Button size="sm" variant="outline" className="border-red-300 text-red-700" onClick={() => reviewConsumerLeadOrderMutation.mutate({ orderId: order.id, status: "rejected" })}>Rejeitar</Button></div>}{order.status === "approved" && <Button size="sm" className="mt-3 bg-indigo-600 hover:bg-indigo-700" disabled={reviewConsumerLeadOrderMutation.isPending} onClick={() => reviewConsumerLeadOrderMutation.mutate({ orderId: order.id, status: "delivered" })}><CheckCircle className="mr-1 h-3.5 w-3.5" />Marcar liberado</Button>}</article>)}</div></div>
+                  <div className="rounded-xl border border-cyan-100 bg-white p-4"><p className="font-bold text-foreground">Plano B2C ilimitado — R$ 999/mês</p><p className="mt-1 text-xs text-muted-foreground">Ative 30 dias após conferir o PIX.</p><div className="mt-4 space-y-3">{!consumerLeadAccesses?.length ? <p className="rounded-lg bg-slate-50 p-4 text-center text-sm text-muted-foreground">Nenhum plano B2C ilimitado até o momento.</p> : consumerLeadAccesses.map((access) => <article key={access.id} className="rounded-xl border border-slate-200 p-3"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-bold text-slate-950">#{access.id} · B2C ilimitado</p><p className="mt-1 break-all text-xs text-slate-600">{access.buyerName || "Cliente"} · {access.buyerEmail || "E-mail não informado"}</p></div><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">{Number(access.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div><p className="mt-2 text-xs font-medium text-cyan-800">{access.status === "pending_payment" ? "Aguardando PIX" : access.status === "pending_approval" ? "PIX confirmado" : access.status === "active" ? `Ativo até ${access.expiresAt ? new Date(access.expiresAt).toLocaleDateString("pt-BR") : ""}` : access.status}</p>{access.status === "pending_payment" && <Button size="sm" className="mt-3 bg-blue-600 hover:bg-blue-700" disabled={confirmConsumerUnlimitedPixMutation.isPending} onClick={() => confirmConsumerUnlimitedPixMutation.mutate({ accessId: access.id })}><CheckCheck className="mr-1 h-3.5 w-3.5" />Confirmar PIX</Button>}{access.status === "pending_approval" && <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" className="bg-cyan-600 hover:bg-cyan-700" disabled={reviewConsumerUnlimitedMutation.isPending} onClick={() => reviewConsumerUnlimitedMutation.mutate({ accessId: access.id, status: "active" })}><CheckCheck className="mr-1 h-3.5 w-3.5" />Ativar 30 dias</Button><Button size="sm" variant="outline" className="border-red-300 text-red-700" onClick={() => reviewConsumerUnlimitedMutation.mutate({ accessId: access.id, status: "rejected" })}>Rejeitar</Button></div>}</article>)}</div></div>
                 </div>
               </section>
 

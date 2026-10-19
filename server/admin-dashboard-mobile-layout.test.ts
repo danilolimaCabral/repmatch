@@ -17,6 +17,10 @@ const dashboardSkeletonSource = fs.readFileSync(path.resolve(process.cwd(), "cli
 const roiCalculatorSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ROICalculator.tsx"), "utf8");
 const manusDialogSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ManusDialog.tsx"), "utf8");
 const leadPackagesSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/LeadPackages.tsx"), "utf8");
+const consumerLeadPackagesSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/ConsumerLeadPackages.tsx"), "utf8");
+const consumerLeadRouterSource = fs.readFileSync(path.resolve(process.cwd(), "server/consumerLeadRouter.ts"), "utf8");
+const consumerLeadImporterSource = fs.readFileSync(path.resolve(process.cwd(), "scripts/import-consumer-leads.ts"), "utf8");
+const consumerLeadConstantsSource = fs.readFileSync(path.resolve(process.cwd(), "shared/consumerLeads.ts"), "utf8");
 const seoSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/SEO.tsx"), "utf8");
 const sitemapSource = fs.readFileSync(path.resolve(process.cwd(), "client/public/sitemap.xml"), "utf8");
 const robotsSource = fs.readFileSync(path.resolve(process.cwd(), "client/public/robots.txt"), "utf8");
@@ -311,7 +315,43 @@ describe("AdminDashboard mobile layout", () => {
     expect(homeSource).toContain("173 mil representantes comerciais");
     expect(publicPageSources.Parcerias).not.toContain("173k+");
     expect(brazilMapSource).toContain("end={173987}");
+    expect(sitemapSource).toContain("https://repmatch.com.br/contatos-b2c");
+    expect(robotsSource).toContain("Allow: /contatos-b2c");
     expect(indexHtmlSource).not.toContain('"@type": "JobPosting"');
     expect(indexHtmlSource).not.toContain('"aggregateRating"');
+  });
+
+  it("keeps the B2C PF catalog separate, with its own prices and individual selection", () => {
+    expect(consumerLeadConstantsSource).toContain("50: 99");
+    expect(consumerLeadConstantsSource).toContain("100: 199");
+    expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_UNLIMITED_MONTHLY_PRICE = 999");
+    expect(consumerLeadRouterSource).toContain("consumerLeadPackagesRouter");
+    expect(consumerLeadRouterSource).toContain("saveLeadFromPackage");
+    expect(consumerLeadRouterSource).toContain("saveLeadFromUnlimited");
+    expect(consumerLeadRouterSource).toContain("FOR UPDATE");
+    expect(mpRoutesSource).toContain('mpRouter.post("/consumer-lead-package-pix"');
+    expect(mpRoutesSource).toContain('mpRouter.post("/consumer-lead-unlimited-pix"');
+    expect(mpRoutesSource).toContain("getAuthUser(req)");
+    expect(mpRoutesSource).toContain("sessionUser.id !== userId");
+    expect(mpRoutesSource).toContain('meta?.type === "consumer_lead_package"');
+    expect(serverSource).toContain("CREATE TABLE IF NOT EXISTS consumer_leads");
+    expect(serverSource).toContain("CREATE TABLE IF NOT EXISTS saved_consumer_leads");
+    expect(dashboardSource).toContain("Contatos B2C — 50, 100 e ilimitado");
+    expect(consumerLeadPackagesSource).toContain("Contatos B2C para sua prospecção");
+    expect(consumerLeadPackagesSource).toContain("Dados revelados apenas após adicionar à sua lista");
+    expect(consumerLeadPackagesSource).toContain("Baixar Excel");
+    expect(consumerLeadPackagesSource).toContain("Nome\": safeSpreadsheetCell");
+  });
+
+  it("imports only the allowed PF fields and never uses the seller or CRM notes", () => {
+    expect(consumerLeadImporterSource).toContain('ALLOWED_HEADERS = ["ClienteNome", "ClienteTelefone", "ClienteEmail"]');
+    expect(consumerLeadImporterSource).toContain('fieldsPersisted: ["full_name", "phone", "email"]');
+    expect(consumerLeadImporterSource).not.toContain("ResponsavelNome");
+    expect(consumerLeadImporterSource).not.toContain("LojaRazaoSocial");
+    expect(consumerLeadImporterSource).not.toContain("Observacao");
+    const catalogFunction = consumerLeadRouterSource.slice(consumerLeadRouterSource.indexOf("function consumerLeadCatalogRows"), consumerLeadRouterSource.indexOf("async function selectedIds"));
+    expect(catalogFunction).not.toContain("fullName");
+    expect(catalogFunction).toContain("hasPhone");
+    expect(catalogFunction).toContain("hasEmail");
   });
 });

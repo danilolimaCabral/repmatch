@@ -163,6 +163,104 @@ async function ensurePurchaseInterestTable() {
       INDEX saved_market_leads_order_idx (lead_package_order_id)
     )
   `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS consumer_lead_import_batches (
+      id int AUTO_INCREMENT NOT NULL,
+      source_label varchar(120) NOT NULL,
+      file_sha256 char(64) NOT NULL,
+      consent_attested boolean NOT NULL DEFAULT false,
+      consent_policy_version varchar(60) NOT NULL,
+      total_rows int NOT NULL DEFAULT 0,
+      accepted_rows int NOT NULL DEFAULT 0,
+      duplicate_rows int NOT NULL DEFAULT 0,
+      rejected_rows int NOT NULL DEFAULT 0,
+      imported_by int,
+      status enum('processing','completed','failed') NOT NULL DEFAULT 'processing',
+      completed_at timestamp NULL,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY consumer_lead_import_batches_file_sha256_unique (file_sha256)
+    )
+  `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS consumer_leads (
+      id int AUTO_INCREMENT NOT NULL,
+      import_batch_id int NOT NULL,
+      full_name varchar(700) NOT NULL,
+      phone varchar(120),
+      email varchar(400),
+      phone_hash char(64),
+      email_hash char(64),
+      contact_key char(64) NOT NULL,
+      consent_status enum('declared','revoked') NOT NULL DEFAULT 'declared',
+      available boolean NOT NULL DEFAULT true,
+      consent_declared_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY consumer_leads_contact_key_unique (contact_key),
+      UNIQUE KEY consumer_leads_phone_hash_unique (phone_hash),
+      UNIQUE KEY consumer_leads_email_hash_unique (email_hash),
+      INDEX consumer_leads_available_consent_idx (available, consent_status),
+      INDEX consumer_leads_batch_idx (import_batch_id)
+    )
+  `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS consumer_lead_orders (
+      id int AUTO_INCREMENT NOT NULL,
+      user_id int NOT NULL,
+      quantity int NOT NULL,
+      legal_consent boolean NOT NULL DEFAULT false,
+      payment_method enum('pix') NOT NULL DEFAULT 'pix',
+      status enum('pending_payment','pending_approval','approved','rejected','delivered','cancelled') NOT NULL DEFAULT 'pending_payment',
+      total_amount decimal(10,2) NOT NULL,
+      mp_payment_id varchar(100),
+      admin_notes text,
+      reviewed_by int,
+      reviewed_at timestamp NULL,
+      delivered_at timestamp NULL,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX consumer_lead_order_user_created_idx (user_id, created_at),
+      INDEX consumer_lead_order_status_created_idx (status, created_at)
+    )
+  `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS consumer_lead_accesses (
+      id int AUTO_INCREMENT NOT NULL,
+      user_id int NOT NULL,
+      legal_consent boolean NOT NULL DEFAULT false,
+      status enum('pending_payment','pending_approval','active','rejected','expired','cancelled') NOT NULL DEFAULT 'pending_payment',
+      amount decimal(10,2) NOT NULL,
+      mp_payment_id varchar(100),
+      reviewed_by int,
+      reviewed_at timestamp NULL,
+      starts_at timestamp NULL,
+      expires_at timestamp NULL,
+      admin_notes text,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX consumer_lead_access_user_status_expiry_idx (user_id, status, expires_at),
+      INDEX consumer_lead_access_status_created_idx (status, created_at)
+    )
+  `));
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS saved_consumer_leads (
+      id int AUTO_INCREMENT NOT NULL,
+      user_id int NOT NULL,
+      consumer_lead_order_id int NULL,
+      consumer_lead_access_id int NULL,
+      consumer_lead_id int NOT NULL,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY saved_consumer_leads_user_lead_unique (user_id, consumer_lead_id),
+      INDEX saved_consumer_leads_user_created_idx (user_id, created_at),
+      INDEX saved_consumer_leads_order_idx (consumer_lead_order_id),
+      INDEX saved_consumer_leads_access_idx (consumer_lead_access_id)
+    )
+  `));
   console.log("[db] commercial catalog tables ready");
 }
 

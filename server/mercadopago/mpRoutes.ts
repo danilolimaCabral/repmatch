@@ -1,10 +1,11 @@
 import { Router, Request, Response } from "express";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
-import { representatives, companies, users, unlockRequests, unlockRequestItems, leadPackageOrders, marketLeadAccesses } from "../../drizzle/schema";
+import { representatives, companies, users, unlockRequests, unlockRequestItems, leadPackageOrders, marketLeadAccesses, consumerLeadOrders, consumerLeadAccesses } from "../../drizzle/schema";
 import { and, eq } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE, isValidCpf, isValidPayerDocument, normalizeCpf, normalizePayerDocument, type PayerDocumentType } from "@shared/const";
 import { notifyOwner } from "../_core/notification";
+import { getAuthUser } from "../_core/context";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -229,6 +230,72 @@ mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
   }
 });
 
+// ─── Gerar PIX para pacote B2C de contatos PF ──────────────────────────────────
+mpRouter.post("/consumer-lead-package-pix", async (req: Request, res: Response) => {
+  try {
+    const { orderId, userId, userEmail, userName, documentType, document, cpf } = req.body as {
+      orderId: number; userId: number; userEmail: string; userName: string; documentType?: PayerDocumentType; document?: string; cpf?: string;
+    };
+    const sessionUser = await getAuthUser(req);
+    if (!sessionUser || sessionUser.id !== userId) return res.status(401).json({ error: "Entre na sua conta para gerar o PIX deste pedido." });
+    if (!orderId) return res.status(400).json({ error: "Dados inválidos" });
+    const payerDocument = getPayerDocument(documentType, document, cpf);
+    if (!payerDocument.valid) return res.status(400).json({ error: `${payerDocument.type} inválido. Confira os dígitos do pagador.` });
+    const db = await getDb();
+    if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
+    const [order] = await db.select({ id: consumerLeadOrders.id, quantity: consumerLeadOrders.quantity, totalAmount: consumerLeadOrders.totalAmount, status: consumerLeadOrders.status })
+      .from(consumerLeadOrders).where(and(eq(consumerLeadOrders.id, orderId), eq(consumerLeadOrders.userId, sessionUser.id))).limit(1);
+    if (!order || order.status !== "pending_payment") return res.status(404).json({ error: "Pedido B2C não disponível para pagamento" });
+    const payment = new Payment(mp);
+    const result = await payment.create({ body: {
+      transaction_amount: Number(order.totalAmount),
+      description: `Pacote B2C PF — ${order.quantity} contatos | RepMatch`,
+      payment_method_id: "pix",
+      payer: { email: sessionUser.email || userEmail, first_name: getPayerName(sessionUser.name || userName).firstName, last_name: getPayerName(sessionUser.name || userName).lastName, identification: { type: payerDocument.type, number: payerDocument.number } },
+      metadata: { type: "consumer_lead_package", order_id: orderId, user_id: sessionUser.id, quantity: order.quantity },
+    }});
+    if (result.id) await db.update(consumerLeadOrders).set({ mpPaymentId: String(result.id), adminNotes: "QR Code PIX emitido pelo Mercado Pago — aguardando confirmação do pagamento." }).where(eq(consumerLeadOrders.id, orderId));
+    const txInfo = result.point_of_interaction?.transaction_data;
+    return res.json({ paymentId: result.id, status: result.status, qrCode: txInfo?.qr_code, qrCodeBase64: txInfo?.qr_code_base64, expiresAt: result.date_of_expiration });
+  } catch (e: unknown) {
+    console.error("[MP] consumer-lead-package-pix error:", e);
+    return res.status(500).json({ error: paymentErrorMessage(e) });
+  }
+});
+
+// ─── Gerar PIX para plano B2C PF ilimitado ─────────────────────────────────────
+mpRouter.post("/consumer-lead-unlimited-pix", async (req: Request, res: Response) => {
+  try {
+    const { accessId, userId, userEmail, userName, documentType, document, cpf } = req.body as {
+      accessId: number; userId: number; userEmail: string; userName: string; documentType?: PayerDocumentType; document?: string; cpf?: string;
+    };
+    const sessionUser = await getAuthUser(req);
+    if (!sessionUser || sessionUser.id !== userId) return res.status(401).json({ error: "Entre na sua conta para gerar o PIX deste plano." });
+    if (!accessId) return res.status(400).json({ error: "Dados inválidos" });
+    const payerDocument = getPayerDocument(documentType, document, cpf);
+    if (!payerDocument.valid) return res.status(400).json({ error: `${payerDocument.type} inválido. Confira os dígitos do pagador.` });
+    const db = await getDb();
+    if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
+    const [access] = await db.select({ id: consumerLeadAccesses.id, amount: consumerLeadAccesses.amount, status: consumerLeadAccesses.status })
+      .from(consumerLeadAccesses).where(and(eq(consumerLeadAccesses.id, accessId), eq(consumerLeadAccesses.userId, sessionUser.id))).limit(1);
+    if (!access || access.status !== "pending_payment") return res.status(404).json({ error: "Plano B2C não disponível para pagamento" });
+    const payment = new Payment(mp);
+    const result = await payment.create({ body: {
+      transaction_amount: Number(access.amount),
+      description: "Plano B2C PF Ilimitado — 30 dias | RepMatch",
+      payment_method_id: "pix",
+      payer: { email: sessionUser.email || userEmail, first_name: getPayerName(sessionUser.name || userName).firstName, last_name: getPayerName(sessionUser.name || userName).lastName, identification: { type: payerDocument.type, number: payerDocument.number } },
+      metadata: { type: "consumer_lead_unlimited", access_id: accessId, user_id: sessionUser.id },
+    }});
+    if (result.id) await db.update(consumerLeadAccesses).set({ mpPaymentId: String(result.id), adminNotes: "QR Code PIX emitido pelo Mercado Pago — aguardando confirmação do pagamento." }).where(eq(consumerLeadAccesses.id, accessId));
+    const txInfo = result.point_of_interaction?.transaction_data;
+    return res.json({ paymentId: result.id, status: result.status, qrCode: txInfo?.qr_code, qrCodeBase64: txInfo?.qr_code_base64, expiresAt: result.date_of_expiration });
+  } catch (e: unknown) {
+    console.error("[MP] consumer-lead-unlimited-pix error:", e);
+    return res.status(500).json({ error: paymentErrorMessage(e) });
+  }
+});
+
 // ─── Gerar PIX para o Plano Pesquisa Ilimitada ─────────────────────────────────
 mpRouter.post("/market-search-unlimited-pix", async (req: Request, res: Response) => {
   try {
@@ -416,8 +483,30 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
         const db = await getDb();
         if (!db) return res.json({ received: true });
 
+        // ── Plano B2C PF ilimitado: PIX confirmado, ativação manual ──────────
+        if (meta?.type === "consumer_lead_unlimited") {
+          const accessId = Number(meta.access_id);
+          if (accessId) {
+            const [access] = await db.select({ id: consumerLeadAccesses.id, status: consumerLeadAccesses.status, amount: consumerLeadAccesses.amount })
+              .from(consumerLeadAccesses).where(eq(consumerLeadAccesses.id, accessId)).limit(1);
+            if (access?.status === "pending_payment") {
+              await db.update(consumerLeadAccesses).set({ status: "pending_approval", mpPaymentId: String(result.id), adminNotes: "PIX confirmado pelo Mercado Pago — aguardando ativação manual por 30 dias." }).where(eq(consumerLeadAccesses.id, accessId));
+              void notifyOwner({ title: `PIX confirmado — Plano B2C PF #${accessId}`, content: `Pagamento de R$ ${Number(access.amount).toFixed(2)} confirmado. Acesse Admin > Comercial para ativar 30 dias de acesso à base B2C.` }).catch((error) => console.error("[MP Webhook] consumer unlimited notification error:", error));
+            }
+          }
+        // ── Pacote B2C PF: PIX confirmado, liberação manual ──────────────────
+        } else if (meta?.type === "consumer_lead_package") {
+          const orderId = Number(meta.order_id);
+          if (orderId) {
+            const [order] = await db.select({ id: consumerLeadOrders.id, status: consumerLeadOrders.status, quantity: consumerLeadOrders.quantity, totalAmount: consumerLeadOrders.totalAmount })
+              .from(consumerLeadOrders).where(eq(consumerLeadOrders.id, orderId)).limit(1);
+            if (order?.status === "pending_payment") {
+              await db.update(consumerLeadOrders).set({ status: "pending_approval", mpPaymentId: String(result.id), adminNotes: "PIX confirmado pelo Mercado Pago — aguardando liberação manual da base B2C." }).where(eq(consumerLeadOrders.id, orderId));
+              void notifyOwner({ title: `PIX confirmado — pacote B2C PF #${orderId}`, content: `Pagamento de R$ ${Number(order.totalAmount).toFixed(2)} para ${order.quantity} contatos B2C confirmado. Acesse Admin > Comercial para liberar o pacote.` }).catch((error) => console.error("[MP Webhook] consumer order notification error:", error));
+            }
+          }
         // ── Plano Pesquisa Ilimitada: PIX confirmado, ativação manual ─────────
-        if (meta?.type === "market_search_unlimited") {
+        } else if (meta?.type === "market_search_unlimited") {
           const accessId = Number(meta.access_id);
           if (accessId) {
             const [access] = await db.select({ id: marketLeadAccesses.id, status: marketLeadAccesses.status, amount: marketLeadAccesses.amount })

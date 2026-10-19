@@ -191,6 +191,9 @@ function B2BLeadCampaignSection() {
           >
             Montar campanha B2B <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </button>
+          <button onClick={() => navigate("/contatos-b2c")} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-6 py-3 text-sm font-bold text-indigo-800 transition hover:bg-indigo-100 sm:ml-3 sm:w-auto">
+            Contatos B2C PF · 50, 100 ou ilimitado <ArrowRight className="h-4 w-4" />
+          </button>
         </div>
 
         <aside className="overflow-hidden rounded-3xl border border-emerald-800 bg-emerald-950 p-5 text-white shadow-2xl sm:p-8">

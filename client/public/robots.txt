@@ -10,6 +10,7 @@ Allow: /planos
 Allow: /oportunidades-reps
 Allow: /parcerias
 Allow: /pacotes-leads
+Allow: /contatos-b2c
 Allow: /termos
 Allow: /privacidade
 Allow: /login
@@ -32,6 +33,7 @@ Allow: /
 Allow: /buscar
 Allow: /vagas
 Allow: /pacotes-leads
+Allow: /contatos-b2c
 Allow: /blog
 Allow: /blog/
 Crawl-delay: 1

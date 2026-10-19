@@ -3,7 +3,7 @@ import { ArrowLeft, FileText, AlertTriangle, CreditCard, Ban, Scale, Shield } fr
 
 const COMPANY_NAME = "RepMatch";
 const COMPANY_EMAIL = "contato@repmatch.com.br";
-const LAST_UPDATE = "30 de abril de 2026";
+const LAST_UPDATE = "19 de outubro de 2026";
 
 export default function Termos() {
   return (
@@ -52,6 +52,7 @@ export default function Termos() {
               <li>Publicação e busca de vagas para representação comercial</li>
               <li>Sistema de desbloqueio de contato direto</li>
               <li>Planos de assinatura para representantes e empresas</li>
+              <li>Pacotes de contatos B2C com seleção individual e plano de pesquisa ilimitada</li>
             </ul>
             <p className="mt-3">
               O RepMatch atua como <strong>intermediário tecnológico</strong> e não é parte nos contratos
@@ -78,6 +79,7 @@ export default function Termos() {
               <li>Respeitar os outros usuários e manter conduta profissional</li>
               <li>Não compartilhar credenciais de acesso com terceiros</li>
               <li>Não utilizar dados de outros usuários para fins não autorizados</li>
+              <li>Ao adquirir contatos B2C, utilizar os dados somente para a finalidade comercial legítima informada, com abordagem transparente e respeito às preferências do titular</li>
             </ul>
           </Section>
 
@@ -89,6 +91,8 @@ export default function Termos() {
               <li>Usar a plataforma para spam, assédio ou comunicações não solicitadas</li>
               <li>Tentar acessar dados de outros usuários sem autorização</li>
               <li>Realizar engenharia reversa, scraping ou extração automatizada de dados</li>
+              <li>Revender, alugar, compartilhar ou redistribuir listas de contatos B2C</li>
+              <li>Usar contatos B2C para spam, discriminação, assédio, decisões automatizadas adversas ou finalidade incompatível com o aceite</li>
               <li>Usar a plataforma para atividades ilegais ou que violem direitos de terceiros</li>
               <li>Contornar os sistemas de pagamento (ex.: combinar contato fora da plataforma para evitar o desbloqueio)</li>
               <li>Criar múltiplas contas para burlar restrições ou planos</li>
@@ -112,13 +116,21 @@ export default function Termos() {
               <li><strong>Cartão de crédito/débito:</strong> processado pelo Stripe com cobrança recorrente</li>
             </ul>
 
-            <SubTitle>5.3 Renovação Automática</SubTitle>
+            <SubTitle>5.3 Pacotes e Plano B2C</SubTitle>
+            <p>
+              Os pacotes B2C concedem créditos acumuláveis para seleção individual de contatos; cada contato salvo consome um crédito, e a lista fica vinculada à conta do comprador. O plano B2C ilimitado concede seleção sem limite durante a vigência contratada. O acesso e os créditos são liberados somente após confirmação do pagamento e análise administrativa quando aplicável.
+            </p>
+            <p className="mt-3">
+              A oferta contém somente nome, telefone e/ou e-mail do contato selecionado. O comprador declara que possui finalidade legítima, observará a LGPD e manterá mecanismo próprio para atender solicitações de oposição ou não contato recebidas em sua abordagem.
+            </p>
+
+            <SubTitle>5.4 Renovação Automática</SubTitle>
             <p>
               Planos pagos via cartão renovam automaticamente ao final do período. Você pode cancelar
               a qualquer momento pelo dashboard — o acesso permanece até o fim do período pago.
             </p>
 
-            <SubTitle>5.4 Política de Reembolso</SubTitle>
+            <SubTitle>5.5 Política de Reembolso</SubTitle>
             <ul className="list-disc pl-6 space-y-1">
               <li>Reembolso integral em até <strong>7 dias</strong> após a primeira contratação (CDC — Art. 49)</li>
               <li>Após 7 dias, não há reembolso proporcional por período não utilizado</li>
@@ -126,7 +138,7 @@ export default function Termos() {
               <li>Em caso de falha técnica comprovada da plataforma, analisamos caso a caso</li>
             </ul>
 
-            <SubTitle>5.5 Inadimplência</SubTitle>
+            <SubTitle>5.6 Inadimplência</SubTitle>
             <p>
               O não pagamento resulta no downgrade automático para o plano gratuito, sem exclusão de dados.
             </p>

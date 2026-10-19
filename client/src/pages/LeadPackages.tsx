@@ -278,6 +278,14 @@ export default function LeadPackages() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
+          <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[.14em] text-indigo-700">Nova base especial</p>
+              <h2 className="mt-1 text-xl font-black text-slate-950">Contatos B2C para imobiliárias, automotivo e produtos digitais</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">Pacotes de 50 ou 100 contatos, seleção individual, lista permanente e plano ilimitado por R$ 999/mês.</p>
+            </div>
+            <button onClick={() => navigate("/contatos-b2c")} className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-extrabold text-white transition hover:bg-indigo-700"><Users className="h-4 w-4" />Ver contatos B2C</button>
+          </div>
           <div className="mb-6 max-w-2xl"><p className="text-sm font-extrabold uppercase tracking-[.14em] text-emerald-700">Monte sua campanha</p><h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Qual público você quer alcançar?</h2><p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">A seleção abaixo serve de briefing. Antes da entrega, a equipe revisa a disponibilidade e o recorte solicitado.</p></div>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
