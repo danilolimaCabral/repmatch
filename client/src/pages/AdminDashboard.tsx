@@ -1795,7 +1795,7 @@ export default function AdminDashboard() {
                           </div>
                           <div className="mt-4 flex flex-wrap gap-2">
                             {order.status === "pending_payment" && <Button size="sm" className="bg-blue-600 hover:bg-blue-700" disabled={confirmLeadPixMutation.isPending} onClick={() => confirmLeadPixMutation.mutate({ orderId: order.id })}>{confirmLeadPixMutation.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <CheckCheck className="mr-1 h-3.5 w-3.5" />}Confirmar PIX recebido</Button>}
-                            {order.status === "pending_approval" && <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "approved" })}><CheckCheck className="mr-1 h-3.5 w-3.5" />Liberar preparação</Button>}
+                            {order.status === "pending_approval" && <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "approved" })}><CheckCheck className="mr-1 h-3.5 w-3.5" />Liberar pacote ao comprador</Button>}
                             {order.status === "approved" && <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "delivered" })}><CheckCircle className="mr-1 h-3.5 w-3.5" />Marcar como entregue</Button>}
                           </div>
                         </article>

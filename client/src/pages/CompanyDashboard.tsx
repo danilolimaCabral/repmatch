@@ -247,7 +247,7 @@ function ThemeToggleCompact() {
 export default function CompanyDashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search" | "marketB2B" | "marketB2C" | "messages" | "contacts">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "jobs" | "applications" | "profile" | "search" | "marketB2B" | "marketB2C" | "leadPackages" | "messages" | "contacts">("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeChatRepId, setActiveChatRepId] = useState<number | null>(null);
   const [activeChatCompanyId, setActiveChatCompanyId] = useState<number | null>(null);
@@ -403,6 +403,8 @@ export default function CompanyDashboard() {
   const createMarketUnlimited = trpc.leadPackages.createUnlimitedAccess.useMutation({ onError: (error) => toast.error(error.message) });
   const { data: marketAccess } = trpc.leadPackages.myUnlimitedAccess.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 20_000 });
   const { data: marketRequest } = trpc.leadPackages.myUnlimitedRequest.useQuery(undefined, { enabled: marketTabActive, refetchInterval: 15_000 });
+  const { data: myLeadPackages } = trpc.leadPackages.myOrders.useQuery(undefined, { enabled: !!user, refetchInterval: 20_000 });
+  const downloadLeadPackage = trpc.leadPackages.downloadDeliveredOrder.useMutation({ onError: (error) => toast.error(error.message) });
   const { data: marketResults, isFetching: marketLoading } = trpc.leadPackages.searchUnlimitedCatalog.useQuery(
     { audience: marketAudience, query: marketSearch || undefined, limit: 50 },
     { enabled: marketTabActive && !!marketAccess },
@@ -483,6 +485,20 @@ export default function CompanyDashboard() {
     } finally {
       setMarketPixLoading(false);
     }
+  };
+
+  const downloadLeadPackageCsv = async (orderId: number) => {
+    const { rows } = await downloadLeadPackage.mutateAsync({ orderId });
+    const headers = ["Razão social", "Nome fantasia", "CNPJ", "CNAE", "Segmento", "Porte", "Cidade", "Estado", "CEP", "Endereço", "Telefone", "E-mail", "Site", "Instagram"];
+    const quote = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const content = [headers.map(quote).join(";"), ...rows.map((row) => [row.razaoSocial, row.nomeFantasia, row.cnpj, row.cnaeDescricao, row.segmento, row.porte, row.cidade, row.estado, row.cep, row.endereco, row.telefone, row.email, row.site, row.instagram].map(quote).join(";"))].join("\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff", content], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `repmatch-pacote-leads-${orderId}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${rows.length.toLocaleString("pt-BR")} leads liberados para importação no CRM.`);
   };
 
   // ─── Auto-Match: ativa quando não há filtros manuais ativos ───────────────────
@@ -666,6 +682,7 @@ export default function CompanyDashboard() {
   const activeJobs = myJobs?.filter(j => j.status === "open").length ?? 0;
   const totalJobs = myJobs?.length ?? 0;
   const featuredJobs = myJobs?.filter(j => j.isFeatured).length ?? 0;
+  const releasedLeadPackageCount = (myLeadPackages ?? []).filter(order => ["approved", "delivered"].includes(order.status)).length;
 
   const handleCreateJob = (e: React.FormEvent) => {
     e.preventDefault();
@@ -683,6 +700,7 @@ export default function CompanyDashboard() {
     { id: "search", label: "Buscar Representantes", icon: Eye },
     { id: "marketB2B", label: "Buscar B2B", icon: Building2 },
     { id: "marketB2C", label: "Buscar B2C", icon: Users },
+    { id: "leadPackages", label: "Pacotes de Leads", icon: ShoppingCart },
     { id: "contacts", label: "Meus Contatos", icon: BookUser },
     { id: "messages", label: "Mensagens", icon: MessageSquare },
     { id: "profile", label: "Perfil da Empresa", icon: Building2 },
@@ -732,6 +750,11 @@ export default function CompanyDashboard() {
                 <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                   activeTab === item.id ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"
                 }`}>173k+</span>
+              )}
+              {item.id === "leadPackages" && releasedLeadPackageCount > 0 && (
+                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  activeTab === item.id ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"
+                }`}>{releasedLeadPackageCount}</span>
               )}
             </button>
           ))}
@@ -1962,6 +1985,57 @@ export default function CompanyDashboard() {
               </div>
               {marketLoading ? <div className="py-16 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-emerald-600" /></div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{!marketResults?.length ? <p className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">Nenhuma empresa encontrada com estes filtros.</p> : marketResults.map((company) => <Card key={company.id} className="border-slate-200 bg-white"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-black text-slate-900">{company.nomeFantasia || company.razaoSocial}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{company.cnaeDescricao || company.segmento || "Empresa comercial"}</p></div><Badge className="shrink-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">{company.porte || "Empresa"}</Badge></div><div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600"><p>{company.cidade || "Cidade não informada"}{company.estado ? ` · ${company.estado}` : ""}</p><p className="truncate">{company.telefone || "Telefone não informado"}</p><p className="truncate">{company.email || "E-mail não informado"}</p></div></CardContent></Card>)}</div>}
             </>}
+          </div>
+        )}
+
+        {/* ─── Pacotes de Leads liberados ───────────────────────────────── */}
+        {activeTab === "leadPackages" && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <div className="mb-6 rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 sm:p-7">
+              <p className="text-xs font-extrabold uppercase tracking-[.14em] text-emerald-700">Área do comprador</p>
+              <h1 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">Pacotes de Leads</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">Aqui ficam os seus pacotes liberados. Baixe o CSV organizado para importar no CRM ou trabalhe os dados com o seu time comercial.</p>
+            </div>
+
+            {releasedLeadPackageCount === 0 ? (
+              <Card className="border-dashed border-emerald-300 bg-white shadow-sm">
+                <CardContent className="p-7 text-center sm:p-10">
+                  <ShoppingCart className="mx-auto h-10 w-10 text-emerald-600" />
+                  <h2 className="mt-4 text-xl font-black text-slate-900">Nenhum pacote liberado ainda</h2>
+                  <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Depois que o administrador confirmar o PIX e liberar o pedido, o pacote aparecerá aqui automaticamente para download.</p>
+                  <div className="mt-5 flex flex-wrap justify-center gap-3">
+                    <Button onClick={() => setActiveTab("marketB2B")} className="bg-emerald-600 text-white hover:bg-emerald-700"><Building2 className="mr-2 h-4 w-4" />Buscar B2B</Button>
+                    <Button variant="outline" onClick={() => setActiveTab("marketB2C")} className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"><Users className="mr-2 h-4 w-4" />Buscar B2C</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {(myLeadPackages ?? []).filter(order => ["approved", "delivered"].includes(order.status)).map((order) => (
+                  <Card key={order.id} className="overflow-hidden border-emerald-200 bg-white shadow-sm">
+                    <div className="h-1.5 bg-gradient-to-r from-emerald-400 to-teal-500" />
+                    <CardContent className="p-5 sm:p-6">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-extrabold text-emerald-800">Pacote liberado</span>
+                            <span className="text-xs font-semibold text-slate-500">Pedido #{order.id}</span>
+                          </div>
+                          <h2 className="mt-3 text-xl font-black text-slate-900">{order.quantity.toLocaleString("pt-BR")} empresas {order.audience.toUpperCase()} para prospecção</h2>
+                          <p className="mt-1 text-sm text-slate-600">{order.segment || "Todos os segmentos"} · {order.region || "Cobertura nacional"}</p>
+                        </div>
+                        <Button onClick={() => downloadLeadPackageCsv(order.id)} disabled={downloadLeadPackage.isPending} className="min-h-12 shrink-0 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"><ExternalLink className="mr-2 h-4 w-4" />Baixar CSV para CRM</Button>
+                      </div>
+                      <div className="mt-5 grid gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 sm:grid-cols-3">
+                        <div><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Empresas</p><p className="mt-1 text-sm font-bold text-slate-800">{order.quantity.toLocaleString("pt-BR")} registros organizados</p></div>
+                        <div><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Campos incluídos</p><p className="mt-1 text-sm font-bold text-slate-800">CNPJ, segmento, cidade e porte</p></div>
+                        <div><p className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Contatos empresariais</p><p className="mt-1 text-sm font-bold text-slate-800">Telefone e e-mail quando disponíveis</p></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

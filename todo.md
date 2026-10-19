@@ -952,3 +952,9 @@
 - [x] Mostrar contador e atalho direto para pacotes B2B/B2C pendentes na tela de Desbloqueios
 - [x] Exibir a quantidade de pedidos aguardando PIX ou prontos para aprovação
 - [x] Validar o acesso administrativo com TypeScript e testes automatizados
+
+## Pacotes de leads liberados ao comprador (19/10/2026)
+- [x] Exibir uma aba Pacotes de Leads no painel da empresa
+- [x] Mostrar cada pacote aprovado como liberado, com a quantidade e os campos incluídos
+- [x] Permitir baixar o CSV do pacote aprovado para importação no CRM
+- [x] Validar o acesso pós-liberação com TypeScript e testes automatizados

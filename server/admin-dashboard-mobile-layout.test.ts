@@ -250,6 +250,15 @@ describe("AdminDashboard mobile layout", () => {
     expect(routersSource).toContain("const pendingOrders = await db.select");
   });
 
+  it("shows released lead packages in the buyer dashboard and permits CSV download after admin approval", () => {
+    expect(companyDashboardSource).toContain('id: "leadPackages", label: "Pacotes de Leads"');
+    expect(companyDashboardSource).toContain("Pacote liberado");
+    expect(companyDashboardSource).toContain("Baixar CSV para CRM");
+    expect(companyDashboardSource).toContain("downloadLeadPackageCsv");
+    expect(routersSource).toContain('["approved", "delivered"].includes(order.status)');
+    expect(dashboardSource).toContain("Liberar pacote ao comprador");
+  });
+
   it("shows a one-minute PIX timer and preserves the order as awaiting verification after expiry", () => {
     expect(companyDashboardSource).toContain("const [marketPixSeconds, setMarketPixSeconds] = useState(60)");
     expect(companyDashboardSource).toContain("Pague em");

@@ -1369,7 +1369,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         const [order] = await db.select().from(leadPackageOrders)
           .where(and(eq(leadPackageOrders.id, input.orderId), eq(leadPackageOrders.userId, ctx.user.id)))
           .limit(1);
-        if (!order || order.status !== "delivered") throw new TRPCError({ code: "FORBIDDEN", message: "O lote fica disponível para download após a entrega ser concluída." });
+        if (!order || !["approved", "delivered"].includes(order.status)) throw new TRPCError({ code: "FORBIDDEN", message: "O lote fica disponível para download após a liberação administrativa." });
         const filters = [eq(marketLeads.available, true)];
         filters.push(inArray(marketLeads.audience, [order.audience, "both"]));
         if (order.region && order.region !== "Nacional") filters.push(eq(marketLeads.estado, order.region));
