@@ -973,3 +973,11 @@
 - [x] Bloquear novas seleções ao esgotar créditos e orientar a compra de outro pacote
 - [x] Exibir uma área Minha Lista de Leads com exportação CSV dos registros salvos
 - [x] Validar persistência, limite e agregação de créditos com TypeScript e testes automatizados
+
+## Base especial de contatos B2C PF (19/10/2026)
+- [x] Importar somente nome, telefone e e-mail da origem declarada, sem vendedor, CPF, propostas, observações ou histórico de CRM
+- [x] Cifrar os dados pessoais em repouso e apresentar somente disponibilidade de canais antes da seleção individual
+- [x] Criar pacotes PIX de 50 contatos por R$ 99 e 100 contatos por R$ 199, com aprovação administrativa
+- [x] Criar plano ilimitado de R$ 999 por 30 dias, com aceite de uso responsável e controle de acesso
+- [x] Exibir a lista permanente do comprador, exportável para Excel, e impedir o acesso a contatos revogados ou indisponíveis
+- [x] Validar importação idempotente, deduplicação, tipagem, 51 testes, build e publicação Railway
