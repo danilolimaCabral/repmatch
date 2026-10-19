@@ -910,3 +910,9 @@
 - [x] Permitir retomar a geração do QR Code sem criar nova solicitação
 - [x] Exibir o status em análise e o período ativo após a liberação administrativa
 - [x] Validar o fluxo com TypeScript e testes automatizados
+
+## Central administrativa B2B/B2C e aprovação PIX (18/10/2026)
+- [x] Exibir uma aba administrativa explícita de Campanhas B2B/B2C
+- [x] Mostrar pedidos de pacotes e planos ilimitados com status e ações de aprovação
+- [x] Diagnosticar e corrigir a transição de PIX confirmado para aprovação e ativação
+- [x] Validar com TypeScript, testes e auditoria agregada dos pedidos

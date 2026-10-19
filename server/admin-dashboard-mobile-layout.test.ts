@@ -94,7 +94,7 @@ describe("AdminDashboard mobile layout", () => {
   it("lets admins manage prices, abandoned carts, registrations, and return navigation", () => {
     expect(routersSource).toContain("updateContactUnlockPrice: protectedProcedure");
     expect(routersSource).toContain("company_contact_unlock_price");
-    expect(dashboardSource).toContain("Central Comercial");
+    expect(dashboardSource).toContain("Campanhas B2B/B2C");
     expect(dashboardSource).toContain("Carrinhos abandonados");
     expect(dashboardSource).toContain("Ver cadastros");
     expect(dashboardSource).toContain("Voltar ao painel");
@@ -206,6 +206,16 @@ describe("AdminDashboard mobile layout", () => {
     expect(leadPackagesSource).toContain("Retomar PIX");
     expect(leadPackagesSource).toContain('retomar") === "ilimitado"');
     expect(leadPackagesSource).toContain("PIX em análise");
+  });
+
+  it("gives admins a clear B2B/B2C campaign queue and manual PIX confirmation fallback", () => {
+    expect(dashboardSource).toContain('label: "Campanhas B2B/B2C"');
+    expect(dashboardSource).toContain("Confirmar PIX recebido");
+    expect(dashboardSource).toContain("Campanhas B2B/B2C");
+    expect(dashboardSource).toContain("confirmLeadPixMutation");
+    expect(dashboardSource).toContain("confirmUnlimitedPixMutation");
+    expect(routersSource).toContain("confirmLeadPix: protectedProcedure");
+    expect(routersSource).toContain("confirmUnlimitedPix: protectedProcedure");
   });
 
   it("keeps commercial SEO indexable and removes generic job or review markup", () => {

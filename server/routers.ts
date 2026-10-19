@@ -1379,6 +1379,24 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         return { success: true };
       }),
 
+    confirmLeadPix: protectedProcedure
+      .input(z.object({ orderId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [order] = await db.select({ status: leadPackageOrders.status }).from(leadPackageOrders).where(eq(leadPackageOrders.id, input.orderId)).limit(1);
+        if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+        if (order.status !== "pending_payment") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Este pedido não está aguardando confirmação de PIX." });
+        await db.update(leadPackageOrders).set({
+          status: "pending_approval",
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+          adminNotes: "PIX confirmado manualmente pelo administrador — aguardando aprovação do briefing.",
+        }).where(eq(leadPackageOrders.id, input.orderId));
+        return { success: true };
+      }),
+
     adminUnlimitedAccesses: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
@@ -1413,6 +1431,24 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           adminNotes: input.notes || null,
         }).where(eq(marketLeadAccesses.id, input.accessId));
         return { success: true, startsAt, expiresAt };
+      }),
+
+    confirmUnlimitedPix: protectedProcedure
+      .input(z.object({ accessId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [access] = await db.select({ status: marketLeadAccesses.status }).from(marketLeadAccesses).where(eq(marketLeadAccesses.id, input.accessId)).limit(1);
+        if (!access) throw new TRPCError({ code: "NOT_FOUND", message: "Solicitação não encontrada." });
+        if (access.status !== "pending_payment") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Esta solicitação não está aguardando confirmação de PIX." });
+        await db.update(marketLeadAccesses).set({
+          status: "pending_approval",
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+          adminNotes: "PIX confirmado manualmente pelo administrador — aguardando ativação por 30 dias.",
+        }).where(eq(marketLeadAccesses.id, input.accessId));
+        return { success: true };
       }),
   }),
 
