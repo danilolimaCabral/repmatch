@@ -610,18 +610,18 @@ export default function Home() {
       />
 
       {/* ─── Navbar ─────────────────────────────────────────────────────────── */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-card/97 backdrop-blur-md border-b border-border shadow-md" : "bg-transparent"}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-500 ${scrolled ? "border-emerald-950/20 bg-emerald-950/95 shadow-[0_12px_36px_rgba(3,22,15,0.25)] backdrop-blur-xl" : "border-white/10 bg-emerald-950/35 backdrop-blur-sm"}`}>
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:h-[72px] sm:px-6">
-          <img src={LOGO_URL} alt="RepMatch" className="h-7 shrink-0 object-contain sm:h-8" />
-          <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-            <a href="#como-funciona" className="hover:text-foreground transition-colors">Como funciona</a>
-            <a href="/vagas" className="hover:text-foreground transition-colors font-medium text-foreground/80">Vagas</a>
-            <a href="/buscar" className="hover:text-foreground transition-colors font-medium text-foreground/80">Buscar Reps</a>
-            <a href="/oportunidades-reps" className="hover:text-foreground transition-colors font-medium text-foreground/80">Reps Disponíveis</a>
-            <a href="/pacotes-leads" className="hover:text-foreground transition-colors font-medium text-foreground/80">Leads B2B/B2C</a>
-            <a href="/parcerias" className="hover:text-foreground transition-colors font-semibold text-emerald-600">Parcerias</a>
-            <a href="/blog" className="hover:text-foreground transition-colors font-medium text-foreground/80">Blog</a>
-            <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
+          <img src={LOGO_URL} alt="RepMatch" className="h-8 shrink-0 object-contain drop-shadow-[0_2px_14px_rgba(255,255,255,0.18)] sm:h-9" />
+          <nav className="hidden items-center gap-7 text-sm text-emerald-50/75 md:flex">
+            <a href="#como-funciona" className="transition-colors hover:text-white">Como funciona</a>
+            <a href="/vagas" className="font-medium transition-colors hover:text-white">Vagas</a>
+            <a href="/buscar" className="font-medium transition-colors hover:text-white">Buscar Reps</a>
+            <a href="/oportunidades-reps" className="font-medium transition-colors hover:text-white">Reps Disponíveis</a>
+            <a href="/pacotes-leads" className="font-medium transition-colors hover:text-white">Leads B2B/B2C</a>
+            <a href="/parcerias" className="font-semibold text-emerald-300 transition-colors hover:text-white">Parcerias</a>
+            <a href="/blog" className="font-medium transition-colors hover:text-white">Blog</a>
+            <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
           </nav>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <div className="hidden sm:block"><ThemeToggleButton /></div>
@@ -677,8 +677,8 @@ export default function Home() {
               </div>
             ) : (
               <>
-                <a href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Entrar</a>
-                <a href="/register" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">
+                <a href="/login" className="hidden text-sm text-emerald-50/80 transition-colors hover:text-white sm:block">Entrar</a>
+                <a href="/register" className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_8px_22px_rgba(22,163,74,0.32)] transition-all hover:-translate-y-0.5 hover:bg-primary/90">
                   Cadastrar agora
                 </a>
               </>
@@ -688,102 +688,104 @@ export default function Home() {
       </header>
 
       {/* ─── Hero ───────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 overflow-hidden">
-        {/* Vídeo de fundo */}
+      <section className="impact-hero relative isolate min-h-[760px] overflow-hidden bg-emerald-950 px-4 pb-16 pt-32 text-white sm:px-6 lg:min-h-[780px] lg:pb-20 lg:pt-36">
         <video
           autoPlay
           muted
           loop
           playsInline
           preload="metadata"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ opacity: 0.35, zIndex: 0 }}
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35 mix-blend-screen"
         >
           <source src="/hero-bg.mp4" type="video/mp4" />
         </video>
-        {/* Overlay escuro sobre o vídeo */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, var(--background) 0%, transparent 30%, transparent 70%, var(--background) 100%)", zIndex: 1 }} />
-        {/* Subtle radial glow */}
-        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full blur-[140px]" style={{ background: "oklch(0.62 0.18 152 / 0.10)" }} />
-          <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] rounded-full blur-[100px]" style={{ background: "oklch(0.62 0.18 152 / 0.06)" }} />
-          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] rounded-full blur-[120px]" style={{ background: "oklch(0.58 0.16 210 / 0.04)" }} />
-        </div>
-        {/* Subtle grid */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.035]"
-          style={{ zIndex: 2, backgroundImage: "linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px)", backgroundSize: "72px 72px" }} />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(100deg,rgba(3,31,19,0.99)_0%,rgba(3,31,19,0.94)_38%,rgba(3,31,19,0.58)_70%,rgba(3,31,19,0.88)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+        <div className="impact-hero__orb impact-hero__orb--one" aria-hidden="true" />
+        <div className="impact-hero__orb impact-hero__orb--two" aria-hidden="true" />
+        <div className="impact-hero__beam" aria-hidden="true" />
 
-        <div className="relative z-10 max-w-5xl mx-auto text-center">
-          <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 text-center bg-primary/10 border border-primary/25 text-primary text-xs font-semibold px-4 py-2 rounded-full mb-10 tracking-wide uppercase">
-            <Sparkles className="w-3.5 h-3.5" />
-            Marketplace B2B · O match certo. No tempo certo.
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.08fr_.72fr] lg:gap-20">
+          <div className="max-w-3xl">
+            <div className="impact-hero__reveal inline-flex items-center gap-2 border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-100 sm:text-xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,0.95)]" />
+              Vendas em movimento, sem perder o controle
+            </div>
+
+            <img src={LOGO_URL} alt="RepMatch" className="impact-hero__reveal mt-8 h-10 w-auto object-contain opacity-95 sm:h-12" />
+
+            <h1 className="impact-hero__reveal mt-7 max-w-3xl text-pretty font-black leading-[0.9] tracking-[-0.055em] text-white [font-family:'Bricolage_Grotesque',system-ui,sans-serif] text-5xl sm:text-6xl lg:text-[5.3rem]">
+              A conversa certa pode mudar <span className="text-emerald-300">o ritmo das suas vendas.</span>
+            </h1>
+
+            <p className="impact-hero__reveal mt-7 max-w-2xl text-pretty text-base leading-relaxed text-emerald-50/75 sm:text-lg">
+              Encontre representantes por região e segmento ou crie uma lista empresarial para prospectar. Tudo organizado para o seu time começar a agir.
+            </p>
+
+            <div className="impact-hero__reveal mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                onClick={() => handleCTA("company")}
+                className="group inline-flex min-h-14 items-center justify-center gap-3 bg-primary px-6 py-4 text-sm font-extrabold text-primary-foreground shadow-[0_16px_36px_rgba(22,163,74,0.3)] transition-all hover:-translate-y-1 hover:bg-emerald-400 hover:shadow-[0_22px_46px_rgba(22,163,74,0.38)]"
+              >
+                <Building2 className="h-5 w-5" />
+                Encontrar representantes
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </button>
+              <button
+                onClick={() => navigate("/pacotes-leads")}
+                className="group inline-flex min-h-14 items-center justify-center gap-3 border border-emerald-100/35 bg-white/8 px-6 py-4 text-sm font-bold text-white backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-emerald-200/70 hover:bg-white/14"
+              >
+                <Target className="h-5 w-5 text-emerald-300" />
+                Montar lista B2B
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
+
+            <div className="impact-hero__reveal mt-8 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-emerald-50/70 sm:text-sm">
+              {["Sem taxa de contratação", "R$ 9,90 por contato", "Dados organizados para o CRM"].map((item) => (
+                <div key={item} className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-300" />
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Logo grande */}
-          <div className="flex justify-center mb-10">
-            <img src={LOGO_URL} alt="RepMatch" className="w-64 md:w-80 lg:w-[420px] object-contain" style={{ filter: "drop-shadow(0 0 60px oklch(0.62 0.18 152 / 0.3))" }} />
-          </div>
-
-          <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black leading-[0.92] tracking-tight mb-8" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-            <span className="text-foreground">Encontre o representante</span>
-            <br />
-            <span className="text-gradient-green">certo para vender mais</span>
-            <br />
-            <span className="text-foreground">e dê novos clientes ao seu time.</span>
-          </h1>
-
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-            Contrate representantes por região e segmento ou monte campanhas de prospecção com empresas segmentadas. Seu vendedor recebe uma base organizada para abrir novas conversas, trabalhar no próprio painel ou importar no CRM.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14 flex-wrap">
-            <button
-              onClick={() => handleCTA("company")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base px-8 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-            >
-              <Building2 className="w-5 h-5" />
-              Sou Empresa
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button
-              onClick={() => navigate("/pacotes-leads")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-emerald-950 hover:bg-emerald-900 text-white font-bold text-base px-8 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-            >
-              <Target className="w-5 h-5 text-emerald-300" />
-              Quero prospectar empresas
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button
-              onClick={() => handleCTA("manager")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-card hover:bg-secondary border border-border hover:border-primary/30 text-foreground font-semibold text-base px-8 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
-            >
-              <UserCog className="w-5 h-5 text-muted-foreground" />
-              Sou Gerente
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button
-              onClick={() => handleCTA("rep")}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-secondary hover:bg-secondary/80 border border-border hover:border-primary/40 text-foreground font-semibold text-base px-8 py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
-            >
-              <Users className="w-5 h-5" />
-              Sou Representante
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-            {["Sem taxa de contratação", "Contato desbloqueado por R$ 9,90", "Conexão em menos de 48h"].map((item) => (
-              <div key={item} className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-primary" />
-                {item}
+          <aside className="impact-hero__panel relative overflow-hidden border border-white/15 bg-white/[0.09] p-5 shadow-[0_28px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl sm:p-7">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/90 to-transparent" />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Escolha seu próximo passo</p>
+                <h2 className="mt-2 text-2xl font-black leading-tight text-white [font-family:'Bricolage_Grotesque',system-ui,sans-serif]">Uma plataforma. Três caminhos de crescimento.</h2>
               </div>
-            ))}
-          </div>
+              <div className="grid h-11 w-11 shrink-0 place-items-center border border-emerald-200/25 bg-emerald-300/10 text-emerald-200">
+                <Zap className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="mt-7 space-y-3">
+              <button onClick={() => handleCTA("company")} className="group flex w-full items-center gap-4 border border-white/10 bg-black/10 p-4 text-left transition hover:border-emerald-200/45 hover:bg-white/10">
+                <div className="grid h-10 w-10 shrink-0 place-items-center bg-emerald-300/15 text-emerald-200"><Building2 className="h-5 w-5" /></div>
+                <div className="min-w-0 flex-1"><p className="font-bold text-white">Contratar representantes</p><p className="mt-0.5 text-xs leading-relaxed text-emerald-50/65">Filtre por perfil, região e segmento.</p></div>
+                <ArrowRight className="h-4 w-4 text-emerald-200 transition-transform group-hover:translate-x-1" />
+              </button>
+              <button onClick={() => navigate("/pacotes-leads")} className="group flex w-full items-center gap-4 border border-white/10 bg-black/10 p-4 text-left transition hover:border-emerald-200/45 hover:bg-white/10">
+                <div className="grid h-10 w-10 shrink-0 place-items-center bg-emerald-300/15 text-emerald-200"><Search className="h-5 w-5" /></div>
+                <div className="min-w-0 flex-1"><p className="font-bold text-white">Prospectar empresas</p><p className="mt-0.5 text-xs leading-relaxed text-emerald-50/65">Monte uma lista B2B para seu time.</p></div>
+                <ArrowRight className="h-4 w-4 text-emerald-200 transition-transform group-hover:translate-x-1" />
+              </button>
+              <button onClick={() => handleCTA("rep")} className="group flex w-full items-center gap-4 border border-white/10 bg-black/10 p-4 text-left transition hover:border-emerald-200/45 hover:bg-white/10">
+                <div className="grid h-10 w-10 shrink-0 place-items-center bg-emerald-300/15 text-emerald-200"><Users className="h-5 w-5" /></div>
+                <div className="min-w-0 flex-1"><p className="font-bold text-white">Encontrar novas oportunidades</p><p className="mt-0.5 text-xs leading-relaxed text-emerald-50/65">Crie seu perfil e apareça para empresas.</p></div>
+                <ArrowRight className="h-4 w-4 text-emerald-200 transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
+          </aside>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce text-muted-foreground/40">
-          <ChevronDown className="w-6 h-6" />
-        </div>
+        <a href="#leads-b2b" className="impact-hero__scroll absolute bottom-6 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-emerald-100/55 transition hover:text-emerald-100">
+          Conheça a plataforma <ChevronDown className="h-4 w-4" />
+        </a>
       </section>
 
       {/* ─── Contador ao Vivo ─────────────────────────────────────────────────────── */}
