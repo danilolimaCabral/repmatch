@@ -50,6 +50,7 @@ import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives
 import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count, like, or } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { DEFAULT_LEAD_PACKAGE_PRICES, getLeadPackagePrice } from "@shared/leadPackages";
+import { getMySqlInsertId } from "@shared/mysql";
 import { notifyOwner } from "./_core/notification";
 import { storagePut } from "./storage";
 import { consultarCnpj } from "./cnpja";
@@ -1211,7 +1212,9 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         status: "pending_payment",
         amount: price.toFixed(2),
       });
-      return { accessId: Number((result as unknown as [{ insertId: number }])[0]?.insertId), price, durationDays: 30 };
+      const accessId = getMySqlInsertId(result);
+      if (!accessId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível criar a solicitação do plano." });
+      return { accessId, price, durationDays: 30 };
     }),
 
     searchUnlimitedCatalog: protectedProcedure
@@ -1275,7 +1278,8 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           paymentMethod: "pix",
           status: "pending_payment",
         });
-        const orderId = Number((result as unknown as [{ insertId: number }])[0]?.insertId);
+        const orderId = getMySqlInsertId(result);
+        if (!orderId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível criar o pedido para pagamento." });
         return { orderId, price, quantity: input.quantity };
       }),
 

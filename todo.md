@@ -898,3 +898,9 @@
 - [x] Aplicar máscara e validação dos dígitos verificadores do CNPJ
 - [x] Enviar a identificação empresarial correta ao Mercado Pago nos pagamentos PIX
 - [x] Cobrir CPF e CNPJ por testes automatizados
+
+## QR Code PIX das campanhas (18/10/2026)
+- [x] Reutilizar o mesmo fallback de nome e e-mail válido usado no PIX de planos
+- [x] Normalizar o payload de CPF/CNPJ antes da criação do pagamento
+- [x] Exibir retorno claro se o Mercado Pago não devolver QR Code
+- [x] Validar o fluxo com testes automatizados
