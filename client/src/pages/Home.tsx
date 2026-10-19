@@ -712,9 +712,7 @@ export default function Home() {
               Vendas em movimento, sem perder o controle
             </div>
 
-            <img src={LOGO_URL} alt="RepMatch" className="impact-hero__reveal mt-8 h-10 w-auto object-contain opacity-95 sm:h-12" />
-
-            <h1 className="impact-hero__reveal mt-7 max-w-3xl text-pretty font-black leading-[0.9] tracking-[-0.055em] text-white [font-family:'Bricolage_Grotesque',system-ui,sans-serif] text-5xl sm:text-6xl lg:text-[5.3rem]">
+            <h1 className="impact-hero__reveal mt-9 max-w-3xl text-pretty font-black leading-[0.9] tracking-[-0.055em] text-white [font-family:'Bricolage_Grotesque',system-ui,sans-serif] text-5xl sm:text-6xl lg:text-[5.3rem]">
               A conversa certa pode mudar <span className="text-emerald-300">o ritmo das suas vendas.</span>
             </h1>
 
