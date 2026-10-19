@@ -28,6 +28,20 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     title: "Representantes Comerciais e Campanhas de Leads B2B | RepMatch",
     description: "Encontre representantes comerciais ou monte uma campanha B2B segmentada por setor, CNAE e região. Base nacional para prospecção comercial organizada.",
     canonicalPath: "/",
+    fallbackHtml: renderStaticFallback({
+      eyebrow: "RepMatch",
+      heading: "Representantes comerciais e campanhas de leads B2B",
+      paragraphs: [
+        "Encontre representantes comerciais por região e segmento ou organize uma campanha de prospecção B2B para sua operação comercial.",
+        "A plataforma reúne busca de representantes, vagas, listas empresariais e conteúdos para apoiar empresas e profissionais de vendas no Brasil.",
+      ],
+      links: [
+        ["Buscar representantes comerciais", "/buscar"],
+        ["Ver vagas de representação", "/vagas"],
+        ["Conhecer campanhas de leads B2B", "/pacotes-leads"],
+        ["Ler guias comerciais", "/blog"],
+      ],
+    }),
     structuredData: [
       {
         "@context": "https://schema.org",
@@ -59,6 +73,15 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     title: "Buscar Representantes Comerciais por Região e Segmento | RepMatch",
     description: "Pesquise representantes comerciais por região, segmento e disponibilidade. Conheça a plataforma RepMatch para encontrar parceiros de vendas em todo o Brasil.",
     canonicalPath: "/buscar",
+    fallbackHtml: renderStaticFallback({
+      eyebrow: "Busca comercial",
+      heading: "Buscar representantes comerciais por região e segmento",
+      paragraphs: [
+        "Pesquise representantes comerciais e avalie perfis de acordo com a região, segmento e disponibilidade compatíveis com a expansão da sua empresa.",
+        "Use os filtros da plataforma para iniciar uma seleção organizada e avance para o contato somente quando o perfil fizer sentido para a operação.",
+      ],
+      links: [["Ver representantes disponíveis", "/oportunidades-reps"], ["Publicar ou ver vagas", "/vagas"], ["Conhecer a plataforma", "/"]],
+    }),
     structuredData: {
       "@context": "https://schema.org",
       "@type": "WebPage",
@@ -72,6 +95,15 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     title: "Vagas para Representantes Comerciais por Região | RepMatch",
     description: "Veja vagas de representação comercial por região e segmento. Cadastre seu perfil gratuitamente e encontre oportunidades compatíveis com sua experiência.",
     canonicalPath: "/vagas",
+    fallbackHtml: renderStaticFallback({
+      eyebrow: "Oportunidades comerciais",
+      heading: "Vagas para representantes comerciais",
+      paragraphs: [
+        "Encontre oportunidades de representação comercial por região e segmento e cadastre seu perfil para se candidatar às vagas compatíveis.",
+        "Empresas podem ampliar seus canais de venda; representantes podem acompanhar posições que fazem sentido para sua experiência e território.",
+      ],
+      links: [["Encontrar representantes", "/buscar"], ["Ver profissionais disponíveis", "/oportunidades-reps"], ["Ler guias para representantes", "/blog"]],
+    }),
     structuredData: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
@@ -84,6 +116,15 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     title: "Representantes Comerciais Disponíveis | RepMatch",
     description: "Encontre representantes comerciais disponíveis para representação no Brasil. Profissionais publicam disponibilidade por região e segmento.",
     canonicalPath: "/oportunidades-reps",
+    fallbackHtml: renderStaticFallback({
+      eyebrow: "Representantes disponíveis",
+      heading: "Profissionais de representação comercial por região e segmento",
+      paragraphs: [
+        "Conheça representantes que publicam disponibilidade para novas representações comerciais em diferentes regiões e segmentos.",
+        "A busca ajuda empresas a iniciar conversas com mais contexto sobre território, atividade e objetivo comercial.",
+      ],
+      links: [["Buscar representantes com filtros", "/buscar"], ["Ver vagas de representação", "/vagas"], ["Conhecer campanhas B2B", "/pacotes-leads"]],
+    }),
     structuredData: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
@@ -102,6 +143,15 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     title: "Leads B2B e B2C para Campanhas | Empresas Ativas por Segmento | RepMatch",
     description: "Monte uma campanha com empresas B2B ou B2C, com recorte por segmento e região. Escolha os registros individualmente e exporte sua lista para CRM.",
     canonicalPath: "/pacotes-leads",
+    fallbackHtml: renderStaticFallback({
+      eyebrow: "Prospecção organizada",
+      heading: "Leads B2B e B2C para campanhas comerciais",
+      paragraphs: [
+        "Monte uma lista comercial com recorte por segmento e região. Escolha os registros individualmente, mantenha sua seleção na conta e exporte para o CRM quando precisar.",
+        "As campanhas B2B priorizam dados empresariais. A área B2C possui regras próprias de uso responsável, consentimento declarado na origem e seleção individual.",
+      ],
+      links: [["Ler o guia de lista de empresas B2B", "/blog/como-montar-lista-empresas-b2b-prospeccao"], ["Conhecer contatos B2C", "/contatos-b2c"], ["Buscar representantes", "/buscar"]],
+    }),
     structuredData: {
       "@context": "https://schema.org",
       "@type": "Service",
@@ -116,6 +166,15 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     title: "Contatos B2C para Imobiliárias, Automotivo e Produtos Digitais | RepMatch",
     description: "Base B2C de contatos com consentimento declarado na origem. Escolha contatos individualmente, mantenha sua lista e exporte em Excel.",
     canonicalPath: "/contatos-b2c",
+    fallbackHtml: renderStaticFallback({
+      eyebrow: "Base especial B2C",
+      heading: "Contatos B2C para campanhas comerciais responsáveis",
+      paragraphs: [
+        "Escolha contatos individualmente, mantenha a seleção associada à sua conta e exporte a lista para uso comercial responsável.",
+        "A oferta é voltada a operações que respeitam transparência, finalidade legítima, preferências de contato e as regras aplicáveis de privacidade.",
+      ],
+      links: [["Conhecer campanhas empresariais B2B", "/pacotes-leads"], ["Ler política de privacidade", "/privacidade"], ["Voltar ao início", "/"]],
+    }),
     structuredData: {
       "@context": "https://schema.org",
       "@type": "Service",
@@ -130,6 +189,7 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     title: "Blog de Representação Comercial e Prospecção B2B | RepMatch",
     description: "Guias sobre representação comercial, contratação de representantes, prospecção B2B, listas de empresas, vendas externas e expansão comercial no Brasil.",
     canonicalPath: "/blog",
+    fallbackHtml: renderBlogIndexFallback(),
     structuredData: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
@@ -332,6 +392,26 @@ function renderBlogFallback(post: (typeof BLOG_POSTS)[number]): string {
   const published = escapeHtml(post.date);
   const modified = escapeHtml(post.updatedAt ?? post.date);
   return `<main><article><header><p>${escapeHtml(post.category)}</p><h1>${escapeHtml(post.title)}</h1><p>${escapeHtml(post.excerpt)}</p><p>Publicado em <time datetime="${published}">${published}</time>${post.updatedAt ? ` · Atualizado em <time datetime="${modified}">${modified}</time>` : ""}</p></header>${renderMarkdownFallback(post.content)}<p><a href="/pacotes-leads">Conheça as campanhas de leads B2B</a> ou <a href="/buscar">busque representantes comerciais</a>.</p></article></main>`;
+}
+
+function renderStaticFallback(input: {
+  eyebrow: string;
+  heading: string;
+  paragraphs: string[];
+  links: Array<[string, string]>;
+}): string {
+  const paragraphs = input.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
+  const links = input.links.map(([label, href]) => `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>`).join("");
+  return `<main><article><p>${escapeHtml(input.eyebrow)}</p><h1>${escapeHtml(input.heading)}</h1>${paragraphs}<nav aria-label="Links relacionados"><ul>${links}</ul></nav></article></main>`;
+}
+
+function renderBlogIndexFallback(): string {
+  const recentPosts = [...BLOG_POSTS]
+    .sort((a, b) => Date.parse(b.updatedAt ?? b.date) - Date.parse(a.updatedAt ?? a.date))
+    .slice(0, 6)
+    .map((post) => `<li><article><h2><a href="/blog/${escapeHtml(post.slug)}">${escapeHtml(post.title)}</a></h2><p>${escapeHtml(post.excerpt)}</p></article></li>`)
+    .join("");
+  return `<main><article><p>Blog RepMatch</p><h1>Representação comercial e prospecção B2B</h1><p>Guias práticos para empresas e representantes sobre contratação, vendas externas, prospecção B2B e expansão comercial.</p><section><h2>Guias recentes</h2><ul>${recentPosts}</ul></section><p><a href="/buscar">Buscar representantes comerciais</a> · <a href="/pacotes-leads">Conhecer campanhas B2B</a></p></article></main>`;
 }
 
 function upsertMeta(html: string, attribute: "name" | "property", key: string, value: string): string {

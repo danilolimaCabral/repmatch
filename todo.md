@@ -996,3 +996,4 @@
 - [x] Acrescentar imagem e texto alternativo para Open Graph e Twitter, preservando canonical em navegações da SPA
 - [x] Publicar guia original sobre lista de empresas B2B, segmentação, CRM e prospecção responsável
 - [x] Incluir o novo guia no sitemap, destacá-lo no blog e validar schemas, 57 testes, build e HTML em modo produção
+- [x] Entregar texto, títulos e links internos próprios no HTML inicial das páginas de busca, vagas, oportunidades, campanhas, contatos B2C e blog

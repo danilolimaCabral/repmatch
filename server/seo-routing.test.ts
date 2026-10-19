@@ -86,4 +86,17 @@ describe("SEO por rota", () => {
     expect(html).toContain('href="/buscar"');
     expect(html).toContain('href="/pacotes-leads"');
   });
+
+  it("entrega conteúdo próprio e links internos nas páginas comerciais sem JavaScript", () => {
+    const searchHtml = renderSeoHtml(htmlTemplate, getSeoRoute("/buscar").page);
+    const leadsHtml = renderSeoHtml(htmlTemplate, getSeoRoute("/pacotes-leads").page);
+    const blogHtml = renderSeoHtml(htmlTemplate, getSeoRoute("/blog").page);
+
+    expect(searchHtml).toContain("Buscar representantes comerciais por região e segmento");
+    expect(searchHtml).toContain('href="/oportunidades-reps"');
+    expect(leadsHtml).toContain("Leads B2B e B2C para campanhas comerciais");
+    expect(leadsHtml).toContain('href="/blog/como-montar-lista-empresas-b2b-prospeccao"');
+    expect(blogHtml).toContain("Guias recentes");
+    expect(blogHtml).toContain("Como Montar uma Lista de Empresas B2B para Prospecção");
+  });
 });
