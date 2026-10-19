@@ -690,13 +690,17 @@ export default function Home() {
 
       {/* ─── Hero ───────────────────────────────────────────────────────────── */}
       <section className="impact-hero relative isolate min-h-[760px] overflow-hidden bg-emerald-950 px-4 pb-16 pt-32 text-white sm:px-6 lg:min-h-[780px] lg:pb-20 lg:pt-36">
-        <img
-          src={HERO_BACKGROUND_URL}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60 sm:opacity-80"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(100deg,rgba(3,31,19,0.97)_0%,rgba(3,31,19,0.92)_42%,rgba(3,31,19,0.55)_72%,rgba(3,31,19,0.86)_100%)]" />
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35 mix-blend-screen"
+        >
+          <source src="/hero-bg.mp4" type="video/mp4" />
+        </video>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(100deg,rgba(3,31,19,0.99)_0%,rgba(3,31,19,0.94)_38%,rgba(3,31,19,0.58)_70%,rgba(3,31,19,0.88)_100%)]" />
         <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
         <div className="impact-hero__orb impact-hero__orb--one" aria-hidden="true" />
         <div className="impact-hero__orb impact-hero__orb--two" aria-hidden="true" />
@@ -746,35 +750,12 @@ export default function Home() {
             </div>
           </div>
 
-          <aside className="impact-hero__panel relative overflow-hidden border border-white/15 bg-white/[0.09] p-5 shadow-[0_28px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl sm:p-7">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/90 to-transparent" />
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Escolha seu próximo passo</p>
-                <h2 className="mt-2 text-2xl font-black leading-tight text-white [font-family:'Bricolage_Grotesque',system-ui,sans-serif]">Uma plataforma. Três caminhos de crescimento.</h2>
-              </div>
-              <div className="grid h-11 w-11 shrink-0 place-items-center border border-emerald-200/25 bg-emerald-300/10 text-emerald-200">
-                <Zap className="h-5 w-5" />
-              </div>
-            </div>
-
-            <div className="mt-7 space-y-3">
-              <button onClick={() => handleCTA("company")} className="group flex w-full items-center gap-4 border border-white/10 bg-black/10 p-4 text-left transition hover:border-emerald-200/45 hover:bg-white/10">
-                <div className="grid h-10 w-10 shrink-0 place-items-center bg-emerald-300/15 text-emerald-200"><Building2 className="h-5 w-5" /></div>
-                <div className="min-w-0 flex-1"><p className="font-bold text-white">Contratar representantes</p><p className="mt-0.5 text-xs leading-relaxed text-emerald-50/65">Filtre por perfil, região e segmento.</p></div>
-                <ArrowRight className="h-4 w-4 text-emerald-200 transition-transform group-hover:translate-x-1" />
-              </button>
-              <button onClick={() => navigate("/pacotes-leads")} className="group flex w-full items-center gap-4 border border-white/10 bg-black/10 p-4 text-left transition hover:border-emerald-200/45 hover:bg-white/10">
-                <div className="grid h-10 w-10 shrink-0 place-items-center bg-emerald-300/15 text-emerald-200"><Search className="h-5 w-5" /></div>
-                <div className="min-w-0 flex-1"><p className="font-bold text-white">Prospectar empresas</p><p className="mt-0.5 text-xs leading-relaxed text-emerald-50/65">Monte uma lista B2B para seu time.</p></div>
-                <ArrowRight className="h-4 w-4 text-emerald-200 transition-transform group-hover:translate-x-1" />
-              </button>
-              <button onClick={() => handleCTA("rep")} className="group flex w-full items-center gap-4 border border-white/10 bg-black/10 p-4 text-left transition hover:border-emerald-200/45 hover:bg-white/10">
-                <div className="grid h-10 w-10 shrink-0 place-items-center bg-emerald-300/15 text-emerald-200"><Users className="h-5 w-5" /></div>
-                <div className="min-w-0 flex-1"><p className="font-bold text-white">Encontrar novas oportunidades</p><p className="mt-0.5 text-xs leading-relaxed text-emerald-50/65">Crie seu perfil e apareça para empresas.</p></div>
-                <ArrowRight className="h-4 w-4 text-emerald-200 transition-transform group-hover:translate-x-1" />
-              </button>
-            </div>
+          <aside className="impact-hero__panel overflow-hidden border border-white/15 bg-emerald-950/45 shadow-[0_28px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl">
+            <img
+              src={HERO_BACKGROUND_URL}
+              alt="Visão geral visual da plataforma RepMatch."
+              className="block aspect-[25/18] h-auto w-full object-cover"
+            />
           </aside>
         </div>
 
