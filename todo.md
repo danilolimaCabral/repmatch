@@ -886,3 +886,9 @@
 - [x] Permitir download CSV de pedidos entregues para importação no CRM do comprador
 - [x] Simplificar o cadastro de comprador para e-mail, celular e senha, com retorno à campanha
 - [x] Aplicar os preços comerciais definidos: B2B 1.000 R$ 99, B2B 2.000 R$ 179, B2C 1.000 R$ 79 e B2C 2.000 R$ 149
+
+## Validação de CPF no PIX (18/10/2026)
+- [x] Validar CPF pelo algoritmo oficial antes de enviar ao Mercado Pago
+- [x] Aplicar máscara automática e mensagem de correção clara no checkout de campanhas
+- [x] Proteger o backend contra CPF inválido e nome de pagador vazio
+- [x] Cobrir a validação com testes automatizados

@@ -4,6 +4,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import SEO from "@/components/SEO";
 import { getLeadPackagePrice } from "@shared/leadPackages";
+import { formatCpf, isValidCpf, normalizeCpf } from "@shared/const";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -52,6 +53,7 @@ export default function LeadPackages() {
   const [pendingOrder, setPendingOrder] = useState<{ orderId: number; price: number; quantity: number } | null>(null);
   const [pendingUnlimitedAccess, setPendingUnlimitedAccess] = useState<{ accessId: number; price: number } | null>(null);
   const [cpf, setCpf] = useState("");
+  const [cpfError, setCpfError] = useState("");
   const [pixLoading, setPixLoading] = useState(false);
   const [pix, setPix] = useState<{ qrCode: string; qrCodeBase64: string } | null>(null);
   const [catalogSearch, setCatalogSearch] = useState("");
@@ -147,11 +149,12 @@ export default function LeadPackages() {
 
   async function generatePix() {
     if ((!pendingOrder && !pendingUnlimitedAccess) || !user) return;
-    const digits = cpf.replace(/\D/g, "");
-    if (digits.length !== 11) {
-      toast.error("Informe um CPF válido com 11 dígitos para gerar o PIX.");
+    const digits = normalizeCpf(cpf);
+    if (!isValidCpf(digits)) {
+      setCpfError("Confira os 11 dígitos do CPF do pagador.");
       return;
     }
+    setCpfError("");
     setPixLoading(true);
     try {
       const isUnlimited = !!pendingUnlimitedAccess;
@@ -311,7 +314,7 @@ export default function LeadPackages() {
         </section>
       </main>
 
-      {(pendingOrder || pendingUnlimitedAccess) && <div className="fixed inset-0 z-50 flex items-end bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4"><div className="w-full rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-7"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Etapa final</p><h2 className="mt-1 text-xl font-black">{pendingUnlimitedAccess ? "Plano Pesquisa Ilimitada" : "Pagamento da campanha"}</h2><p className="mt-1 text-sm text-slate-600">{pendingUnlimitedAccess ? `30 dias de pesquisas ilimitadas · ${formatBRL(pendingUnlimitedAccess.price)}` : `${audience.toUpperCase()} · ${pendingOrder!.quantity.toLocaleString("pt-BR")} empresas · ${formatBRL(pendingOrder!.price)}`}</p></div><button onClick={() => { setPendingOrder(null); setPendingUnlimitedAccess(null); }} className="grid h-9 w-9 place-items-center rounded-full text-2xl text-slate-400 transition hover:bg-slate-100" aria-label="Fechar">×</button></div>{!pix ? <><label className="mt-6 block text-sm font-bold">CPF do pagador<input inputMode="numeric" value={cpf} onChange={(event) => setCpf(event.target.value)} placeholder="000.000.000-00" className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" /></label><button onClick={generatePix} disabled={pixLoading} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60">{pixLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Gerar QR Code PIX</button></> : <div className="mt-6 text-center"><img src={`data:image/png;base64,${pix.qrCodeBase64}`} className="mx-auto h-52 w-52" alt="QR Code PIX" /><p className="mt-4 font-black">PIX gerado com sucesso</p><p className="mt-1 text-xs leading-relaxed text-slate-500">A confirmação leva seu pedido para análise e ativação assistida.</p><button onClick={() => navigator.clipboard.writeText(pix.qrCode).then(() => toast.success("Código PIX copiado"))} className="mt-4 min-h-12 w-full rounded-xl border border-emerald-300 px-4 py-3 text-sm font-bold text-emerald-700">Copiar código PIX</button></div>}</div></div>}
+      {(pendingOrder || pendingUnlimitedAccess) && <div className="fixed inset-0 z-50 flex items-end bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4"><div className="w-full rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-7"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Etapa final</p><h2 className="mt-1 text-xl font-black">{pendingUnlimitedAccess ? "Plano Pesquisa Ilimitada" : "Pagamento da campanha"}</h2><p className="mt-1 text-sm text-slate-600">{pendingUnlimitedAccess ? `30 dias de pesquisas ilimitadas · ${formatBRL(pendingUnlimitedAccess.price)}` : `${audience.toUpperCase()} · ${pendingOrder!.quantity.toLocaleString("pt-BR")} empresas · ${formatBRL(pendingOrder!.price)}`}</p></div><button onClick={() => { setPendingOrder(null); setPendingUnlimitedAccess(null); setCpfError(""); }} className="grid h-9 w-9 place-items-center rounded-full text-2xl text-slate-400 transition hover:bg-slate-100" aria-label="Fechar">×</button></div>{!pix ? <><label className="mt-6 block text-sm font-bold">CPF do pagador<input inputMode="numeric" autoComplete="off" value={cpf} onChange={(event) => { setCpf(formatCpf(event.target.value)); if (cpfError) setCpfError(""); }} placeholder="000.000.000-00" aria-invalid={!!cpfError} className={`mt-2 min-h-12 w-full rounded-xl border px-3 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 ${cpfError ? "border-red-400 bg-red-50" : "border-slate-200"}`} /></label>{cpfError && <p className="mt-2 text-sm font-medium text-red-700" role="alert">{cpfError}</p>}<p className="mt-2 text-xs leading-relaxed text-slate-500">O CPF é solicitado pelo Mercado Pago para emitir o PIX e não aparece na entrega do pedido.</p><button onClick={generatePix} disabled={pixLoading} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60">{pixLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Gerar QR Code PIX</button></> : <div className="mt-6 text-center"><img src={`data:image/png;base64,${pix.qrCodeBase64}`} className="mx-auto h-52 w-52" alt="QR Code PIX" /><p className="mt-4 font-black">PIX gerado com sucesso</p><p className="mt-1 text-xs leading-relaxed text-slate-500">A confirmação leva seu pedido para análise e ativação assistida.</p><button onClick={() => navigator.clipboard.writeText(pix.qrCode).then(() => toast.success("Código PIX copiado"))} className="mt-4 min-h-12 w-full rounded-xl border border-emerald-300 px-4 py-3 text-sm font-bold text-emerald-700">Copiar código PIX</button></div>}</div></div>}
     </div>
   );
 }

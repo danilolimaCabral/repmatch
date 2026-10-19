@@ -83,3 +83,32 @@ export function getCnaeRepMatchMapping(cnae?: string | null): (Cnae461Mapping & 
   const relatedMapping = CNAE_RELATED_REPRESENTATIVE_MAP[normalized];
   return relatedMapping ? { ...relatedMapping, sourceGroup: "afim" } : null;
 }
+
+export function normalizeCpf(value?: string | null): string {
+  return (value ?? "").replace(/\D/g, "").slice(0, 11);
+}
+
+export function formatCpf(value?: string | null): string {
+  const digits = normalizeCpf(value);
+  return digits
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+/** Validação dos dois dígitos verificadores do CPF, sem consultar ou armazenar o documento. */
+export function isValidCpf(value?: string | null): boolean {
+  const cpf = normalizeCpf(value);
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+
+  const calculateDigit = (length: number) => {
+    const total = cpf
+      .slice(0, length)
+      .split("")
+      .reduce((sum, digit, index) => sum + Number(digit) * (length + 1 - index), 0);
+    const remainder = (total * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+
+  return calculateDigit(9) === Number(cpf[9]) && calculateDigit(10) === Number(cpf[10]);
+}

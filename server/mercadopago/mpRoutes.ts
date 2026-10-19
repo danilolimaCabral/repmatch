@@ -3,7 +3,7 @@ import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getDb } from "../db";
 import { representatives, companies, users, unlockRequests, unlockRequestItems, leadPackageOrders, marketLeadAccesses } from "../../drizzle/schema";
 import { and, eq } from "drizzle-orm";
-import { CONTACT_UNLOCK_PRICE } from "@shared/const";
+import { CONTACT_UNLOCK_PRICE, isValidCpf, normalizeCpf } from "@shared/const";
 import { notifyOwner } from "../_core/notification";
 
 const mp = new MercadoPagoConfig({
@@ -12,6 +12,22 @@ const mp = new MercadoPagoConfig({
 });
 
 export const mpRouter = Router();
+
+function getPayerName(userName?: string) {
+  const names = (userName ?? "").trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: names[0] ?? "Cliente",
+    lastName: names.slice(1).join(" ") || "RepMatch",
+  };
+}
+
+function paymentErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  if (/identification|cpf|payer|data.*invalid|invalid.*data/i.test(message)) {
+    return "Não foi possível validar os dados do pagador. Confira o CPF e tente novamente.";
+  }
+  return message || "Não foi possível gerar o PIX. Tente novamente.";
+}
 
 // ─── Planos e preços ─────────────────────────────────────────────────────────
 export const MP_PLANS = {
@@ -111,6 +127,8 @@ mpRouter.post("/unlock-pix", async (req: Request, res: Response) => {
     };
 
     if (!requestId || !repIds?.length) return res.status(400).json({ error: "Dados inválidos" });
+    const payerCpf = normalizeCpf(cpf);
+    if (!isValidCpf(payerCpf)) return res.status(400).json({ error: "CPF inválido. Confira os 11 dígitos do pagador." });
 
     const db = await getDb();
     if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
@@ -129,11 +147,11 @@ mpRouter.post("/unlock-pix", async (req: Request, res: Response) => {
         payment_method_id: "pix",
         payer: {
           email: userEmail,
-          first_name: userName.split(" ")[0],
-          last_name: userName.split(" ").slice(1).join(" ") || userName.split(" ")[0],
+          first_name: getPayerName(userName).firstName,
+          last_name: getPayerName(userName).lastName,
           identification: {
             type: "CPF",
-            number: cpf.replace(/\D/g, ""),
+            number: payerCpf,
           },
         },
         metadata: {
@@ -153,9 +171,9 @@ mpRouter.post("/unlock-pix", async (req: Request, res: Response) => {
       qrCodeBase64: txInfo?.qr_code_base64,
       expiresAt: result.date_of_expiration,
     });
-  } catch (e: any) {
-    console.error("[MP] unlock-pix error:", e.message);
-    return res.status(500).json({ error: e.message });
+  } catch (e: unknown) {
+    console.error("[MP] unlock-pix error:", e);
+    return res.status(500).json({ error: paymentErrorMessage(e) });
   }
 });
 
@@ -165,7 +183,9 @@ mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
     const { orderId, userId, userEmail, userName, cpf } = req.body as {
       orderId: number; userId: number; userEmail: string; userName: string; cpf: string;
     };
-    if (!orderId || !userId || !cpf?.replace(/\D/g, "")) return res.status(400).json({ error: "Dados inválidos" });
+    if (!orderId || !userId) return res.status(400).json({ error: "Dados inválidos" });
+    const payerCpf = normalizeCpf(cpf);
+    if (!isValidCpf(payerCpf)) return res.status(400).json({ error: "CPF inválido. Confira os 11 dígitos do pagador." });
     const db = await getDb();
     if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
     const [order] = await db.select({ id: leadPackageOrders.id, audience: leadPackageOrders.audience, quantity: leadPackageOrders.quantity, totalAmount: leadPackageOrders.totalAmount, status: leadPackageOrders.status })
@@ -182,18 +202,18 @@ mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
         payment_method_id: "pix",
         payer: {
           email: userEmail,
-          first_name: userName.split(" ")[0],
-          last_name: userName.split(" ").slice(1).join(" ") || userName.split(" ")[0],
-          identification: { type: "CPF", number: cpf.replace(/\D/g, "") },
+          first_name: getPayerName(userName).firstName,
+          last_name: getPayerName(userName).lastName,
+          identification: { type: "CPF", number: payerCpf },
         },
         metadata: { type: "lead_package", order_id: orderId, user_id: userId, audience: order.audience },
       },
     });
     const txInfo = result.point_of_interaction?.transaction_data;
     return res.json({ paymentId: result.id, status: result.status, qrCode: txInfo?.qr_code, qrCodeBase64: txInfo?.qr_code_base64, expiresAt: result.date_of_expiration });
-  } catch (e: any) {
-    console.error("[MP] lead-package-pix error:", e.message);
-    return res.status(500).json({ error: e.message });
+  } catch (e: unknown) {
+    console.error("[MP] lead-package-pix error:", e);
+    return res.status(500).json({ error: paymentErrorMessage(e) });
   }
 });
 
@@ -201,7 +221,9 @@ mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
 mpRouter.post("/market-search-unlimited-pix", async (req: Request, res: Response) => {
   try {
     const { accessId, userId, userEmail, userName, cpf } = req.body as { accessId: number; userId: number; userEmail: string; userName: string; cpf: string };
-    if (!accessId || !userId || !cpf?.replace(/\D/g, "")) return res.status(400).json({ error: "Dados inválidos" });
+    if (!accessId || !userId) return res.status(400).json({ error: "Dados inválidos" });
+    const payerCpf = normalizeCpf(cpf);
+    if (!isValidCpf(payerCpf)) return res.status(400).json({ error: "CPF inválido. Confira os 11 dígitos do pagador." });
     const db = await getDb();
     if (!db) return res.status(500).json({ error: "Banco de dados indisponível" });
     const [access] = await db.select({ id: marketLeadAccesses.id, amount: marketLeadAccesses.amount, status: marketLeadAccesses.status })
@@ -210,14 +232,14 @@ mpRouter.post("/market-search-unlimited-pix", async (req: Request, res: Response
     const payment = new Payment(mp);
     const result = await payment.create({ body: {
       transaction_amount: Number(access.amount), description: "Plano Pesquisa Ilimitada — 30 dias | RepMatch", payment_method_id: "pix",
-      payer: { email: userEmail, first_name: userName.split(" ")[0], last_name: userName.split(" ").slice(1).join(" ") || userName.split(" ")[0], identification: { type: "CPF", number: cpf.replace(/\D/g, "") } },
+      payer: { email: userEmail, first_name: getPayerName(userName).firstName, last_name: getPayerName(userName).lastName, identification: { type: "CPF", number: payerCpf } },
       metadata: { type: "market_search_unlimited", access_id: accessId, user_id: userId },
     }});
     const txInfo = result.point_of_interaction?.transaction_data;
     return res.json({ paymentId: result.id, status: result.status, qrCode: txInfo?.qr_code, qrCodeBase64: txInfo?.qr_code_base64, expiresAt: result.date_of_expiration });
-  } catch (e: any) {
-    console.error("[MP] market-search-unlimited-pix error:", e.message);
-    return res.status(500).json({ error: e.message });
+  } catch (e: unknown) {
+    console.error("[MP] market-search-unlimited-pix error:", e);
+    return res.status(500).json({ error: paymentErrorMessage(e) });
   }
 });
 
