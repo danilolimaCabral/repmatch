@@ -253,7 +253,8 @@ async function ensurePurchaseInterestTable() {
   try {
     await db.execute(sql.raw(`ALTER TABLE consumer_lead_accesses ADD COLUMN selection_limit int NOT NULL DEFAULT 500`));
   } catch (error: any) {
-    if (!/duplicate column|duplicate field|already exists/i.test(String(error?.message ?? error))) throw error;
+    const databaseMessage = [error?.message, error?.cause?.message, error?.cause?.sqlMessage, error].filter(Boolean).map(String).join(" ");
+    if (!/duplicate column|duplicate field|already exists/i.test(databaseMessage)) throw error;
   }
   await db.execute(sql.raw(`
     CREATE TABLE IF NOT EXISTS saved_consumer_leads (

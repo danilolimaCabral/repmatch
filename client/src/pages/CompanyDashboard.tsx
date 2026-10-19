@@ -582,6 +582,7 @@ export default function CompanyDashboard() {
   const { data: availableNowData } = trpc.representatives.countAvailableNow.useQuery(undefined, { staleTime: 60_000 });
 
   const utils = trpc.useUtils();
+  const { data: representativeMonthlyCatalog } = trpc.representativeMonthly.catalog.useQuery(undefined, { enabled: activeTab === "search" });
   const { data: representativeMonthlyAccess, refetch: refetchRepresentativeMonthlyAccess } = trpc.representativeMonthly.myAccess.useQuery(undefined, { enabled: activeTab === "search", refetchInterval: 20_000 });
   const { data: representativeMonthlyRequest, refetch: refetchRepresentativeMonthlyRequest } = trpc.representativeMonthly.myRequest.useQuery(undefined, { enabled: activeTab === "search", refetchInterval: 20_000 });
   const createRepresentativeMonthlyAccess = trpc.representativeMonthly.createAccess.useMutation({ onError: (error) => toast.error(error.message) });
@@ -607,8 +608,8 @@ export default function CompanyDashboard() {
       toast.error(error instanceof Error ? error.message : "Erro ao abrir checkout.");
     }
   };
-  const startRepresentativeMonthlyCheckout = async () => {
-    const request = await createRepresentativeMonthlyAccess.mutateAsync();
+  const startRepresentativeMonthlyCheckout = async (unlockLimit: 20 | 50 | 100) => {
+    const request = await createRepresentativeMonthlyAccess.mutateAsync({ unlockLimit });
     await openRepresentativeMonthlyCheckout(request.accessId);
   };
   const ensureLeadBuyerProfile = trpc.companies.ensureLeadBuyerProfile.useMutation({
@@ -1722,14 +1723,7 @@ export default function CompanyDashboard() {
                 <p className="text-sm">Você já usou seu desbloqueio gratuito. Para ver mais contatos, desbloqueie por <strong>{contactUnlockPriceLabel} cada</strong>.</p>
               </div>
             )}
-            <section className="mb-5 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-4 shadow-sm sm:p-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div><p className="text-xs font-extrabold uppercase tracking-[.13em] text-violet-700">Plano mensal para recrutamento</p><h2 className="mt-1 text-xl font-black text-slate-900">100 representantes por 30 dias</h2><p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">Desbloqueie até 100 perfis no mês por R$ 599. O carrinho e os contatos avulsos continuam disponíveis quando preferir pagar só pelo que usar.</p></div>
-                <div className="shrink-0 sm:text-right"><p className="text-2xl font-black text-violet-800">R$ 599<span className="text-xs font-semibold text-slate-500">/mês</span></p>{representativeMonthlyAccess?.access ? <p className="mt-1 text-xs font-bold text-violet-700">{representativeMonthlyAccess.remaining} de {representativeMonthlyAccess.access.unlockLimit} desbloqueios restantes</p> : representativeMonthlyRequest?.status === "pending_approval" ? <p className="mt-1 text-xs font-bold text-amber-700">Pagamento em análise</p> : null}</div>
-              </div>
-              {!representativeMonthlyAccess?.access && <Button onClick={representativeMonthlyRequest?.status === "pending_payment" ? () => openRepresentativeMonthlyCheckout(representativeMonthlyRequest.id) : startRepresentativeMonthlyCheckout} disabled={createRepresentativeMonthlyAccess.isPending} className="mt-4 min-h-11 bg-violet-700 text-white hover:bg-violet-800"><CreditCard className="mr-2 h-4 w-4" />{representativeMonthlyRequest?.status === "pending_payment" ? "Concluir com PIX ou cartão" : representativeMonthlyRequest?.status === "pending_approval" ? "Pagamento em análise" : "Assinar plano mensal"}</Button>}
-              {representativeMonthlyAccess?.access && <p className="mt-4 text-xs text-slate-500">Plano ativo até {representativeMonthlyAccess.access.expiresAt ? new Date(representativeMonthlyAccess.access.expiresAt).toLocaleDateString("pt-BR") : "o fim da vigência"}. Use o botão “Desbloquear com plano” nos perfis.</p>}
-            </section>
+            <section className="mb-5 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-4 shadow-sm sm:p-5"><div><p className="text-xs font-extrabold uppercase tracking-[.13em] text-violet-700">Planos mensais para recrutamento</p><h2 className="mt-1 text-xl font-black text-slate-900">Escolha a faixa que combina com seu time</h2><p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">Todos valem 30 dias e liberam os contatos automaticamente depois da confirmação do Mercado Pago. Compra avulsa continua disponível.</p></div>{representativeMonthlyAccess?.access ? <div className="mt-4 rounded-xl border border-violet-200 bg-white p-3"><p className="text-sm font-bold text-violet-900">Plano ativo: {representativeMonthlyAccess.remaining} de {representativeMonthlyAccess.access.unlockLimit} desbloqueios restantes</p><p className="mt-1 text-xs text-slate-600">Vence em {representativeMonthlyAccess.access.expiresAt ? new Date(representativeMonthlyAccess.access.expiresAt).toLocaleDateString("pt-BR") : "30 dias"}. Use “Desbloquear com plano” nos perfis.</p></div> : representativeMonthlyRequest?.status === "pending_payment" ? <Button onClick={() => openRepresentativeMonthlyCheckout(representativeMonthlyRequest.id)} className="mt-4 min-h-11 bg-violet-700 text-white hover:bg-violet-800"><CreditCard className="mr-2 h-4 w-4" />Concluir com PIX ou cartão</Button> : <div className="mt-4 grid gap-3 md:grid-cols-3">{(representativeMonthlyCatalog?.plans ?? []).map((plan) => <article key={plan.unlockLimit} className={`rounded-xl border bg-white p-4 ${plan.unlockLimit === 100 ? "border-violet-400 ring-1 ring-violet-200" : "border-violet-100"}`}><div className="flex items-center justify-between gap-2"><p className="font-black text-slate-900">{plan.label}</p>{plan.unlockLimit === 100 && <Badge className="bg-violet-700 text-white">Melhor custo</Badge>}</div><p className="mt-3 text-2xl font-black text-violet-800">R$ {plan.price}<span className="text-xs font-semibold text-slate-500">/mês</span></p><p className="mt-1 text-sm text-slate-600">Até {plan.unlockLimit} representantes</p><Button onClick={() => startRepresentativeMonthlyCheckout(plan.unlockLimit)} disabled={createRepresentativeMonthlyAccess.isPending} className="mt-4 min-h-11 w-full bg-violet-700 text-white hover:bg-violet-800"><CreditCard className="mr-2 h-4 w-4" />Escolher plano</Button></article>)}</div>}</section>
 
             {/* Filters */}
             <div className="flex flex-wrap gap-3 mb-4">

@@ -12,8 +12,10 @@ import {
 import { getMySqlInsertId } from "@shared/mysql";
 import {
   REPRESENTATIVE_MONTHLY_DURATION_DAYS,
+  REPRESENTATIVE_MONTHLY_PLANS,
   REPRESENTATIVE_MONTHLY_PRICE,
   REPRESENTATIVE_MONTHLY_UNLOCK_LIMIT,
+  getRepresentativeMonthlyPlan,
 } from "@shared/representativeMonthly";
 import { getDb } from "./db";
 import { protectedProcedure, router } from "./_core/trpc";
@@ -30,6 +32,7 @@ export const representativeMonthlyRouter = router({
     price: REPRESENTATIVE_MONTHLY_PRICE,
     unlockLimit: REPRESENTATIVE_MONTHLY_UNLOCK_LIMIT,
     durationDays: REPRESENTATIVE_MONTHLY_DURATION_DAYS,
+    plans: REPRESENTATIVE_MONTHLY_PLANS,
   })),
 
   myAccess: protectedProcedure.query(async ({ ctx }) => {
@@ -57,7 +60,7 @@ export const representativeMonthlyRouter = router({
     return request ?? null;
   }),
 
-  createAccess: protectedProcedure.mutation(async ({ ctx }) => {
+  createAccess: protectedProcedure.input(z.object({ unlockLimit: z.union([z.literal(20), z.literal(50), z.literal(100)]) })).mutation(async ({ ctx, input }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
     const company = await companyForUser(db, ctx.user.id);
@@ -66,16 +69,18 @@ export const representativeMonthlyRouter = router({
       .where(and(eq(representativeMonthlyAccesses.companyId, company.id), inArray(representativeMonthlyAccesses.status, pendingOrActiveStatuses)))
       .orderBy(desc(representativeMonthlyAccesses.createdAt)).limit(1);
     if (existing) return { accessId: existing.id, price: Number(existing.amount), unlockLimit: existing.unlockLimit, durationDays: REPRESENTATIVE_MONTHLY_DURATION_DAYS, existing: true };
+    const plan = getRepresentativeMonthlyPlan(input.unlockLimit);
+    if (!plan) throw new TRPCError({ code: "BAD_REQUEST", message: "Faixa mensal de representantes inválida." });
     const [result] = await db.insert(representativeMonthlyAccesses).values({
       companyId: company.id,
       userId: ctx.user.id,
-      amount: REPRESENTATIVE_MONTHLY_PRICE.toFixed(2),
-      unlockLimit: REPRESENTATIVE_MONTHLY_UNLOCK_LIMIT,
+      amount: plan.price.toFixed(2),
+      unlockLimit: plan.unlockLimit,
       status: "pending_payment",
     });
     const accessId = getMySqlInsertId(result);
     if (!accessId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível criar a solicitação do plano de representantes." });
-    return { accessId, price: REPRESENTATIVE_MONTHLY_PRICE, unlockLimit: REPRESENTATIVE_MONTHLY_UNLOCK_LIMIT, durationDays: REPRESENTATIVE_MONTHLY_DURATION_DAYS, existing: false };
+    return { accessId, price: plan.price, unlockLimit: plan.unlockLimit, durationDays: REPRESENTATIVE_MONTHLY_DURATION_DAYS, existing: false };
   }),
 
   unlockRepresentative: protectedProcedure.input(z.object({ representativeId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
