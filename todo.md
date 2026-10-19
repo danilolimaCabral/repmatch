@@ -916,3 +916,9 @@
 - [x] Mostrar pedidos de pacotes e planos ilimitados com status e ações de aprovação
 - [x] Diagnosticar e corrigir a transição de PIX confirmado para aprovação e ativação
 - [x] Validar com TypeScript, testes e auditoria agregada dos pedidos
+
+## QR PIX persistente e prévia de entrega B2B/B2C (18/10/2026)
+- [x] Manter o QR Code PIX visível na sessão do comprador até que ele feche o checkout
+- [x] Registrar o identificador do pagamento emitido no pedido para rastreio administrativo
+- [x] Mostrar no Admin uma prévia real de empresas e campos disponíveis para B2B e B2C
+- [x] Validar o fluxo de QR e a prévia com TypeScript e testes automatizados

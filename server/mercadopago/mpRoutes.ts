@@ -215,6 +215,12 @@ mpRouter.post("/lead-package-pix", async (req: Request, res: Response) => {
         metadata: { type: "lead_package", order_id: orderId, user_id: userId, audience: order.audience },
       },
     });
+    if (result.id) {
+      await db.update(leadPackageOrders).set({
+        mpPaymentId: String(result.id),
+        adminNotes: "QR Code PIX emitido pelo Mercado Pago — aguardando confirmação do pagamento.",
+      }).where(eq(leadPackageOrders.id, orderId));
+    }
     const txInfo = result.point_of_interaction?.transaction_data;
     return res.json({ paymentId: result.id, status: result.status, qrCode: txInfo?.qr_code, qrCodeBase64: txInfo?.qr_code_base64, expiresAt: result.date_of_expiration });
   } catch (e: unknown) {
@@ -241,6 +247,12 @@ mpRouter.post("/market-search-unlimited-pix", async (req: Request, res: Response
       payer: { email: userEmail, first_name: getPayerName(userName).firstName, last_name: getPayerName(userName).lastName, identification: { type: payerDocument.type, number: payerDocument.number } },
       metadata: { type: "market_search_unlimited", access_id: accessId, user_id: userId },
     }});
+    if (result.id) {
+      await db.update(marketLeadAccesses).set({
+        mpPaymentId: String(result.id),
+        adminNotes: "QR Code PIX emitido pelo Mercado Pago — aguardando confirmação do pagamento.",
+      }).where(eq(marketLeadAccesses.id, accessId));
+    }
     const txInfo = result.point_of_interaction?.transaction_data;
     return res.json({ paymentId: result.id, status: result.status, qrCode: txInfo?.qr_code, qrCodeBase64: txInfo?.qr_code_base64, expiresAt: result.date_of_expiration });
   } catch (e: unknown) {

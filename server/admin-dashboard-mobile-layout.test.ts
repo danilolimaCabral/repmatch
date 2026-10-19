@@ -218,6 +218,16 @@ describe("AdminDashboard mobile layout", () => {
     expect(routersSource).toContain("confirmUnlimitedPix: protectedProcedure");
   });
 
+  it("keeps issued PIX QR codes trackable and lets admins preview the B2B/B2C delivery data", () => {
+    expect(leadPackagesSource).toContain("PIX_CHECKOUT_SESSION_KEY");
+    expect(leadPackagesSource).toContain("sessionStorage.setItem(PIX_CHECKOUT_SESSION_KEY");
+    expect(leadPackagesSource).toContain("closePixCheckout");
+    expect(mpRoutesSource).toContain("QR Code PIX emitido pelo Mercado Pago");
+    expect(routersSource).toContain("adminPreview: protectedProcedure");
+    expect(dashboardSource).toContain("Dados que serão gerados no pacote");
+    expect(dashboardSource).toContain("QR Code PIX emitido pelo Mercado Pago");
+  });
+
   it("keeps commercial SEO indexable and removes generic job or review markup", () => {
     expect(seoSource).toContain("structuredData?:");
     expect(leadPackagesSource).toContain('canonical="/pacotes-leads"');

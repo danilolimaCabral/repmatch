@@ -58,6 +58,7 @@ export default function AdminDashboard() {
   const commercialPriceInitialized = useRef(false);
   const [leadB2BPriceInput, setLeadB2BPriceInput] = useState("");
   const [leadB2CPriceInput, setLeadB2CPriceInput] = useState("");
+  const [leadPreviewAudience, setLeadPreviewAudience] = useState<"b2b" | "b2c">("b2b");
   const leadPricesInitialized = useRef(false);
   const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
   const [docStatusFilter, setDocStatusFilter] = useState("all");
@@ -205,6 +206,10 @@ export default function AdminDashboard() {
     onError: (error) => toast.error(error.message),
   });
   const { data: leadCatalog, refetch: refetchLeadCatalog } = trpc.leadPackages.catalog.useQuery();
+  const { data: leadPreview, refetch: refetchLeadPreview } = trpc.leadPackages.adminPreview.useQuery(
+    { audience: leadPreviewAudience },
+    { enabled: activeTab === "comercial" },
+  );
   const { data: leadOrders, refetch: refetchLeadOrders } = trpc.leadPackages.adminList.useQuery(undefined, { enabled: activeTab === "comercial", refetchInterval: 15_000 });
   const { data: unlimitedAccesses, refetch: refetchUnlimitedAccesses } = trpc.leadPackages.adminUnlimitedAccesses.useQuery(undefined, { enabled: activeTab === "comercial", refetchInterval: 15_000 });
   const updateLeadPackagePriceMutation = trpc.admin.updateLeadPackagePrice.useMutation({
@@ -881,6 +886,30 @@ export default function AdminDashboard() {
                 <p className="mt-1 text-sm text-muted-foreground">Aprove PIX de pacotes e planos, libere pesquisas e acompanhe a entrega das campanhas comerciais.</p>
               </div>
 
+              <section className="mb-5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-[.14em] text-emerald-700">Prévia da entrega</p>
+                    <h2 className="mt-1 text-xl font-black text-foreground">Dados que serão gerados no pacote</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Confira a composição real da base antes de aprovar ou entregar uma campanha.</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => refetchLeadPreview()} className="w-fit border-emerald-300 text-emerald-800 hover:bg-emerald-100"><RefreshCw className="mr-2 h-4 w-4" />Atualizar prévia</Button>
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  {(["b2b", "b2c"] as const).map((audience) => <Button key={audience} size="sm" variant={leadPreviewAudience === audience ? "default" : "outline"} onClick={() => setLeadPreviewAudience(audience)} className={leadPreviewAudience === audience ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border-emerald-200 text-emerald-800"}>{audience === "b2b" ? "Empresas B2B" : "Empresas B2C"}</Button>)}
+                </div>
+                {!leadPreview ? <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Carregando dados disponíveis…</div> : <>
+                  <div className="mt-5 grid grid-cols-3 gap-3">
+                    <div className="rounded-xl bg-white p-3 ring-1 ring-emerald-100"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Empresas</p><p className="mt-1 text-xl font-black text-slate-900">{leadPreview.total.toLocaleString("pt-BR")}</p></div>
+                    <div className="rounded-xl bg-white p-3 ring-1 ring-emerald-100"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Telefone</p><p className="mt-1 text-xl font-black text-slate-900">{leadPreview.withPhone.toLocaleString("pt-BR")}</p></div>
+                    <div className="rounded-xl bg-white p-3 ring-1 ring-emerald-100"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">E-mail</p><p className="mt-1 text-xl font-black text-slate-900">{leadPreview.withEmail.toLocaleString("pt-BR")}</p></div>
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {leadPreview.samples.map((company) => <article key={company.id} className="rounded-xl border border-emerald-100 bg-white p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-bold text-foreground">{company.nomeFantasia || company.razaoSocial}</p><p className="mt-1 truncate text-xs text-muted-foreground">{company.cnaeDescricao || company.segmento || "Atividade comercial"}</p></div><Badge className="shrink-0 bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{company.porte || "Empresa"}</Badge></div><p className="mt-3 text-xs text-muted-foreground">{company.cidade || "Cidade não informada"}{company.estado ? ` · ${company.estado}` : ""}</p><div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-semibold"><span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">CNPJ</span>{company.telefone && <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-800">Telefone</span>}{company.email && <span className="rounded-full bg-violet-50 px-2 py-1 text-violet-800">E-mail</span>}{company.site && <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-800">Site</span>}{company.instagram && <span className="rounded-full bg-pink-50 px-2 py-1 text-pink-800">Instagram</span>}</div></article>)}
+                  </div>
+                </>}
+              </section>
+
               <div className="grid gap-5 lg:grid-cols-2">
                 <section className="rounded-2xl border border-primary/25 bg-card p-5 shadow-sm sm:p-6">
                   <div className="flex items-start gap-3">
@@ -971,6 +1000,7 @@ export default function AdminDashboard() {
                   {!leadOrders?.length ? <p className="rounded-xl bg-secondary/40 p-6 text-center text-sm text-muted-foreground">Nenhum pedido de pacote de leads até o momento.</p> : leadOrders.map((order) => (
                     <article key={order.id} className="rounded-xl border border-border bg-background p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><p className="font-bold text-foreground">#{order.id} · {order.quantity.toLocaleString("pt-BR")} leads {order.audience.toUpperCase()}</p><p className="mt-1 break-all text-xs text-muted-foreground">{order.buyerName || "Cliente"} · {order.buyerEmail || "E-mail não informado"}</p><p className="mt-2 text-xs text-muted-foreground">{order.segment || "Todos os segmentos"} · {order.region || "Nacional"}{order.notes ? ` · ${order.notes}` : ""}</p></div><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-foreground">{Number(order.totalAmount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${order.status === "pending_approval" ? "bg-amber-100 text-amber-800" : order.status === "delivered" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>{order.status === "pending_payment" ? "Aguardando PIX" : order.status === "pending_approval" ? "PIX confirmado" : order.status === "approved" ? "Em preparação" : order.status === "delivered" ? "Entregue" : order.status}</span></div></div>
+                      {order.mpPaymentId && <p className="mt-3 text-xs font-medium text-blue-700">QR Code PIX emitido pelo Mercado Pago · Pagamento #{order.mpPaymentId}</p>}
                       {order.status === "pending_payment" && <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" className="bg-blue-600 hover:bg-blue-700" disabled={confirmLeadPixMutation.isPending} onClick={() => confirmLeadPixMutation.mutate({ orderId: order.id })}>{confirmLeadPixMutation.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <CheckCheck className="mr-1 h-3.5 w-3.5" />}Confirmar PIX recebido</Button></div>}
                       {order.status === "pending_approval" && <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "approved" })}><CheckCheck className="mr-1 h-3.5 w-3.5" />Aprovar briefing</Button><Button size="sm" variant="outline" className="border-red-300 text-red-700" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "rejected" })}>Rejeitar</Button></div>}
                       {order.status === "approved" && <div className="mt-4"><Button size="sm" disabled={reviewLeadOrderMutation.isPending} onClick={() => reviewLeadOrderMutation.mutate({ orderId: order.id, status: "delivered" })}><CheckCircle className="mr-1 h-3.5 w-3.5" />Marcar como entregue</Button></div>}

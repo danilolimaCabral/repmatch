@@ -28,6 +28,7 @@ import {
 const LOGO_URL = "/manus-storage/repmatch-logo-nobg_ec328e76.png";
 const REGIONS = ["Nacional", "São Paulo", "Rio de Janeiro", "Minas Gerais", "Paraná", "Santa Catarina", "Rio Grande do Sul", "Bahia", "Pernambuco", "Goiás", "Distrito Federal"];
 const SEGMENTS = ["Tecnologia", "Agronegócio", "Alimentos e Bebidas", "Construção Civil", "Concessionárias e automotivo", "Imobiliárias e construção", "Atacado e distribuição", "Farmacêutico", "Saúde e Médico", "Varejo", "Serviços", "Outro"];
+const PIX_CHECKOUT_SESSION_KEY = "repmatch_campaign_pix_checkout";
 
 function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -56,7 +57,7 @@ export default function LeadPackages() {
   const [payerDocument, setPayerDocument] = useState("");
   const [documentError, setDocumentError] = useState("");
   const [pixLoading, setPixLoading] = useState(false);
-  const [pix, setPix] = useState<{ qrCode: string; qrCodeBase64: string } | null>(null);
+  const [pix, setPix] = useState<{ qrCode: string; qrCodeBase64: string; expiresAt?: string } | null>(null);
   const [catalogSearch, setCatalogSearch] = useState("");
 
   const { data: catalog, isLoading: catalogLoading } = trpc.leadPackages.catalog.useQuery();
@@ -118,6 +119,28 @@ export default function LeadPackages() {
     setPendingUnlimitedAccess({ accessId: unlimitedRequest.id, price: Number(unlimitedRequest.amount) });
     setPix(null);
   }, [pendingOrder, pendingUnlimitedAccess, unlimitedRequest]);
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(PIX_CHECKOUT_SESSION_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { savedAt: number; order?: { orderId: number; price: number; quantity: number }; unlimited?: { accessId: number; price: number }; pix?: { qrCode: string; qrCodeBase64: string; expiresAt?: string } };
+      if (!saved.pix || Date.now() - saved.savedAt > 60 * 60 * 1000) { window.sessionStorage.removeItem(PIX_CHECKOUT_SESSION_KEY); return; }
+      if (saved.order) setPendingOrder(saved.order);
+      if (saved.unlimited) setPendingUnlimitedAccess(saved.unlimited);
+      setPix(saved.pix);
+    } catch {
+      window.sessionStorage.removeItem(PIX_CHECKOUT_SESSION_KEY);
+    }
+  }, []);
+
+  function closePixCheckout() {
+    window.sessionStorage.removeItem(PIX_CHECKOUT_SESSION_KEY);
+    setPendingOrder(null);
+    setPendingUnlimitedAccess(null);
+    setPix(null);
+    setDocumentError("");
+  }
 
   async function beginCheckout() {
     if (!user) {
@@ -195,7 +218,14 @@ export default function LeadPackages() {
       });
       const data = await response.json();
       if (!response.ok || !data.qrCode) throw new Error(data.error ?? "Não foi possível gerar o PIX.");
-      setPix({ qrCode: data.qrCode, qrCodeBase64: data.qrCodeBase64 });
+      const nextPix = { qrCode: data.qrCode, qrCodeBase64: data.qrCodeBase64, expiresAt: data.expiresAt };
+      setPix(nextPix);
+      window.sessionStorage.setItem(PIX_CHECKOUT_SESSION_KEY, JSON.stringify({
+        savedAt: Date.now(),
+        order: pendingOrder ?? undefined,
+        unlimited: pendingUnlimitedAccess ?? undefined,
+        pix: nextPix,
+      }));
       refetchOrders();
       refetchUnlimitedAccess();
       refetchUnlimitedRequest();
@@ -373,7 +403,7 @@ export default function LeadPackages() {
                 <h2 className="mt-1 text-xl font-black">{pendingUnlimitedAccess ? "Plano Pesquisa Ilimitada" : "Pagamento da campanha"}</h2>
                 <p className="mt-1 text-sm text-slate-600">{pendingUnlimitedAccess ? `30 dias de pesquisas ilimitadas · ${formatBRL(pendingUnlimitedAccess.price)}` : `${audience.toUpperCase()} · ${pendingOrder!.quantity.toLocaleString("pt-BR")} empresas · ${formatBRL(pendingOrder!.price)}`}</p>
               </div>
-              <button onClick={() => { setPendingOrder(null); setPendingUnlimitedAccess(null); setDocumentError(""); }} className="grid h-9 w-9 place-items-center rounded-full text-2xl text-slate-400 transition hover:bg-slate-100" aria-label="Fechar">×</button>
+              <button onClick={closePixCheckout} className="grid h-9 w-9 place-items-center rounded-full text-2xl text-slate-400 transition hover:bg-slate-100" aria-label="Fechar">×</button>
             </div>
 
             {!pix ? (

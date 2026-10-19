@@ -1270,6 +1270,41 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         }).from(marketLeads).where(and(...filters)).orderBy(asc(marketLeads.razaoSocial)).limit(input.limit);
       }),
 
+    adminPreview: protectedProcedure
+      .input(z.object({ audience: z.enum(["b2b", "b2c"]) }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) return { total: 0, withPhone: 0, withEmail: 0, samples: [] };
+        const filters = [eq(marketLeads.available, true), inArray(marketLeads.audience, [input.audience, "both"])];
+        const [summary] = await db.select({
+          total: count(),
+          withPhone: sql<number>`sum(case when ${marketLeads.telefone} is not null and ${marketLeads.telefone} <> '' then 1 else 0 end)`,
+          withEmail: sql<number>`sum(case when ${marketLeads.email} is not null and ${marketLeads.email} <> '' then 1 else 0 end)`,
+        }).from(marketLeads).where(and(...filters));
+        const samples = await db.select({
+          id: marketLeads.id,
+          razaoSocial: marketLeads.razaoSocial,
+          nomeFantasia: marketLeads.nomeFantasia,
+          cnpj: marketLeads.cnpj,
+          cnaeDescricao: marketLeads.cnaeDescricao,
+          segmento: marketLeads.segmento,
+          porte: marketLeads.porte,
+          cidade: marketLeads.cidade,
+          estado: marketLeads.estado,
+          telefone: marketLeads.telefone,
+          email: marketLeads.email,
+          site: marketLeads.site,
+          instagram: marketLeads.instagram,
+        }).from(marketLeads).where(and(...filters)).orderBy(asc(marketLeads.razaoSocial)).limit(8);
+        return {
+          total: Number(summary?.total ?? 0),
+          withPhone: Number(summary?.withPhone ?? 0),
+          withEmail: Number(summary?.withEmail ?? 0),
+          samples,
+        };
+      }),
+
     createOrder: protectedProcedure
       .input(z.object({
         audience: z.enum(["b2b", "b2c"]),
