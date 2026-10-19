@@ -19,16 +19,20 @@ const htmlTemplate = `<!doctype html><html><head>
 </head><body><div id="root"></div></body></html>`;
 
 describe("SEO por rota", () => {
-  it("retorna canonical e metadados únicos para landing de leads", () => {
+  it("retorna canonical, metadados sociais e schema coerente para landing de leads", () => {
     const route = getSeoRoute("/pacotes-leads");
     expect(route.status).toBe(200);
     expect(route.page.canonicalPath).toBe("/pacotes-leads");
 
     const html = renderSeoHtml(htmlTemplate, route.page);
     expect(html).toContain("https://repmatch.com.br/pacotes-leads");
-    expect(html).toContain("Lista de Empresas para Prospecção B2B");
+    expect(html).toContain("Leads B2B e B2C para Campanhas");
     expect(html).not.toContain('"@type":"FAQPage"');
     expect(html).toContain('"@type":"Service"');
+    expect(html).toContain('"@graph"');
+    expect(html).toContain('property="og:image:alt"');
+    expect(html).toContain('name="twitter:image:alt"');
+    expect(html).toContain('data-canonical="https://repmatch.com.br/pacotes-leads"');
   });
 
   it("produz Article schema e canonical próprio para cada artigo existente", () => {
@@ -40,6 +44,18 @@ describe("SEO por rota", () => {
     const html = renderSeoHtml(htmlTemplate, route.page);
     expect(html).toContain('"@type":"BlogPosting"');
     expect(html).toContain("Como Contratar um Representante Comercial");
+    expect(html).toContain('"dateModified":"2025-07-15"');
+  });
+
+  it("entrega o conteúdo editorial do novo guia B2B mesmo sem JavaScript", () => {
+    const route = getSeoRoute("/blog/como-montar-lista-empresas-b2b-prospeccao");
+    const html = renderSeoHtml(htmlTemplate, route.page);
+
+    expect(route.status).toBe(200);
+    expect(html).toContain("Como Montar uma Lista de Empresas B2B para Prospecção");
+    expect(html).toContain("Defina o perfil de cliente ideal");
+    expect(html).toContain('href="/pacotes-leads"');
+    expect(html).toContain('"dateModified":"2026-10-19"');
   });
 
   it("protege telas transacionais com noindex no primeiro HTML", () => {
@@ -59,5 +75,15 @@ describe("SEO por rota", () => {
     const viteSource = fs.readFileSync(path.resolve(process.cwd(), "server/_core/vite.ts"), "utf8");
     expect(viteSource).toContain('new URL(req.originalUrl, "http://localhost").pathname');
     expect(viteSource).toContain("index: false");
+  });
+
+  it("descreve oportunidades disponíveis e links úteis no HTML inicial", () => {
+    const route = getSeoRoute("/oportunidades-reps");
+    const html = renderSeoHtml(htmlTemplate, route.page);
+
+    expect(route.status).toBe(200);
+    expect(html).toContain('"@type":"CollectionPage"');
+    expect(html).toContain('href="/buscar"');
+    expect(html).toContain('href="/pacotes-leads"');
   });
 });

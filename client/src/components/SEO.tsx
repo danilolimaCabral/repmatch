@@ -69,6 +69,7 @@ export default function SEO({
     setMeta("og:type", ogType, "property");
     setMeta("og:url", canonicalUrl, "property");
     setMeta("og:image", ogImage, "property");
+    setMeta("og:image:alt", `${fullTitle} — RepMatch`, "property");
     setMeta("og:site_name", SITE_NAME, "property");
     setMeta("og:locale", "pt_BR", "property");
 
@@ -76,16 +77,19 @@ export default function SEO({
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", fullTitle);
     setMeta("twitter:description", description);
+    setMeta("twitter:url", canonicalUrl);
     setMeta("twitter:image", ogImage);
+    setMeta("twitter:image:alt", `${fullTitle} — RepMatch`);
 
     const existingSchema = document.getElementById("page-structured-data") as HTMLScriptElement | null;
     if (structuredData) {
       const script = existingSchema ?? document.createElement("script");
       script.id = "page-structured-data";
       script.type = "application/ld+json";
+      script.dataset.canonical = canonicalUrl;
       script.textContent = JSON.stringify(structuredData);
       if (!existingSchema) document.head.appendChild(script);
-    } else {
+    } else if (existingSchema?.dataset.canonical !== canonicalUrl) {
       existingSchema?.remove();
     }
   }, [fullTitle, description, keywords, canonicalUrl, ogImage, ogType, noIndex, structuredData]);

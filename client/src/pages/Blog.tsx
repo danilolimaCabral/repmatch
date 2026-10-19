@@ -16,6 +16,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Mercado": "bg-amber-500/10 text-amber-400 border-amber-500/20",
   "Regulamentação": "bg-red-500/10 text-red-400 border-red-500/20",
   "Estratégia": "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+  "Prospecção B2B": "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
 };
 
 const CATEGORY_ACTIVE: Record<string, string> = {
@@ -44,10 +45,11 @@ export default function Blog() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const featured = BLOG_POSTS.find(p => p.featured) ?? BLOG_POSTS[0];
-  const categories = Array.from(new Set(BLOG_POSTS.map(p => p.category)));
+  const orderedPosts = [...BLOG_POSTS].sort((a, b) => Date.parse(b.updatedAt ?? b.date) - Date.parse(a.updatedAt ?? a.date));
+  const featured = orderedPosts.find(p => p.featured) ?? orderedPosts[0];
+  const categories = Array.from(new Set(orderedPosts.map(p => p.category)));
 
-  const filtered = BLOG_POSTS.filter(p => {
+  const filtered = orderedPosts.filter(p => {
     const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.excerpt.toLowerCase().includes(search.toLowerCase());
     const matchCat = !activeCategory || p.category === activeCategory;
     return matchSearch && matchCat;
@@ -60,8 +62,8 @@ export default function Blog() {
     <div className="min-h-screen bg-background text-foreground">
       <SEO
         title="Blog RepMatch | Representação Comercial no Brasil"
-        description="Artigos, guias e dicas sobre representação comercial no Brasil. Aprenda como contratar representantes, contratos, CORE, segmentos lucrativos e muito mais."
-        keywords="blog representação comercial, artigos representante comercial, guia representante, dicas representação, contratar representante"
+        description="Guias sobre representação comercial, contratação de representantes, prospecção B2B, listas de empresas, vendas externas e expansão comercial no Brasil."
+        keywords="blog representação comercial, prospecção B2B, lista de empresas, contratar representante, artigos representante comercial, vendas externas"
         canonical="/blog"
         ogType="website"
       />
@@ -188,7 +190,7 @@ export default function Blog() {
                   </p>
                   <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 text-xs text-muted-foreground">
-                      {featured.author} · {formatDate(featured.date)}
+                      {featured.author} · {featured.updatedAt ? `Atualizado em ${formatDate(featured.updatedAt)}` : formatDate(featured.date)}
                     </div>
                     <Button size="sm" className="bg-primary text-primary-foreground font-semibold">
                       Ler artigo <ArrowRight className="w-3.5 h-3.5 ml-1" />

@@ -1,5 +1,5 @@
 import { useLocation, useParams } from "wouter";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Clock, ArrowLeft, ArrowRight, Tag, BookOpen, Link2, Check, ThumbsUp, Heart, Rocket, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -202,45 +202,6 @@ export default function BlogPost() {
   const post = getBlogPost(params.slug);
   const recent = getRecentPosts(params.slug, 3);
 
-  useEffect(() => {
-    if (!post) return;
-    const existing = document.getElementById("blog-schema");
-    if (existing) existing.remove();
-    const script = document.createElement("script");
-    script.id = "blog-schema";
-    script.type = "application/ld+json";
-    script.text = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": post.title,
-      "description": post.excerpt,
-      "author": {
-        "@type": "Organization",
-        "name": post.author,
-        "url": "https://repmatch.com.br"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "RepMatch",
-        "logo": {
-          "@type": "ImageObject",
-          "url": "https://repmatch.com.br/manus-storage/repmatch-logo-nobg_ec328e76.png"
-        }
-      },
-      "datePublished": post.date,
-      "dateModified": post.date,
-      "mainEntityOfPage": {
-        "@type": "WebPage",
-        "@id": `https://repmatch.com.br/blog/${post.slug}`
-      },
-      "keywords": post.keywords,
-      "articleSection": post.category,
-      "inLanguage": "pt-BR"
-    });
-    document.head.appendChild(script);
-    return () => { script.remove(); };
-  }, [post]);
-
   if (!post) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
@@ -255,6 +216,25 @@ export default function BlogPost() {
     );
   }
 
+  const blogStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt,
+    author: { "@type": "Organization", name: post.author, url: "https://repmatch.com.br" },
+    publisher: {
+      "@type": "Organization",
+      name: "RepMatch",
+      logo: { "@type": "ImageObject", url: "https://repmatch.com.br/manus-storage/repmatch-logo-nobg_ec328e76.png" },
+    },
+    datePublished: post.date,
+    dateModified: post.updatedAt ?? post.date,
+    mainEntityOfPage: { "@type": "WebPage", "@id": `https://repmatch.com.br/blog/${post.slug}` },
+    keywords: post.keywords,
+    articleSection: post.category,
+    inLanguage: "pt-BR",
+  };
+
   const currentIndex = BLOG_POSTS.findIndex(p => p.slug === post.slug);
   const prevPost = currentIndex > 0 ? BLOG_POSTS[currentIndex - 1] : null;
   const nextPost = currentIndex < BLOG_POSTS.length - 1 ? BLOG_POSTS[currentIndex + 1] : null;
@@ -267,6 +247,7 @@ export default function BlogPost() {
         keywords={post.keywords}
         canonical={`/blog/${post.slug}`}
         ogType="article"
+        structuredData={blogStructuredData}
       />
 
       {/* Header */}
@@ -311,7 +292,7 @@ export default function BlogPost() {
             <Clock className="w-3 h-3" /> {post.readTime} min de leitura
           </span>
           <span className="text-xs text-muted-foreground">
-            {formatDate(post.date)}
+            {post.updatedAt ? `Atualizado em ${formatDate(post.updatedAt)}` : formatDate(post.date)}
           </span>
         </div>
 

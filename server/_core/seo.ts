@@ -2,6 +2,8 @@ import { BLOG_POSTS } from "../../client/src/data/blogPosts";
 
 const BASE_URL = "https://repmatch.com.br";
 const LOGO_URL = `${BASE_URL}/manus-storage/repmatch-logo-nobg_ec328e76.png`;
+const DEFAULT_SOCIAL_IMAGE = LOGO_URL;
+const DEFAULT_SOCIAL_IMAGE_ALT = "RepMatch — representantes comerciais e prospecção B2B";
 
 export interface SeoPage {
   title: string;
@@ -9,7 +11,10 @@ export interface SeoPage {
   canonicalPath: string;
   robots?: string;
   ogType?: "website" | "article";
+  ogImage?: string;
+  ogImageAlt?: string;
   structuredData?: Record<string, unknown> | Array<Record<string, unknown>>;
+  fallbackHtml?: string;
 }
 
 export interface SeoRouteResult {
@@ -20,13 +25,14 @@ export interface SeoRouteResult {
 
 const INDEXABLE_PAGES: Record<string, SeoPage> = {
   "/": {
-    title: "RepMatch | Representantes Comerciais e Prospecção B2B",
-    description: "Encontre representantes comerciais por região e segmento ou monte campanhas de prospecção com empresas B2B segmentadas. Plataforma brasileira para expansão comercial.",
+    title: "Representantes Comerciais e Campanhas de Leads B2B | RepMatch",
+    description: "Encontre representantes comerciais ou monte uma campanha B2B segmentada por setor, CNAE e região. Base nacional para prospecção comercial organizada.",
     canonicalPath: "/",
     structuredData: [
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
+        "@id": `${BASE_URL}/#website`,
         name: "RepMatch",
         url: BASE_URL,
         inLanguage: "pt-BR",
@@ -34,6 +40,7 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
       {
         "@context": "https://schema.org",
         "@type": "Organization",
+        "@id": `${BASE_URL}/#organization`,
         name: "RepMatch",
         url: BASE_URL,
         logo: LOGO_URL,
@@ -74,9 +81,17 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     },
   },
   "/oportunidades-reps": {
-    title: "Oportunidades para Representantes Comerciais | RepMatch",
-    description: "Encontre oportunidades de representação comercial e conecte-se a empresas que buscam ampliar vendas por região e segmento.",
+    title: "Representantes Comerciais Disponíveis | RepMatch",
+    description: "Encontre representantes comerciais disponíveis para representação no Brasil. Profissionais publicam disponibilidade por região e segmento.",
     canonicalPath: "/oportunidades-reps",
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: "Representantes comerciais disponíveis",
+      description: "Página de representantes comerciais disponíveis por região e segmento.",
+      url: `${BASE_URL}/oportunidades-reps`,
+      inLanguage: "pt-BR",
+    },
   },
   "/parcerias": {
     title: "Parcerias Comerciais e Expansão de Vendas | RepMatch",
@@ -84,8 +99,8 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     canonicalPath: "/parcerias",
   },
   "/pacotes-leads": {
-    title: "Lista de Empresas para Prospecção B2B por Segmento | RepMatch",
-    description: "Monte uma lista de empresas B2B para prospecção com recorte por CNAE, segmento e região. Escolha os registros da sua campanha e exporte sua lista para CRM.",
+    title: "Leads B2B e B2C para Campanhas | Empresas Ativas por Segmento | RepMatch",
+    description: "Monte uma campanha com empresas B2B ou B2C, com recorte por segmento e região. Escolha os registros individualmente e exporte sua lista para CRM.",
     canonicalPath: "/pacotes-leads",
     structuredData: {
       "@context": "https://schema.org",
@@ -98,8 +113,8 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     },
   },
   "/contatos-b2c": {
-    title: "Contatos B2C para Campanhas Comerciais | RepMatch",
-    description: "Conheça a base especial de contatos B2C com seleção individual, lista exclusiva por comprador e exportação em Excel para campanhas responsáveis.",
+    title: "Contatos B2C para Imobiliárias, Automotivo e Produtos Digitais | RepMatch",
+    description: "Base B2C de contatos com consentimento declarado na origem. Escolha contatos individualmente, mantenha sua lista e exporte em Excel.",
     canonicalPath: "/contatos-b2c",
     structuredData: {
       "@context": "https://schema.org",
@@ -113,13 +128,13 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
   },
   "/blog": {
     title: "Blog de Representação Comercial e Prospecção B2B | RepMatch",
-    description: "Guias práticos sobre representação comercial, contratação, vendas externas, prospecção B2B e expansão de canais no Brasil.",
+    description: "Guias sobre representação comercial, contratação de representantes, prospecção B2B, listas de empresas, vendas externas e expansão comercial no Brasil.",
     canonicalPath: "/blog",
     structuredData: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
       name: "Blog RepMatch",
-      description: "Guias práticos sobre representação comercial e expansão de vendas.",
+      description: "Guias sobre representação comercial, prospecção B2B e expansão de vendas.",
       url: `${BASE_URL}/blog`,
       inLanguage: "pt-BR",
     },
@@ -248,6 +263,7 @@ function getBlogPage(pathname: string): SeoPage | null {
       headline: post.title,
       description: post.excerpt,
       datePublished: post.date,
+      dateModified: post.updatedAt ?? post.date,
       author: { "@type": "Organization", name: post.author, url: BASE_URL },
       publisher: {
         "@type": "Organization",
@@ -258,6 +274,7 @@ function getBlogPage(pathname: string): SeoPage | null {
       articleSection: post.category,
       inLanguage: "pt-BR",
     },
+    fallbackHtml: renderBlogFallback(post),
   };
 }
 
@@ -282,7 +299,39 @@ export function getSeoRoute(pathname: string): SeoRouteResult {
 }
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character] ?? character);
+  return value.replace(/[&<>\"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character] ?? character);
+}
+
+function renderInlineMarkdown(value: string): string {
+  return escapeHtml(value)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\((\/[^)\s]+)\)/g, '<a href="$2">$1</a>');
+}
+
+function renderMarkdownFallback(content: string): string {
+  return content.trim().split(/\n{2,}/).map((rawBlock) => {
+    const block = rawBlock.trim();
+    if (!block) return "";
+    if (block.startsWith("## ")) return `<h2>${renderInlineMarkdown(block.slice(3))}</h2>`;
+    if (block.startsWith("### ")) return `<h3>${renderInlineMarkdown(block.slice(4))}</h3>`;
+
+    const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+    if (lines.every((line) => /^[-*] /.test(line))) {
+      return `<ul>${lines.map((line) => `<li>${renderInlineMarkdown(line.replace(/^[-*] /, ""))}</li>`).join("")}</ul>`;
+    }
+    if (lines.every((line) => /^\d+\. /.test(line))) {
+      return `<ol>${lines.map((line) => `<li>${renderInlineMarkdown(line.replace(/^\d+\. /, ""))}</li>`).join("")}</ol>`;
+    }
+    if (block.startsWith("> ")) return `<blockquote><p>${renderInlineMarkdown(block.replace(/^>\s?/gm, "").replace(/\n/g, " "))}</p></blockquote>`;
+    if (lines.every((line) => line.startsWith("|"))) return `<p>${renderInlineMarkdown(lines.join(" ").replace(/\|/g, " · "))}</p>`;
+    return `<p>${renderInlineMarkdown(block.replace(/\n/g, " "))}</p>`;
+  }).join("\n");
+}
+
+function renderBlogFallback(post: (typeof BLOG_POSTS)[number]): string {
+  const published = escapeHtml(post.date);
+  const modified = escapeHtml(post.updatedAt ?? post.date);
+  return `<main><article><header><p>${escapeHtml(post.category)}</p><h1>${escapeHtml(post.title)}</h1><p>${escapeHtml(post.excerpt)}</p><p>Publicado em <time datetime="${published}">${published}</time>${post.updatedAt ? ` · Atualizado em <time datetime="${modified}">${modified}</time>` : ""}</p></header>${renderMarkdownFallback(post.content)}<p><a href="/pacotes-leads">Conheça as campanhas de leads B2B</a> ou <a href="/buscar">busque representantes comerciais</a>.</p></article></main>`;
 }
 
 function upsertMeta(html: string, attribute: "name" | "property", key: string, value: string): string {
@@ -292,15 +341,38 @@ function upsertMeta(html: string, attribute: "name" | "property", key: string, v
   return expression.test(html) ? html.replace(expression, meta) : html.replace("</head>", `    ${meta}\n  </head>`);
 }
 
-function serializeStructuredData(data: SeoPage["structuredData"]): string {
-  if (!data) return "";
-  const json = JSON.stringify(data).replace(/</g, "\\u003c");
-  return `<script id="page-structured-data" type="application/ld+json">${json}</script>`;
+function getSchemaNodes(page: SeoPage): Array<Record<string, unknown>> {
+  const canonicalUrl = `${BASE_URL}${page.canonicalPath}`;
+  const pageNode: Record<string, unknown> = {
+    "@type": "WebPage",
+    "@id": `${canonicalUrl}#webpage`,
+    url: canonicalUrl,
+    name: page.title,
+    description: page.description,
+    inLanguage: "pt-BR",
+  };
+
+  if (!page.structuredData) return [pageNode];
+  const suppliedNodes = Array.isArray(page.structuredData) ? page.structuredData : [page.structuredData];
+  return [
+    ...suppliedNodes.map(({ "@context": _context, ...node }) => node),
+    pageNode,
+  ];
+}
+
+function serializePageStructuredData(page: SeoPage): string {
+  if (page.robots?.includes("noindex")) return "";
+  const json = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": getSchemaNodes(page),
+  }).replace(/</g, "\\u003c");
+  return `<script id="page-structured-data" data-canonical="${escapeHtml(`${BASE_URL}${page.canonicalPath}`)}" type="application/ld+json">${json}</script>`;
 }
 
 function renderNoScriptFallback(page: SeoPage): string {
   if (page.robots?.includes("noindex")) return "";
-  return `<noscript><main><h1>${escapeHtml(page.title)}</h1><p>${escapeHtml(page.description)}</p><p>Ative o JavaScript para usar todos os recursos do RepMatch.</p></main></noscript>`;
+  if (page.fallbackHtml) return `<noscript>${page.fallbackHtml}</noscript>`;
+  return `<noscript><main><h1>${escapeHtml(page.title)}</h1><p>${escapeHtml(page.description)}</p><nav aria-label="Navegação do RepMatch"><a href="/buscar">Buscar representantes</a> <a href="/vagas">Ver vagas</a> <a href="/pacotes-leads">Conhecer campanhas B2B</a> <a href="/blog">Ler o blog</a></nav><p>Ative o JavaScript para usar filtros, cadastro e os demais recursos da plataforma.</p></main></noscript>`;
 }
 
 /** Injeta metadados por rota no HTML antes de a SPA carregar. */
@@ -308,6 +380,8 @@ export function renderSeoHtml(template: string, page: SeoPage): string {
   const canonicalUrl = `${BASE_URL}${page.canonicalPath}`;
   const robots = page.robots ?? "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
   const ogType = page.ogType ?? "website";
+  const socialImage = page.ogImage ?? DEFAULT_SOCIAL_IMAGE;
+  const socialImageAlt = page.ogImageAlt ?? DEFAULT_SOCIAL_IMAGE_ALT;
   let html = template
     .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, "")
     .replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml(page.title)}</title>`)
@@ -319,10 +393,17 @@ export function renderSeoHtml(template: string, page: SeoPage): string {
   html = upsertMeta(html, "property", "og:description", page.description);
   html = upsertMeta(html, "property", "og:url", canonicalUrl);
   html = upsertMeta(html, "property", "og:type", ogType);
+  html = upsertMeta(html, "property", "og:image", socialImage);
+  html = upsertMeta(html, "property", "og:image:alt", socialImageAlt);
+  html = upsertMeta(html, "property", "og:site_name", "RepMatch");
+  html = upsertMeta(html, "property", "og:locale", "pt_BR");
+  html = upsertMeta(html, "name", "twitter:card", "summary_large_image");
   html = upsertMeta(html, "name", "twitter:title", page.title);
   html = upsertMeta(html, "name", "twitter:description", page.description);
   html = upsertMeta(html, "name", "twitter:url", canonicalUrl);
+  html = upsertMeta(html, "name", "twitter:image", socialImage);
+  html = upsertMeta(html, "name", "twitter:image:alt", socialImageAlt);
 
-  html = html.replace("</head>", `    ${serializeStructuredData(page.structuredData)}\n  </head>`);
+  html = html.replace("</head>", `    ${serializePageStructuredData(page)}\n  </head>`);
   return html.replace("<div id=\"root\"></div>", `${renderNoScriptFallback(page)}<div id="root"></div>`);
 }

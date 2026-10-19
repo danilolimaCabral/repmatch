@@ -989,3 +989,10 @@
 - [x] Incluir metadados próprios em Termos e Privacidade, que já constam no sitemap
 - [x] Permitir rastreamento do asset público de marca e atualizar lastmod apenas nas páginas revisadas
 - [x] Validar 22 de 22 URLs do sitemap em modo de produção local, além de TypeScript, 56 testes e build
+
+## Reforço de SEO e conteúdo B2B (19/10/2026)
+- [x] Unificar os metadados iniciais com o conteúdo real das páginas de home, leads B2B/B2C, blog e representantes disponíveis
+- [x] Incluir JSON-LD em grafo com WebPage, Service, CollectionPage e BlogPosting completos conforme cada rota pública
+- [x] Acrescentar imagem e texto alternativo para Open Graph e Twitter, preservando canonical em navegações da SPA
+- [x] Publicar guia original sobre lista de empresas B2B, segmentação, CRM e prospecção responsável
+- [x] Incluir o novo guia no sitemap, destacá-lo no blog e validar schemas, 57 testes, build e HTML em modo produção

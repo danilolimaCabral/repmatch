@@ -6,6 +6,7 @@ export interface BlogPost {
   author: string;
   authorRole: string;
   date: string;
+  updatedAt?: string;
   readTime: number;
   category: string;
   tags: string[];
@@ -1823,8 +1824,131 @@ Se você é representante, especialize-se em um segmento em crescimento e adote 
 
 O futuro da representação comercial é digital, especializado e verificado. Prepare-se para ele.
 `,
-  },
-];
+	  },
+	  {
+	    slug: "como-montar-lista-empresas-b2b-prospeccao",
+	    title: "Como Montar uma Lista de Empresas B2B para Prospecção",
+	    excerpt: "Um guia prático para definir o perfil de cliente ideal, segmentar empresas, organizar dados no CRM e criar uma abordagem comercial responsável.",
+	    author: "Equipe RepMatch",
+	    authorRole: "Equipe editorial de prospecção e representação comercial",
+	    date: "2026-10-19",
+	    updatedAt: "2026-10-19",
+	    readTime: 9,
+	    category: "Prospecção B2B",
+	    featured: true,
+	    tags: ["lista de empresas", "prospecção B2B", "leads B2B", "CRM", "CNAE"],
+	    keywords: "lista de empresas B2B, prospecção B2B, leads B2B, como montar lista de empresas, empresas por CNAE",
+	    content: `
+## Lista de empresas não é só uma planilha
+
+Uma boa lista de empresas B2B é uma seleção de organizações que têm contexto para conversar com a sua equipe comercial. Ela não começa pelo maior número de registros possível. Começa pela pergunta: **qual empresa realmente tem chance de se beneficiar da sua oferta?**
+
+Quando esse critério não está claro, a prospecção vira volume sem direção. O resultado costuma ser mais mensagens ignoradas, CRM desorganizado e pouco aprendizado sobre o mercado. Quando a seleção é bem feita, cada contato ganha uma razão comercial para existir na cadência.
+
+## 1. Defina o perfil de cliente ideal
+
+Antes de filtrar uma base, escreva um perfil simples do cliente que você quer conquistar. Não precisa ser um documento longo. Responda aos pontos que mudam a decisão de compra:
+
+- **Segmento:** em qual mercado a empresa atua?
+- **Oferta:** qual problema ou oportunidade sua solução atende?
+- **Porte:** micro, pequena, média ou grande empresa faz mais sentido para seu ticket?
+- **Território:** sua operação atende o Brasil inteiro, um estado ou cidades específicas?
+- **Momento:** a empresa está abrindo filiais, criando canal de vendas, contratando equipe ou renovando fornecedores?
+- **Decisor:** quem geralmente participa da conversa: proprietário, compras, vendas, marketing ou operação?
+
+Por exemplo, um software de gestão para distribuidores não precisa falar com toda empresa de tecnologia. Pode priorizar distribuidores e atacadistas ativos em estados onde há equipe de implantação, com porte compatível com o contrato. Quanto mais nítido o perfil, menos esforço será desperdiçado depois.
+
+## 2. Combine segmento, CNAE e território
+
+O segmento comercial é ótimo para explicar a estratégia. O CNAE ajuda a tornar a busca mais objetiva. Use os dois como filtros complementares, não como substitutos um do outro.
+
+Uma empresa pode ter uma atividade principal semelhante à do seu público e atividades secundárias que revelam outro potencial de compra. Por isso, revise uma amostra antes de escalar a campanha. Se muitos registros da amostra não fizerem sentido, ajuste o recorte antes de exportar centenas de empresas.
+
+O território também deve acompanhar a capacidade de atendimento. Se sua equipe comercial atua por praça, crie listas separadas por UF ou região. Isso permite mensagens mais específicas e facilita medir qual mercado responde melhor.
+
+## 3. Separe dados para identificação, qualificação e contato
+
+Uma lista comercial útil normalmente precisa de três camadas de informação:
+
+**Identificação:** razão social, nome fantasia, CNPJ e cidade. Esses dados ajudam a confirmar que a equipe está falando com a empresa certa.
+
+**Qualificação:** segmento, CNAE, porte, situação cadastral, data de abertura e endereço comercial quando disponível. São sinais para decidir prioridade e personalizar a abordagem.
+
+**Contato:** telefone corporativo, e-mail comercial, site e redes empresariais quando disponíveis. O contato deve levar a uma conversa legítima sobre a empresa, não a uma mensagem genérica em massa.
+
+No RepMatch, a campanha B2B permite selecionar empresa por empresa antes de salvar. Assim, a equipe monta uma lista própria, acompanha o saldo de créditos e exporta apenas os registros escolhidos para o CRM.
+
+## 4. Faça uma amostra antes de comprar ou exportar a lista inteira
+
+Antes de colocar uma lista no CRM, abra uma amostra de 20 a 30 empresas e valide quatro pontos:
+
+1. As empresas pertencem ao segmento buscado?
+2. A região é atendida pelo seu time?
+3. O porte é compatível com a sua proposta?
+4. Os canais de contato parecem corporativos e atuais?
+
+Essa revisão simples evita que uma decisão de filtro ruim gere uma campanha inteira com baixa aderência. Também ajuda o time a descobrir variações de CNAE e termos de mercado que podem melhorar a próxima busca.
+
+## 5. Prepare o CRM antes da primeira abordagem
+
+Importar sem padrão cria retrabalho. Organize os campos da lista antes de distribuir os leads para vendedores.
+
+Uma estrutura enxuta já resolve boa parte do processo:
+
+| Campo no CRM | Uso comercial |
+|---|---|
+| Empresa e CNPJ | Evita duplicidade e facilita validação |
+| Segmento e CNAE | Personaliza a mensagem e a proposta |
+| Cidade e UF | Define responsável e território |
+| Origem da lista | Mostra de onde o lead veio |
+| Status da abordagem | Controla tentativas, respostas e próximos passos |
+| Responsável | Evita que duas pessoas falem com a mesma empresa |
+
+Crie também uma regra para registros já existentes. Se o CNPJ já estiver no CRM, preserve o histórico e atualize o dado somente quando houver motivo. Assim a lista nova complementa a operação em vez de apagar contexto da equipe.
+
+## 6. Transforme a lista em uma cadência, não em disparo único
+
+Uma empresa raramente compra na primeira mensagem. O objetivo inicial é abrir uma conversa relevante. Uma cadência simples pode alternar e-mail, ligação e WhatsApp corporativo quando houver base legítima para o contato.
+
+Uma sequência prática:
+
+- **Dia 1:** mensagem curta com motivo específico para falar com aquela empresa.
+- **Dia 3:** follow-up com um benefício, caso ou pergunta de qualificação.
+- **Dia 7:** ligação ou nova mensagem respeitosa para entender se existe prioridade no tema.
+- **Dia 14:** encerramento cordial, deixando um caminho claro para retomar no futuro.
+
+Evite textos que pareçam enviados para milhares de pessoas. Cite o segmento, a cidade, um desafio comum do mercado ou uma hipótese que você gostaria de validar. A personalização não precisa ser longa; precisa ser verdadeira.
+
+## 7. Faça prospecção responsável
+
+Dados empresariais não autorizam comunicação sem critério. Identifique sua empresa, explique de forma clara o motivo do contato e respeite pedidos de não receber novas mensagens. Não use listas para spam, discriminação ou revenda de dados.
+
+Para contatos de pessoas físicas, a atenção deve ser ainda maior: finalidade legítima, transparência, preferência do titular e canais de oposição precisam fazer parte do processo comercial. O uso responsável protege a marca e melhora a qualidade das conversas.
+
+## 8. Meça o que melhora a próxima lista
+
+O valor de uma lista não está apenas no total de empresas. Está na capacidade de aprender quais recortes viram oportunidade. Acompanhe pelo menos:
+
+- taxa de empresas com contato válido;
+- taxa de resposta por segmento e região;
+- reuniões marcadas;
+- oportunidades criadas;
+- vendas geradas por origem;
+- motivos de perda e de desqualificação.
+
+Depois de algumas semanas, os dados mostram onde sua proposta tem mais aderência. A próxima lista deixa de ser uma aposta e passa a seguir evidências do seu próprio funil.
+
+## Checklist para começar
+
+Antes de iniciar a campanha, confirme: o perfil de cliente está definido, o território é atendido, a amostra foi revisada, o CRM tem campos padronizados, a cadência está pronta e há uma regra para respeitar preferências de contato.
+
+Com esses passos, uma lista de empresas B2B deixa de ser apenas uma exportação e passa a apoiar uma rotina comercial mais previsível. Se você já sabe o segmento e a região que quer trabalhar, acesse os [pacotes de leads B2B](/pacotes-leads) e monte uma seleção compatível com sua estratégia.
+
+> **Nota editorial:** este guia foi preparado pela equipe RepMatch com base nos fluxos de segmentação, seleção individual e organização comercial oferecidos pela plataforma. Última revisão: outubro de 2026.
+
+`,
+	  },
+	];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
   return BLOG_POSTS.find((p) => p.slug === slug);
