@@ -227,6 +227,33 @@ function B2BLeadCampaignSection() {
   );
 }
 
+function MonthlyPlansOverview() {
+  const [, navigate] = useLocation();
+  const { data: b2bCatalog } = trpc.leadPackages.catalog.useQuery();
+  const { data: b2cCatalog } = trpc.consumerLeadPackages.catalog.useQuery();
+  const b2bPlans = b2bCatalog?.monthlyPlans ?? [
+    { label: "Essencial", selectionLimit: 100, price: 99 },
+    { label: "Profissional", selectionLimit: 250, price: 299 },
+    { label: "Ilimitado", selectionLimit: 0, price: b2bCatalog?.unlimitedMonthly?.price ?? 499 },
+  ];
+  const b2cPlans = (b2cCatalog?.monthlyPlans ?? [
+    { name: "Essencial", selectionLimit: 100, price: 99 },
+    { name: "Profissional", selectionLimit: 250, price: 299 },
+    { name: "Escala", selectionLimit: 500, price: 499 },
+  ]).map((plan) => ({ label: plan.name, selectionLimit: plan.selectionLimit, price: plan.price }));
+  const columns = [
+    { title: "Empresas B2B", subtitle: "Para prospecção comercial", icon: Building2, color: "emerald" as const, plans: b2bPlans, description: (plan: { selectionLimit: number }) => plan.selectionLimit ? `Até ${plan.selectionLimit} empresas salvas` : "Pesquisa e exportação sem limite", cta: () => navigate("/pacotes-leads") },
+    { title: "Contatos B2C", subtitle: "Para imobiliário, automotivo e digital", icon: Users, color: "indigo" as const, plans: b2cPlans, description: (plan: { selectionLimit: number }) => `Até ${plan.selectionLimit} contatos salvos`, cta: () => navigate("/contatos-b2c") },
+    { title: "Representantes", subtitle: "Para montar seu time comercial", icon: Target, color: "violet" as const, plans: [{ label: "Essencial", selectionLimit: 20, price: 99 }, { label: "Profissional", selectionLimit: 50, price: 299 }, { label: "Escala", selectionLimit: 100, price: 499 }], description: (plan: { selectionLimit: number }) => `Até ${plan.selectionLimit} desbloqueios`, cta: () => navigate("/register?purchase=representatives&returnTo=/dashboard/company") },
+  ];
+  const palette = {
+    emerald: { label: "text-emerald-700", card: "border-emerald-200 bg-emerald-50/45", button: "bg-emerald-600 hover:bg-emerald-700", price: "text-emerald-800" },
+    indigo: { label: "text-indigo-700", card: "border-indigo-200 bg-indigo-50/45", button: "bg-indigo-600 hover:bg-indigo-700", price: "text-indigo-800" },
+    violet: { label: "text-violet-700", card: "border-violet-200 bg-violet-50/45", button: "bg-violet-700 hover:bg-violet-800", price: "text-violet-800" },
+  };
+  return <section className="border-t border-border bg-card px-4 py-16 sm:px-6 sm:py-24"><div className="mx-auto max-w-7xl"><div className="mx-auto max-w-3xl text-center"><Badge className="border-primary/20 bg-primary/10 text-primary">Planos mensais</Badge><h2 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-5xl" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>Escolha o plano certo para o ritmo do seu time.</h2><p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">Comece pequeno, aumente quando precisar. Cada card leva você ao checkout seguro por PIX ou cartão.</p></div><div className="mt-10 grid gap-5 lg:grid-cols-3">{columns.map((column) => { const Icon = column.icon; const theme = palette[column.color]; return <article key={column.title} className={`rounded-3xl border p-5 shadow-sm sm:p-6 ${theme.card}`}><div className="inline-flex rounded-xl bg-white p-2.5"><Icon className={`h-5 w-5 ${theme.label}`} /></div><h3 className="mt-4 text-2xl font-black text-foreground">{column.title}</h3><p className="mt-1 text-sm text-muted-foreground">{column.subtitle}</p><div className="mt-5 grid gap-3">{column.plans.map((plan) => <div key={plan.selectionLimit} className="rounded-2xl border border-white/80 bg-white p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-foreground">{plan.label}</p><p className="mt-1 text-xs text-muted-foreground">{column.description(plan)}</p></div><p className={`text-xl font-black ${theme.price}`}>{plan.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="text-xs font-semibold text-muted-foreground">/mês</span></p></div></div>)}</div><button onClick={column.cta} className={`mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold text-white transition ${theme.button}`}>Ver planos e ir para checkout <ArrowRight className="h-4 w-4" /></button></article>; })}</div></div></section>;
+}
+
 // ─── Match Simulator ─────────────────────────────────────────────────────────
 function MatchSimulator() {
   const [region, setRegion] = useState("");
@@ -764,6 +791,9 @@ export default function Home() {
 
       {/* ─── Campanhas B2B ────────────────────────────────────────────────────────── */}
       <B2BLeadCampaignSection />
+
+      {/* ─── Planos mensais ───────────────────────────────────────────────────────── */}
+      <MonthlyPlansOverview />
 
       {/* ─── Selos de Segurança e Certificações ─────────────────────────────────────────────────── */}
       <section className="py-16 px-6 border-t border-border bg-card">

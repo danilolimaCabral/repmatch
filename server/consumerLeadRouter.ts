@@ -6,10 +6,11 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { consumerLeadAccesses, consumerLeadOrders, consumerLeads, savedConsumerLeads, users } from "../drizzle/schema";
 import { getMySqlInsertId } from "@shared/mysql";
 import {
+  CONSUMER_LEAD_MONTHLY_DURATION_DAYS,
+  CONSUMER_LEAD_MONTHLY_PLANS,
+  CONSUMER_LEAD_MONTHLY_SELECTION_LIMITS,
   CONSUMER_LEAD_PACKAGE_PRICES,
-  CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT,
-  CONSUMER_LEAD_UNLIMITED_DURATION_DAYS,
-  CONSUMER_LEAD_UNLIMITED_MONTHLY_PRICE,
+  getConsumerLeadMonthlyPlan,
   getConsumerLeadPackagePrice,
 } from "@shared/consumerLeads";
 import { decryptConsumerLeadValue } from "./consumerLeadCrypto";
@@ -20,6 +21,11 @@ const paginationInput = z.object({
   offset: z.number().int().min(0).max(100_000).default(0),
   limit: z.number().int().min(1).max(100).default(50),
 });
+const monthlySelectionLimitInput = z.union([
+  z.literal(CONSUMER_LEAD_MONTHLY_SELECTION_LIMITS[0]),
+  z.literal(CONSUMER_LEAD_MONTHLY_SELECTION_LIMITS[1]),
+  z.literal(CONSUMER_LEAD_MONTHLY_SELECTION_LIMITS[2]),
+]);
 
 function consumerLeadCatalogRows(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, offset: number, limit: number) {
   return db.select({
@@ -43,7 +49,7 @@ export const consumerLeadPackagesRouter = router({
       withPhone: 0,
       withEmail: 0,
       packages: Object.entries(CONSUMER_LEAD_PACKAGE_PRICES).map(([quantity, price]) => ({ quantity: Number(quantity), price })),
-      monthlyPlan: { price: CONSUMER_LEAD_UNLIMITED_MONTHLY_PRICE, selectionLimit: CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT, durationDays: CONSUMER_LEAD_UNLIMITED_DURATION_DAYS },
+      monthlyPlans: CONSUMER_LEAD_MONTHLY_PLANS.map((plan) => ({ ...plan, durationDays: CONSUMER_LEAD_MONTHLY_DURATION_DAYS })),
     };
     const db = await getDb();
     if (!db) return fallback;
@@ -166,23 +172,44 @@ export const consumerLeadPackagesRouter = router({
       });
     }),
 
-  createUnlimitedAccess: protectedProcedure.input(z.object({ legalConsent: z.literal(true) })).mutation(async ({ ctx }) => {
+  createUnlimitedAccess: protectedProcedure.input(z.object({
+    selectionLimit: monthlySelectionLimitInput,
+    legalConsent: z.literal(true),
+  })).mutation(async ({ ctx, input }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-    const [existing] = await db.select().from(consumerLeadAccesses)
+    const plan = getConsumerLeadMonthlyPlan(input.selectionLimit);
+    const [existing] = await db.select({
+      id: consumerLeadAccesses.id,
+      amount: consumerLeadAccesses.amount,
+      selectionLimit: consumerLeadAccesses.selectionLimit,
+    }).from(consumerLeadAccesses)
       .where(and(eq(consumerLeadAccesses.userId, ctx.user.id), inArray(consumerLeadAccesses.status, ["pending_payment", "pending_approval", "active"])))
       .orderBy(desc(consumerLeadAccesses.createdAt)).limit(1);
-      if (existing) return { accessId: existing.id, price: Number(existing.amount), selectionLimit: existing.selectionLimit, durationDays: CONSUMER_LEAD_UNLIMITED_DURATION_DAYS, existing: true };
-      const [result] = await db.insert(consumerLeadAccesses).values({
-        userId: ctx.user.id,
-        legalConsent: true,
-        amount: CONSUMER_LEAD_UNLIMITED_MONTHLY_PRICE.toFixed(2),
-        selectionLimit: CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT,
-        status: "pending_payment",
-      });
-      const accessId = getMySqlInsertId(result);
-      if (!accessId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível criar a solicitação do plano B2C." });
-      return { accessId, price: CONSUMER_LEAD_UNLIMITED_MONTHLY_PRICE, selectionLimit: CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT, durationDays: CONSUMER_LEAD_UNLIMITED_DURATION_DAYS, existing: false };
+    // A pending or active access preserves the tier already recorded for checkout and usage.
+    if (existing) return {
+      accessId: existing.id,
+      price: Number(existing.amount),
+      selectionLimit: existing.selectionLimit,
+      durationDays: CONSUMER_LEAD_MONTHLY_DURATION_DAYS,
+      existing: true,
+    };
+    const [result] = await db.insert(consumerLeadAccesses).values({
+      userId: ctx.user.id,
+      legalConsent: true,
+      amount: plan.price.toFixed(2),
+      selectionLimit: plan.selectionLimit,
+      status: "pending_payment",
+    });
+    const accessId = getMySqlInsertId(result);
+    if (!accessId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível criar a solicitação do plano B2C." });
+    return {
+      accessId,
+      price: plan.price,
+      selectionLimit: plan.selectionLimit,
+      durationDays: CONSUMER_LEAD_MONTHLY_DURATION_DAYS,
+      existing: false,
+    };
   }),
 
   myUnlimitedAccess: protectedProcedure.query(async ({ ctx }) => {
@@ -208,7 +235,7 @@ export const consumerLeadPackagesRouter = router({
     const [access] = await db.select({ id: consumerLeadAccesses.id, selectionLimit: consumerLeadAccesses.selectionLimit }).from(consumerLeadAccesses)
       .where(and(eq(consumerLeadAccesses.userId, ctx.user.id), eq(consumerLeadAccesses.status, "active"), gte(consumerLeadAccesses.expiresAt, new Date())))
       .orderBy(desc(consumerLeadAccesses.expiresAt)).limit(1);
-    if (!access) throw new TRPCError({ code: "FORBIDDEN", message: "Assine o plano B2C ilimitado para pesquisar a base." });
+    if (!access) throw new TRPCError({ code: "FORBIDDEN", message: "Assine um plano B2C mensal para pesquisar a base." });
     const [totalResult, rows] = await Promise.all([
       db.select({ total: count() }).from(consumerLeads).where(activeConsumerScope),
       consumerLeadCatalogRows(db, input.offset, input.limit),
@@ -247,12 +274,13 @@ export const consumerLeadPackagesRouter = router({
         const [savedTotal] = await tx.select({ total: count() }).from(savedConsumerLeads)
           .where(eq(savedConsumerLeads.consumerLeadAccessId, access.id));
         const used = Number(savedTotal?.total ?? 0);
-        if (!alreadySaved && used >= access.selectionLimit) {
-          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Você usou os 500 contatos do plano mensal. Renove o plano para continuar." });
+        const selectionLimit = Number(access.selectionLimit);
+        if (!alreadySaved && used >= selectionLimit) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: `Você usou os ${selectionLimit} contatos do seu plano mensal. Renove o plano para continuar.` });
         }
         if (!alreadySaved) await tx.insert(savedConsumerLeads).values({ userId: ctx.user.id, consumerLeadAccessId: access.id, consumerLeadId: lead.id });
         const nextUsed = used + (alreadySaved ? 0 : 1);
-        return { success: true, alreadySaved: !!alreadySaved, selectionLimit: access.selectionLimit, used: nextUsed, remaining: Math.max(0, access.selectionLimit - nextUsed) };
+        return { success: true, alreadySaved: !!alreadySaved, selectionLimit, used: nextUsed, remaining: Math.max(0, selectionLimit - nextUsed) };
       });
     }),
 
@@ -378,7 +406,7 @@ export const consumerLeadPackagesRouter = router({
     if (!access) throw new TRPCError({ code: "NOT_FOUND", message: "Plano B2C não encontrado." });
     if (input.status === "active" && access.status !== "pending_approval") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A ativação só é permitida após confirmação do PIX." });
     const startsAt = input.status === "active" ? new Date() : null;
-    const expiresAt = startsAt ? new Date(startsAt.getTime() + CONSUMER_LEAD_UNLIMITED_DURATION_DAYS * 24 * 60 * 60 * 1000) : null;
+    const expiresAt = startsAt ? new Date(startsAt.getTime() + CONSUMER_LEAD_MONTHLY_DURATION_DAYS * 24 * 60 * 60 * 1000) : null;
     await db.update(consumerLeadAccesses).set({ status: input.status, reviewedBy: ctx.user.id, reviewedAt: new Date(), startsAt, expiresAt, adminNotes: input.notes || null }).where(eq(consumerLeadAccesses.id, input.accessId));
     return { success: true, startsAt, expiresAt };
   }),

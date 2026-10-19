@@ -426,6 +426,8 @@ export const marketLeadAccesses = mysqlTable("market_lead_accesses", {
   plan: mysqlEnum("plan", ["unlimited_monthly"]).default("unlimited_monthly").notNull(),
   status: mysqlEnum("status", ["pending_payment", "pending_approval", "active", "rejected", "expired", "cancelled"]).default("pending_payment").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  // Zero representa a faixa ilimitada; as demais faixas usam o saldo de empresas salvas.
+  selectionLimit: int("selection_limit").default(0).notNull(),
   mpPaymentId: varchar("mp_payment_id", { length: 100 }),
   reviewedBy: int("reviewed_by"),
   reviewedAt: timestamp("reviewed_at"),
@@ -472,12 +474,14 @@ export type InsertLeadPackageOrder = typeof leadPackageOrders.$inferInsert;
 export const savedMarketLeads = mysqlTable("saved_market_leads", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("user_id").notNull(),
-  leadPackageOrderId: int("lead_package_order_id").notNull(),
+  leadPackageOrderId: int("lead_package_order_id"),
+  marketLeadAccessId: int("market_lead_access_id"),
   marketLeadId: int("market_lead_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
   userCreatedIdx: index("saved_market_leads_user_created_idx").on(t.userId, t.createdAt),
   orderIdx: index("saved_market_leads_order_idx").on(t.leadPackageOrderId),
+  accessIdx: index("saved_market_leads_access_idx").on(t.marketLeadAccessId),
   userLeadUnique: uniqueIndex("saved_market_leads_user_lead_unique").on(t.userId, t.marketLeadId),
 }));
 export type SavedMarketLead = typeof savedMarketLeads.$inferSelect;

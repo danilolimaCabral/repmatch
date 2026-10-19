@@ -47,7 +47,7 @@ import {
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
 import { cnpjRepresentatives, consentLogs, dataDeletionRequests, representatives, companies, managerCredits, managerUnlocks, unlockedContacts, directChatMessages, users, pageViews, representativePurchaseClicks, platformSettings, leadPackageOrders, marketLeads, marketLeadAccesses, savedMarketLeads } from "../drizzle/schema";
-import { eq, and, inArray, sql, gte, lte, ne, desc, asc, count, like, or } from "drizzle-orm";
+import { eq, and, inArray, isNotNull, sql, gte, lte, ne, desc, asc, count, like, or } from "drizzle-orm";
 import { CONTACT_UNLOCK_PRICE } from "@shared/const";
 import { DEFAULT_LEAD_PACKAGE_PRICES, getLeadPackagePrice } from "@shared/leadPackages";
 import { getMySqlInsertId } from "@shared/mysql";
@@ -59,6 +59,7 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
 import { consumerLeadPackagesRouter } from "./consumerLeadRouter";
 import { representativeMonthlyRouter } from "./representativeMonthlyRouter";
+import { MARKET_MONTHLY_DURATION_DAYS, MARKET_MONTHLY_PLANS, getMarketMonthlyPlan } from "@shared/marketMonthly";
 
 
 /// ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1183,7 +1184,8 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       const fallback = {
         b2b: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_TWO_THOUSAND_PRICES.b2b, available: 0, states: 0 },
         b2c: { quantity: 2000, price: DEFAULT_LEAD_PACKAGE_TWO_THOUSAND_PRICES.b2c, available: 0, states: 0 },
-        unlimitedMonthly: { price: DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE, durationDays: 30 },
+        monthlyPlans: MARKET_MONTHLY_PLANS.map((plan) => ({ ...plan, durationDays: MARKET_MONTHLY_DURATION_DAYS })),
+        unlimitedMonthly: { price: DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE, durationDays: MARKET_MONTHLY_DURATION_DAYS },
       };
       if (!db) return fallback;
       const settings = await db.select({ key: platformSettings.key, value: platformSettings.value })
@@ -1215,8 +1217,15 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         },
         unlimitedMonthly: {
           price: normalizeMarketSearchUnlimitedPrice(priceByKey.get(MARKET_SEARCH_UNLIMITED_PRICE_KEY)),
-          durationDays: 30,
+          durationDays: MARKET_MONTHLY_DURATION_DAYS,
         },
+        monthlyPlans: MARKET_MONTHLY_PLANS.map((plan) => ({
+          ...plan,
+          price: plan.selectionLimit === 0
+            ? normalizeMarketSearchUnlimitedPrice(priceByKey.get(MARKET_SEARCH_UNLIMITED_PRICE_KEY))
+            : plan.price,
+          durationDays: MARKET_MONTHLY_DURATION_DAYS,
+        })),
       };
     }),
 
@@ -1241,31 +1250,38 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       return request ?? null;
     }),
 
-    createUnlimitedAccess: protectedProcedure.mutation(async ({ ctx }) => {
+    createUnlimitedAccess: protectedProcedure
+      .input(z.object({ selectionLimit: z.union([z.literal(0), z.literal(100), z.literal(250)]).default(0) }))
+      .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const [setting] = await db.select({ value: platformSettings.value }).from(platformSettings)
-        .where(eq(platformSettings.key, MARKET_SEARCH_UNLIMITED_PRICE_KEY)).limit(1);
-      const price = normalizeMarketSearchUnlimitedPrice(setting?.value);
+      const plan = getMarketMonthlyPlan(input.selectionLimit);
+      if (!plan) throw new TRPCError({ code: "BAD_REQUEST", message: "Faixa mensal B2B inválida." });
+      const [setting] = input.selectionLimit === 0
+        ? await db.select({ value: platformSettings.value }).from(platformSettings)
+          .where(eq(platformSettings.key, MARKET_SEARCH_UNLIMITED_PRICE_KEY)).limit(1)
+        : [];
+      const price = input.selectionLimit === 0 ? normalizeMarketSearchUnlimitedPrice(setting?.value) : plan.price;
       const [existing] = await db.select().from(marketLeadAccesses)
         .where(and(
           eq(marketLeadAccesses.userId, ctx.user.id),
-          inArray(marketLeadAccesses.status, ["pending_payment", "pending_approval"]),
+          inArray(marketLeadAccesses.status, ["pending_payment", "pending_approval", "active"]),
         ))
         .orderBy(desc(marketLeadAccesses.createdAt))
         .limit(1);
       if (existing) {
-        return { accessId: existing.id, price: Number(existing.amount), durationDays: 30, existing: true };
+        return { accessId: existing.id, price: Number(existing.amount), selectionLimit: existing.selectionLimit, durationDays: MARKET_MONTHLY_DURATION_DAYS, existing: true };
       }
       const [result] = await db.insert(marketLeadAccesses).values({
         userId: ctx.user.id,
         plan: "unlimited_monthly",
         status: "pending_payment",
         amount: price.toFixed(2),
+        selectionLimit: plan.selectionLimit,
       });
       const accessId = getMySqlInsertId(result);
       if (!accessId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível criar a solicitação do plano." });
-      return { accessId, price, durationDays: 30, existing: false };
+      return { accessId, price, selectionLimit: plan.selectionLimit, durationDays: MARKET_MONTHLY_DURATION_DAYS, existing: false };
     }),
 
     searchUnlimitedCatalog: protectedProcedure
@@ -1280,7 +1296,7 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         const now = new Date();
-        const [access] = await db.select({ id: marketLeadAccesses.id }).from(marketLeadAccesses)
+        const [access] = await db.select({ id: marketLeadAccesses.id, selectionLimit: marketLeadAccesses.selectionLimit, expiresAt: marketLeadAccesses.expiresAt }).from(marketLeadAccesses)
           .where(and(eq(marketLeadAccesses.userId, ctx.user.id), eq(marketLeadAccesses.status, "active"), gte(marketLeadAccesses.expiresAt, now)))
           .limit(1);
         if (!access) throw new TRPCError({ code: "FORBIDDEN", message: "Assine o Plano Pesquisa Ilimitada para pesquisar o catálogo." });
@@ -1292,13 +1308,60 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           const term = `%${input.query}%`;
           filters.push(or(like(marketLeads.razaoSocial, term), like(marketLeads.nomeFantasia, term), like(marketLeads.cidade, term), like(marketLeads.cnaeDescricao, term))!);
         }
-        return db.select({
+        const rows = await db.select({
           id: marketLeads.id, razaoSocial: marketLeads.razaoSocial, nomeFantasia: marketLeads.nomeFantasia,
           cnpj: marketLeads.cnpj, cnaeDescricao: marketLeads.cnaeDescricao, segmento: marketLeads.segmento,
           porte: marketLeads.porte, cidade: marketLeads.cidade, estado: marketLeads.estado, cep: marketLeads.cep,
           endereco: marketLeads.endereco, telefone: marketLeads.telefone, email: marketLeads.email, site: marketLeads.site,
           instagram: marketLeads.instagram, situacaoCadastral: marketLeads.situacaoCadastral,
         }).from(marketLeads).where(and(...filters)).orderBy(asc(marketLeads.razaoSocial)).limit(input.limit);
+        const savedRows = rows.length ? await db.select({ marketLeadId: savedMarketLeads.marketLeadId }).from(savedMarketLeads)
+          .where(and(eq(savedMarketLeads.userId, ctx.user.id), inArray(savedMarketLeads.marketLeadId, rows.map((row) => row.id)))) : [];
+        const [savedTotal] = access.selectionLimit > 0
+          ? await db.select({ total: count() }).from(savedMarketLeads)
+            .where(and(eq(savedMarketLeads.userId, ctx.user.id), eq(savedMarketLeads.marketLeadAccessId, access.id)))
+          : [{ total: 0 }];
+        const used = Number(savedTotal?.total ?? 0);
+        return {
+          rows,
+          savedLeadIds: savedRows.map((row) => row.marketLeadId),
+          selectionLimit: access.selectionLimit,
+          used,
+          remaining: access.selectionLimit === 0 ? null : Math.max(0, access.selectionLimit - used),
+          expiresAt: access.expiresAt,
+        };
+      }),
+
+    saveLeadFromMonthly: protectedProcedure
+      .input(z.object({ marketLeadId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        return db.transaction(async (tx) => {
+          await tx.execute(sql`SELECT ${users.id} FROM ${users} WHERE ${users.id} = ${ctx.user.id} FOR UPDATE`);
+          const [access] = await tx.select().from(marketLeadAccesses)
+            .where(and(eq(marketLeadAccesses.userId, ctx.user.id), eq(marketLeadAccesses.status, "active"), gte(marketLeadAccesses.expiresAt, new Date())))
+            .orderBy(desc(marketLeadAccesses.expiresAt)).limit(1);
+          if (!access) throw new TRPCError({ code: "FORBIDDEN", message: "Assine um plano mensal B2B para continuar." });
+          if (access.selectionLimit === 0) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Seu plano ilimitado já permite pesquisar e exportar o catálogo sem consumir créditos." });
+          const [lead] = await tx.select({ id: marketLeads.id }).from(marketLeads)
+            .where(and(eq(marketLeads.id, input.marketLeadId), eq(marketLeads.available, true))).limit(1);
+          if (!lead) throw new TRPCError({ code: "NOT_FOUND", message: "Esta empresa não está mais disponível." });
+          const [alreadySaved] = await tx.select({ id: savedMarketLeads.id }).from(savedMarketLeads)
+            .where(and(eq(savedMarketLeads.userId, ctx.user.id), eq(savedMarketLeads.marketLeadId, lead.id))).limit(1);
+          if (!alreadySaved) {
+            const [usage] = await tx.select({ total: count() }).from(savedMarketLeads)
+              .where(and(eq(savedMarketLeads.userId, ctx.user.id), eq(savedMarketLeads.marketLeadAccessId, access.id)));
+            if (Number(usage?.total ?? 0) >= access.selectionLimit) {
+              throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Você atingiu a franquia mensal do seu plano B2B. Renove ou escolha uma faixa maior." });
+            }
+            await tx.insert(savedMarketLeads).values({ userId: ctx.user.id, marketLeadAccessId: access.id, marketLeadId: lead.id });
+          }
+          const [usage] = await tx.select({ total: count() }).from(savedMarketLeads)
+            .where(and(eq(savedMarketLeads.userId, ctx.user.id), eq(savedMarketLeads.marketLeadAccessId, access.id)));
+          const used = Number(usage?.total ?? 0);
+          return { success: true, alreadySaved: !!alreadySaved, used, remaining: Math.max(0, access.selectionLimit - used) };
+        });
       }),
 
     adminPreview: protectedProcedure
@@ -1398,7 +1461,8 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       const [packageTotals] = await db.select({ total: sql<number>`COALESCE(SUM(${leadPackageOrders.quantity}), 0)` })
         .from(leadPackageOrders)
         .where(and(eq(leadPackageOrders.userId, ctx.user.id), inArray(leadPackageOrders.status, ["approved", "delivered"])));
-      const [savedTotals] = await db.select({ total: count() }).from(savedMarketLeads).where(eq(savedMarketLeads.userId, ctx.user.id));
+      const [savedTotals] = await db.select({ total: count() }).from(savedMarketLeads)
+        .where(and(eq(savedMarketLeads.userId, ctx.user.id), isNotNull(savedMarketLeads.leadPackageOrderId)));
       const total = Number(packageTotals?.total ?? 0);
       const used = Number(savedTotals?.total ?? 0);
       return { total, used, remaining: Math.max(0, total - used) };
@@ -1427,7 +1491,8 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
             const [packageTotals] = await tx.select({ total: sql<number>`COALESCE(SUM(${leadPackageOrders.quantity}), 0)` })
               .from(leadPackageOrders)
               .where(and(eq(leadPackageOrders.userId, ctx.user.id), inArray(leadPackageOrders.status, ["approved", "delivered"])));
-            const [savedTotals] = await tx.select({ total: count() }).from(savedMarketLeads).where(eq(savedMarketLeads.userId, ctx.user.id));
+            const [savedTotals] = await tx.select({ total: count() }).from(savedMarketLeads)
+              .where(and(eq(savedMarketLeads.userId, ctx.user.id), isNotNull(savedMarketLeads.leadPackageOrderId)));
             if (Number(savedTotals?.total ?? 0) >= Number(packageTotals?.total ?? 0)) {
               throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Você usou todos os créditos de leads. Contrate outro pacote para continuar." });
             }
@@ -1436,7 +1501,8 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
           const [packageTotals] = await tx.select({ total: sql<number>`COALESCE(SUM(${leadPackageOrders.quantity}), 0)` })
             .from(leadPackageOrders)
             .where(and(eq(leadPackageOrders.userId, ctx.user.id), inArray(leadPackageOrders.status, ["approved", "delivered"])));
-          const [savedTotals] = await tx.select({ total: count() }).from(savedMarketLeads).where(eq(savedMarketLeads.userId, ctx.user.id));
+          const [savedTotals] = await tx.select({ total: count() }).from(savedMarketLeads)
+            .where(and(eq(savedMarketLeads.userId, ctx.user.id), isNotNull(savedMarketLeads.leadPackageOrderId)));
           const total = Number(packageTotals?.total ?? 0);
           const used = Number(savedTotals?.total ?? 0);
           return { success: true, alreadySaved: !!alreadySaved, total, used, remaining: Math.max(0, total - used) };

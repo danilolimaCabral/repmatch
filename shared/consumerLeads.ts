@@ -6,12 +6,24 @@ export const CONSUMER_LEAD_PACKAGE_PRICES: Record<ConsumerLeadPackageQuantity, n
   100: 199,
 };
 
-export const CONSUMER_LEAD_MONTHLY_PRICE = 499;
-export const CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT = 500;
 export const CONSUMER_LEAD_MONTHLY_DURATION_DAYS = 30;
-// Aliases temporários para não quebrar pedidos ou integrações já gravados.
-export const CONSUMER_LEAD_UNLIMITED_MONTHLY_PRICE = CONSUMER_LEAD_MONTHLY_PRICE;
-export const CONSUMER_LEAD_UNLIMITED_DURATION_DAYS = CONSUMER_LEAD_MONTHLY_DURATION_DAYS;
+
+/** Faixas mensais B2C: preço e limite são resolvidos somente por esta fonte. */
+export const CONSUMER_LEAD_MONTHLY_PLANS = [
+  { name: "Essencial", selectionLimit: 100, price: 99 },
+  { name: "Profissional", selectionLimit: 250, price: 299 },
+  { name: "Escala", selectionLimit: 500, price: 499 },
+] as const;
+
+export const CONSUMER_LEAD_MONTHLY_SELECTION_LIMITS = [100, 250, 500] as const;
+export type ConsumerLeadMonthlySelectionLimit = (typeof CONSUMER_LEAD_MONTHLY_SELECTION_LIMITS)[number];
+export type ConsumerLeadMonthlyPlan = (typeof CONSUMER_LEAD_MONTHLY_PLANS)[number];
+
+export function getConsumerLeadMonthlyPlan(selectionLimit: ConsumerLeadMonthlySelectionLimit): ConsumerLeadMonthlyPlan {
+  const plan = CONSUMER_LEAD_MONTHLY_PLANS.find((item) => item.selectionLimit === selectionLimit);
+  if (!plan) throw new Error("Faixa mensal B2C inválida.");
+  return plan;
+}
 
 export function isConsumerLeadPackageQuantity(value: number): value is ConsumerLeadPackageQuantity {
   return (CONSUMER_LEAD_PACKAGE_QUANTITIES as readonly number[]).includes(value);

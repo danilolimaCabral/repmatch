@@ -52,7 +52,7 @@ export default function LeadPackages() {
   const [notes, setNotes] = useState("");
   const [legalConsent, setLegalConsent] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<{ orderId: number; price: number; quantity: number } | null>(null);
-  const [pendingUnlimitedAccess, setPendingUnlimitedAccess] = useState<{ accessId: number; price: number } | null>(null);
+  const [pendingUnlimitedAccess, setPendingUnlimitedAccess] = useState<{ accessId: number; price: number; selectionLimit?: number } | null>(null);
   const [documentType, setDocumentType] = useState<PayerDocumentType>("CPF");
   const [payerDocument, setPayerDocument] = useState("");
   const [documentError, setDocumentError] = useState("");
@@ -177,7 +177,7 @@ export default function LeadPackages() {
     setPix(null);
   }
 
-  async function beginUnlimitedCheckout() {
+  async function beginUnlimitedCheckout(selectionLimit: 0 | 100 | 250 = 0) {
     if (!user) {
       toast.info("Crie sua conta com e-mail e senha para pesquisar o catálogo sem limites.");
       navigate("/register?purchase=leads&returnTo=/pacotes-leads");
@@ -189,7 +189,7 @@ export default function LeadPackages() {
       setPix(null);
       return;
     }
-    const result = await createUnlimitedAccess.mutateAsync();
+    const result = await createUnlimitedAccess.mutateAsync({ selectionLimit });
     setPendingOrder(null);
     setPendingUnlimitedAccess(result);
     setPix(null);
@@ -380,14 +380,7 @@ export default function LeadPackages() {
                 {createOrder.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Solicitar por PIX <ArrowRight className="h-4 w-4" />
               </button>
               <div className="mt-4 flex gap-2 text-xs leading-relaxed text-slate-300"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Você pode pagar por PIX ou cartão. Após a confirmação, o pedido entra para revisão e entrega manual.</div>
-              <div className="mt-6 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 p-4">
-                <p className="text-xs font-extrabold uppercase tracking-[.13em] text-emerald-300">Para quem pesquisa todo dia</p>
-                <p className="mt-2 text-lg font-black">Plano Pesquisa Ilimitada</p>
-                <p className="mt-1 text-sm text-slate-200">Pesquise quantas empresas quiser por 30 dias, com contato e dados comerciais disponíveis.</p>
-                <div className="mt-3 flex items-center justify-between"><strong className="text-2xl">{formatBRL(catalog?.unlimitedMonthly?.price ?? 499)}<span className="text-xs font-semibold text-slate-300">/mês</span></strong>{unlimitedAccess?.expiresAt ? <span className="rounded-full bg-emerald-300 px-2 py-1 text-[10px] font-black text-emerald-950">ATIVO ATÉ {new Date(unlimitedAccess.expiresAt).toLocaleDateString("pt-BR")}</span> : unlimitedRequest?.status === "pending_payment" ? <span className="rounded-full bg-amber-200 px-2 py-1 text-[10px] font-black text-amber-950">PAGAMENTO PENDENTE</span> : unlimitedRequest?.status === "pending_approval" ? <span className="rounded-full bg-blue-200 px-2 py-1 text-[10px] font-black text-blue-950">EM ANÁLISE</span> : null}</div>
-                <button onClick={beginUnlimitedCheckout} disabled={createUnlimitedAccess.isPending || !!unlimitedAccess || unlimitedRequest?.status === "pending_approval"} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-3 text-sm font-extrabold text-emerald-800 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60">{createUnlimitedAccess.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : unlimitedRequest?.status === "pending_payment" ? <QrCode className="h-4 w-4" /> : <Database className="h-4 w-4" />}{unlimitedAccess ? "Acesso ilimitado ativo" : unlimitedRequest?.status === "pending_payment" ? "Retomar pagamento PIX" : unlimitedRequest?.status === "pending_approval" ? "PIX em análise" : "Assinar pesquisa ilimitada"}</button>
-                {unlimitedRequest?.status === "pending_approval" && <p className="mt-3 text-center text-xs font-medium text-blue-100">Pagamento identificado. Aguardando a liberação administrativa.</p>}
-              </div>
+              <div className="mt-6"><p className="text-xs font-extrabold uppercase tracking-[.13em] text-emerald-300">Planos mensais B2B</p><div className="mt-3 grid gap-3">{(catalog?.monthlyPlans ?? [{ selectionLimit: 100 as const, price: 99, label: "Essencial", description: "Até 100 empresas salvas" }, { selectionLimit: 250 as const, price: 299, label: "Profissional", description: "Até 250 empresas salvas" }, { selectionLimit: 0 as const, price: catalog?.unlimitedMonthly?.price ?? 499, label: "Ilimitado", description: "Pesquisa e exportação sem limite" }]).map((plan) => <div key={plan.selectionLimit} className={`rounded-2xl border p-4 ${plan.selectionLimit === 0 ? "border-emerald-300/30 bg-emerald-400/10" : "border-white/15 bg-white/[.06]"}`}><div className="flex items-start justify-between gap-3"><div><p className="font-black">{plan.label}</p><p className="mt-1 text-xs text-slate-200">{plan.description} · 30 dias</p></div><strong className="text-xl">{formatBRL(plan.price)}<span className="text-xs font-semibold text-slate-300">/mês</span></strong></div><button onClick={() => beginUnlimitedCheckout(plan.selectionLimit)} disabled={createUnlimitedAccess.isPending || !!unlimitedAccess || unlimitedRequest?.status === "pending_approval"} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2.5 text-sm font-extrabold text-emerald-800 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60">{createUnlimitedAccess.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : unlimitedRequest?.status === "pending_payment" ? <QrCode className="h-4 w-4" /> : <Database className="h-4 w-4" />}{unlimitedAccess ? "Plano mensal ativo" : unlimitedRequest?.status === "pending_payment" ? "Retomar pagamento" : unlimitedRequest?.status === "pending_approval" ? "Pagamento em análise" : `Escolher ${plan.label}`}</button></div>)}</div>{unlimitedAccess?.expiresAt && <p className="mt-3 text-center text-xs font-medium text-emerald-100">Plano ativo até {new Date(unlimitedAccess.expiresAt).toLocaleDateString("pt-BR")}</p>}</div>
             </aside>
           </div>
 
@@ -425,8 +418,8 @@ export default function LeadPackages() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Etapa final</p>
-                <h2 className="mt-1 text-xl font-black">{pendingUnlimitedAccess ? "Plano Pesquisa Ilimitada" : "Pagamento da campanha"}</h2>
-                <p className="mt-1 text-sm text-slate-600">{pendingUnlimitedAccess ? `30 dias de pesquisas ilimitadas · ${formatBRL(pendingUnlimitedAccess.price)}` : `${audience.toUpperCase()} · ${pendingOrder!.quantity.toLocaleString("pt-BR")} empresas · ${formatBRL(pendingOrder!.price)}`}</p>
+                <h2 className="mt-1 text-xl font-black">{pendingUnlimitedAccess ? (pendingUnlimitedAccess.selectionLimit ? `Plano B2B ${pendingUnlimitedAccess.selectionLimit} empresas` : "Plano B2B Ilimitado") : "Pagamento da campanha"}</h2>
+                <p className="mt-1 text-sm text-slate-600">{pendingUnlimitedAccess ? `${pendingUnlimitedAccess.selectionLimit ? `Até ${pendingUnlimitedAccess.selectionLimit} empresas salvas` : "Pesquisas e exportação ilimitadas"} · 30 dias · ${formatBRL(pendingUnlimitedAccess.price)}` : `${audience.toUpperCase()} · ${pendingOrder!.quantity.toLocaleString("pt-BR")} empresas · ${formatBRL(pendingOrder!.price)}`}</p>
               </div>
               <button onClick={closePixCheckout} className="grid h-9 w-9 place-items-center rounded-full text-2xl text-slate-400 transition hover:bg-slate-100" aria-label="Fechar">×</button>
             </div>

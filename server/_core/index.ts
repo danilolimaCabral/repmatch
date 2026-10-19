@@ -137,6 +137,7 @@ async function ensurePurchaseInterestTable() {
       plan enum('unlimited_monthly') NOT NULL DEFAULT 'unlimited_monthly',
       status enum('pending_payment','pending_approval','active','rejected','expired','cancelled') NOT NULL DEFAULT 'pending_payment',
       amount decimal(10,2) NOT NULL,
+      selection_limit int NOT NULL DEFAULT 0,
       mp_payment_id varchar(100),
       reviewed_by int,
       reviewed_at timestamp NULL,
@@ -154,15 +155,30 @@ async function ensurePurchaseInterestTable() {
     CREATE TABLE IF NOT EXISTS saved_market_leads (
       id int AUTO_INCREMENT NOT NULL,
       user_id int NOT NULL,
-      lead_package_order_id int NOT NULL,
+      lead_package_order_id int NULL,
+      market_lead_access_id int NULL,
       market_lead_id int NOT NULL,
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       UNIQUE KEY saved_market_leads_user_lead_unique (user_id, market_lead_id),
       INDEX saved_market_leads_user_created_idx (user_id, created_at),
-      INDEX saved_market_leads_order_idx (lead_package_order_id)
+      INDEX saved_market_leads_order_idx (lead_package_order_id),
+      INDEX saved_market_leads_access_idx (market_lead_access_id)
     )
   `));
+  for (const statement of [
+    "ALTER TABLE market_lead_accesses ADD COLUMN selection_limit int NOT NULL DEFAULT 0",
+    "ALTER TABLE saved_market_leads MODIFY lead_package_order_id int NULL",
+    "ALTER TABLE saved_market_leads ADD COLUMN market_lead_access_id int NULL",
+    "CREATE INDEX saved_market_leads_access_idx ON saved_market_leads (market_lead_access_id)",
+  ]) {
+    try {
+      await db.execute(sql.raw(statement));
+    } catch (error: any) {
+      const databaseMessage = [error?.message, error?.cause?.message, error?.cause?.sqlMessage, error].filter(Boolean).map(String).join(" ");
+      if (!/duplicate column|duplicate field|duplicate key|already exists/i.test(databaseMessage)) throw error;
+    }
+  }
   await db.execute(sql.raw(`
     CREATE TABLE IF NOT EXISTS consumer_lead_import_batches (
       id int AUTO_INCREMENT NOT NULL,

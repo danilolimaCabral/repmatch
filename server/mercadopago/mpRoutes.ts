@@ -87,7 +87,7 @@ mpRouter.post("/checkout-pro", async (req: Request, res: Response) => {
       const [access] = await db.select().from(marketLeadAccesses).where(and(eq(marketLeadAccesses.id, resourceId), eq(marketLeadAccesses.userId, sessionUser.id))).limit(1);
       if (!access || access.status !== "pending_payment") return res.status(404).json({ error: "Plano B2B não disponível para pagamento." });
       amount = Number(access.amount);
-      title = "Plano B2B Ilimitado — 30 dias";
+      title = access.selectionLimit === 0 ? "Plano B2B Ilimitado — 30 dias" : `Plano B2B — ${access.selectionLimit} empresas / 30 dias`;
       metadata = { type: "market_search_unlimited", access_id: access.id, user_id: sessionUser.id };
     } else if (kind === "consumer_lead_package") {
       const [order] = await db.select().from(consumerLeadOrders).where(and(eq(consumerLeadOrders.id, resourceId), eq(consumerLeadOrders.userId, sessionUser.id))).limit(1);
@@ -120,13 +120,16 @@ mpRouter.post("/checkout-pro", async (req: Request, res: Response) => {
     }
 
     const origin = req.headers.origin ?? "https://repmatch.com.br";
+    // O Mercado Pago só aceita auto_return com uma back URL HTTPS. No preview
+    // local mantemos o checkout funcional, sem tentar um redirecionamento inválido.
+    const canAutoReturn = /^https:\/\//i.test(origin);
     const preference = new Preference(mp);
     const pref = await preference.create({ body: {
       items: [{ id: `${kind}_${resourceId}`, title, quantity: 1, unit_price: amount, currency_id: "BRL" }],
       payer: { email: sessionUser.email ?? undefined, name: sessionUser.name ?? undefined },
       metadata,
       back_urls: { success: `${origin}${returnPath}?payment=success`, failure: `${origin}${returnPath}?payment=failed`, pending: `${origin}${returnPath}?payment=pending` },
-      auto_return: "approved",
+      ...(canAutoReturn ? { auto_return: "approved" as const } : {}),
       payment_methods: { installments: 12 },
       statement_descriptor: "REPMATCH",
     }});
@@ -380,6 +383,8 @@ mpRouter.post("/market-search-unlimited-pix", async (req: Request, res: Response
   try {
     const { accessId, userId, userEmail, userName, documentType, document, cpf } = req.body as { accessId: number; userId: number; userEmail: string; userName: string; documentType?: PayerDocumentType; document?: string; cpf?: string };
     if (!accessId || !userId) return res.status(400).json({ error: "Dados inválidos" });
+    const sessionUser = await getAuthUser(req);
+    if (!sessionUser || sessionUser.id !== userId) return res.status(401).json({ error: "Entre na sua conta para gerar o PIX deste plano." });
     const payerDocument = getPayerDocument(documentType, document, cpf);
     if (!payerDocument.valid) return res.status(400).json({ error: `${payerDocument.type} inválido. Confira os dígitos do pagador.` });
     const db = await getDb();
@@ -390,8 +395,8 @@ mpRouter.post("/market-search-unlimited-pix", async (req: Request, res: Response
     const payment = new Payment(mp);
     const result = await payment.create({ body: {
       transaction_amount: Number(access.amount), description: "Plano Pesquisa Ilimitada — 30 dias | RepMatch", payment_method_id: "pix",
-      payer: { email: userEmail, first_name: getPayerName(userName).firstName, last_name: getPayerName(userName).lastName, identification: { type: payerDocument.type, number: payerDocument.number } },
-      metadata: { type: "market_search_unlimited", access_id: accessId, user_id: userId },
+      payer: { email: sessionUser.email || userEmail, first_name: getPayerName(sessionUser.name || userName).firstName, last_name: getPayerName(sessionUser.name || userName).lastName, identification: { type: payerDocument.type, number: payerDocument.number } },
+      metadata: { type: "market_search_unlimited", access_id: accessId, user_id: sessionUser.id },
     }});
     if (result.id) {
       await db.update(marketLeadAccesses).set({
@@ -603,13 +608,14 @@ mpRouter.post("/webhook", async (req: Request, res: Response) => {
         } else if (meta?.type === "market_search_unlimited") {
           const accessId = Number(meta.access_id);
           if (accessId) {
-            const [access] = await db.select({ id: marketLeadAccesses.id, status: marketLeadAccesses.status, amount: marketLeadAccesses.amount })
+            const [access] = await db.select({ id: marketLeadAccesses.id, status: marketLeadAccesses.status, amount: marketLeadAccesses.amount, selectionLimit: marketLeadAccesses.selectionLimit })
               .from(marketLeadAccesses).where(eq(marketLeadAccesses.id, accessId)).limit(1);
             if (access?.status === "pending_payment") {
               const startsAt = new Date();
               const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
               await db.update(marketLeadAccesses).set({ status: "active", startsAt, expiresAt, mpPaymentId: String(result.id), adminNotes: "Ativado automaticamente pelo Mercado Pago por 30 dias." }).where(eq(marketLeadAccesses.id, accessId));
-              void notifyOwner({ title: `Plano B2B ativado automaticamente #${accessId}`, content: `Pesquisa B2B liberada até ${expiresAt.toLocaleDateString("pt-BR")}.` }).catch((error) => console.error("[MP Webhook] unlimited notification error:", error));
+              const entitlement = access.selectionLimit === 0 ? "pesquisa ilimitada" : `${access.selectionLimit} empresas selecionáveis`;
+              void notifyOwner({ title: `Plano B2B ativado automaticamente #${accessId}`, content: `${entitlement} liberados até ${expiresAt.toLocaleDateString("pt-BR")}.` }).catch((error) => console.error("[MP Webhook] unlimited notification error:", error));
             }
           }
         // ── Pacote de leads: liberação automática ─────────────────────────────

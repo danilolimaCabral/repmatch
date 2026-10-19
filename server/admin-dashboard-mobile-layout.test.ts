@@ -202,13 +202,14 @@ describe("AdminDashboard mobile layout", () => {
 
   it("keeps pending PIX requests visible and resumable for campaigns and unlimited research", () => {
     expect(routersSource).toContain("myUnlimitedRequest: protectedProcedure");
-    expect(routersSource).toContain('inArray(marketLeadAccesses.status, ["pending_payment", "pending_approval"])');
+    expect(routersSource).toContain('inArray(marketLeadAccesses.status, ["pending_payment", "pending_approval", "active"])');
     expect(companyDashboardSource).toContain("Solicitação guardada no seu carrinho");
     expect(companyDashboardSource).toContain("Retomar pagamento PIX");
     expect(leadPackagesSource).toContain("resumeCampaignPayment");
     expect(leadPackagesSource).toContain("Retomar PIX");
     expect(leadPackagesSource).toContain('retomar") === "ilimitado"');
-    expect(leadPackagesSource).toContain("PIX em análise");
+    expect(leadPackagesSource).toContain("Pagamento em análise");
+    expect(mpRoutesSource).toContain("sessionUser.id !== userId");
   });
 
   it("gives admins a clear B2B/B2C campaign queue and manual PIX confirmation fallback", () => {
@@ -323,9 +324,13 @@ describe("AdminDashboard mobile layout", () => {
   it("keeps the B2C PF catalog separate, with its own prices and individual selection", () => {
     expect(consumerLeadConstantsSource).toContain("50: 99");
     expect(consumerLeadConstantsSource).toContain("100: 199");
-    expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_MONTHLY_PRICE = 499");
-    expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_MONTHLY_SELECTION_LIMIT = 500");
+    expect(consumerLeadConstantsSource).toContain('name: "Essencial", selectionLimit: 100, price: 99');
+    expect(consumerLeadConstantsSource).toContain('name: "Profissional", selectionLimit: 250, price: 299');
+    expect(consumerLeadConstantsSource).toContain('name: "Escala", selectionLimit: 500, price: 499');
+    expect(consumerLeadConstantsSource).toContain("CONSUMER_LEAD_MONTHLY_DURATION_DAYS = 30");
     expect(consumerLeadRouterSource).toContain("consumerLeadPackagesRouter");
+    expect(consumerLeadRouterSource).toContain("selectionLimit: monthlySelectionLimitInput");
+    expect(consumerLeadRouterSource).toContain("getConsumerLeadMonthlyPlan(input.selectionLimit)");
     expect(consumerLeadRouterSource).toContain("saveLeadFromPackage");
     expect(consumerLeadRouterSource).toContain("saveLeadFromUnlimited");
     expect(consumerLeadRouterSource).toContain("FOR UPDATE");
@@ -338,6 +343,8 @@ describe("AdminDashboard mobile layout", () => {
     expect(serverSource).toContain("CREATE TABLE IF NOT EXISTS saved_consumer_leads");
     expect(dashboardSource).toContain("Contatos B2C — 50, 100 e ilimitado");
     expect(consumerLeadPackagesSource).toContain("Contatos B2C para sua prospecção");
+    expect(consumerLeadPackagesSource).toContain("Planos mensais B2C");
+    expect(consumerLeadPackagesSource).toContain("beginUnlimitedCheckout(plan.selectionLimit");
     expect(consumerLeadPackagesSource).toContain("Dados revelados apenas após adicionar à sua lista");
     expect(consumerLeadPackagesSource).toContain("Baixar Excel");
     expect(consumerLeadPackagesSource).toContain("Nome\": safeSpreadsheetCell");
