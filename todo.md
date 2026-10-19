@@ -935,3 +935,9 @@
 - [x] Permitir escolher segmento de uma lista pré-definida antes de ir ao checkout
 - [x] Levar o comprador ao carrinho com público, quantidade e segmento já selecionados
 - [x] Validar a navegação e os preços com TypeScript e testes automatizados
+
+## Tempo de pagamento PIX no painel (19/10/2026)
+- [x] Exibir contagem regressiva de 5 minutos no QR Code de campanhas
+- [x] Ocultar o QR expirado e manter o pedido como aguardando confirmação/liberação
+- [x] Permitir gerar um novo QR quando o prazo acabar, sem duplicar o pedido
+- [x] Validar o temporizador e os estados de pagamento por testes

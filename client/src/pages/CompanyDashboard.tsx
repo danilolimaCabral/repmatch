@@ -255,6 +255,7 @@ export default function CompanyDashboard() {
   const [marketPackageSegment, setMarketPackageSegment] = useState("");
   const [marketPixData, setMarketPixData] = useState<{ qrCode: string; qrCodeBase64: string; label: string; price: number } | null>(null);
   const [marketPixLoading, setMarketPixLoading] = useState(false);
+  const [marketPixSeconds, setMarketPixSeconds] = useState(300);
   const [directChatInput, setDirectChatInput] = useState("");
   const [searchPage, setSearchPage] = useState(1);
   const [searchRegion, setSearchRegion] = useState<string | undefined>(undefined);
@@ -407,6 +408,20 @@ export default function CompanyDashboard() {
     { enabled: marketTabActive && !!marketAccess },
   );
 
+  useEffect(() => {
+    if (!marketPixData) return;
+    const countdown = window.setInterval(() => {
+      setMarketPixSeconds((seconds) => {
+        if (seconds <= 1) {
+          window.clearInterval(countdown);
+          return 0;
+        }
+        return seconds - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(countdown);
+  }, [marketPixData]);
+
   const startMarketPackagePix = async (quantity: 1000 | 2000) => {
     if (!user) { navigate("/register?purchase=leads&returnTo=/dashboard/company"); return; }
     const cnpjDigits = profile?.cnpj?.replace(/\D/g, "") ?? "";
@@ -438,6 +453,7 @@ export default function CompanyDashboard() {
       });
       const pix = await response.json();
       if (!response.ok || !pix.qrCode || !pix.qrCodeBase64) throw new Error(pix.error ?? "Não foi possível gerar o QR Code PIX.");
+      setMarketPixSeconds(300);
       setMarketPixData({ qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, label: `${quantity.toLocaleString("pt-BR")} empresas ${marketAudience.toUpperCase()}`, price: Number(order.price) });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível criar o pagamento PIX.");
@@ -460,6 +476,7 @@ export default function CompanyDashboard() {
       });
       const pix = await response.json();
       if (!response.ok || !pix.qrCode || !pix.qrCodeBase64) throw new Error(pix.error ?? "Não foi possível gerar o QR Code PIX.");
+      setMarketPixSeconds(300);
       setMarketPixData({ qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, label: "Plano Pesquisa Ilimitada · 30 dias", price: Number(access.price) });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível criar o pagamento PIX.");
@@ -1916,7 +1933,26 @@ export default function CompanyDashboard() {
                     <Card className="overflow-hidden border-emerald-300 bg-gradient-to-br from-emerald-950 to-emerald-800 text-white shadow-sm"><CardContent className="p-5"><div className="flex items-center justify-between gap-2"><Badge className="bg-emerald-300 text-emerald-950 hover:bg-emerald-300">Melhor para equipes</Badge><Crown className="h-5 w-5 text-emerald-200" /></div><h3 className="mt-4 text-2xl font-black">Ilimitado</h3><p className="text-sm text-emerald-100">Pesquise quantas empresas quiser durante 30 dias.</p><p className="mt-5 text-3xl font-black">R$ 499<span className="text-sm font-semibold text-emerald-100">/mês</span></p><p className="mt-1 text-xs text-emerald-100">Filtros, contatos disponíveis e exportação para seu CRM.</p><Button onClick={startMarketUnlimitedPix} disabled={marketPixLoading} className="mt-5 min-h-12 w-full border border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 disabled:opacity-60">{marketPixLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}Gerar PIX agora</Button></CardContent></Card>
                   </div>
                   <Card className="border-dashed border-emerald-300 bg-emerald-50/50 shadow-none"><CardContent className="p-5"><div className="flex items-start gap-3"><Eye className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" /><div><p className="font-black text-slate-900">Veja como seu lote chega</p><p className="mt-1 text-sm text-slate-600">A amostra abaixo mostra os campos organizados para importar no CRM. Dados individuais só são liberados depois da confirmação do PIX.</p></div></div><div className="mt-4 overflow-hidden rounded-xl border border-emerald-100 bg-white"><div className="grid grid-cols-3 gap-2 border-b border-emerald-100 bg-emerald-100/60 px-3 py-2 text-[10px] font-extrabold uppercase tracking-wide text-emerald-900"><span>Empresa</span><span>Localização</span><span>Contato</span></div><div className="grid grid-cols-3 gap-2 px-3 py-3 text-xs text-slate-600"><span className="truncate">Empresa {marketAudience.toUpperCase()} •••</span><span className="truncate">Cidade · UF</span><span className="truncate">Telefone/e-mail*</span></div></div><p className="mt-3 text-xs text-slate-500">Inclui CNPJ, razão social, segmento/CNAE, porte, endereço, cidade/UF e, quando disponível, telefone, e-mail, site e Instagram empresarial.</p></CardContent></Card>
-                  <Dialog open={!!marketPixData} onOpenChange={(open) => { if (!open) setMarketPixData(null); }}><DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-3xl p-5 sm:p-6"><DialogHeader><DialogTitle className="text-xl font-black">PIX do pacote gerado</DialogTitle></DialogHeader>{marketPixData && <div className="text-center"><p className="mt-1 text-sm text-slate-600">{marketPixData.label} · {marketPixData.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p><div className="mx-auto mt-5 w-fit rounded-2xl border-2 border-emerald-200 bg-white p-3"><img src={`data:image/png;base64,${marketPixData.qrCodeBase64}`} alt="QR Code PIX do pacote" className="h-56 w-56" /></div><p className="mt-4 font-bold text-emerald-700">Escaneie ou copie o código PIX</p><p className="mt-1 text-xs leading-relaxed text-slate-500">Após o pagamento, o pedido fica disponível para aprovação e liberação administrativa.</p><Button onClick={() => navigator.clipboard.writeText(marketPixData.qrCode).then(() => toast.success("Código PIX copiado"))} className="mt-5 min-h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700"><QrCode className="mr-2 h-4 w-4" />Copiar código PIX</Button></div>}</DialogContent></Dialog>
+                  <Dialog open={!!marketPixData} onOpenChange={(open) => { if (!open) setMarketPixData(null); }}>
+                    <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-3xl p-5 sm:p-6">
+                      <DialogHeader><DialogTitle className="text-xl font-black">{marketPixSeconds > 0 ? "PIX do pacote gerado" : "Pedido aguardando liberação"}</DialogTitle></DialogHeader>
+                      {marketPixData && <div className="text-center">
+                        <p className="mt-1 text-sm text-slate-600">{marketPixData.label} · {marketPixData.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                        {marketPixSeconds > 0 ? <>
+                          <div className="mt-4 inline-flex items-center rounded-full bg-amber-50 px-4 py-2 text-sm font-extrabold text-amber-800"><Clock className="mr-2 h-4 w-4" />Pague em {String(Math.floor(marketPixSeconds / 60)).padStart(2, "0")}:{String(marketPixSeconds % 60).padStart(2, "0")}</div>
+                          <div className="mx-auto mt-4 w-fit rounded-2xl border-2 border-emerald-200 bg-white p-3"><img src={`data:image/png;base64,${marketPixData.qrCodeBase64}`} alt="QR Code PIX do pacote" className="h-56 w-56" /></div>
+                          <p className="mt-4 font-bold text-emerald-700">Escaneie ou copie o código PIX</p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-500">Após o pagamento, o pedido fica disponível para aprovação e liberação administrativa.</p>
+                          <Button onClick={() => navigator.clipboard.writeText(marketPixData.qrCode).then(() => toast.success("Código PIX copiado"))} className="mt-5 min-h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700"><QrCode className="mr-2 h-4 w-4" />Copiar código PIX</Button>
+                        </> : <>
+                          <div className="mx-auto mt-5 grid h-28 w-28 place-items-center rounded-full bg-amber-50 text-amber-700"><Clock className="h-12 w-12" /></div>
+                          <p className="mt-5 font-bold text-slate-900">O tempo do QR Code acabou.</p>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-600">Seu pedido continua salvo como aguardando confirmação e liberação. Se você já pagou, aguarde a conferência no painel administrativo.</p>
+                          <Button variant="outline" onClick={() => setMarketPixData(null)} className="mt-5 min-h-12 w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50">Fechar e gerar novo QR se necessário</Button>
+                        </>}
+                      </div>}
+                    </DialogContent>
+                  </Dialog>
                 </section>
               )
             ) : <>
