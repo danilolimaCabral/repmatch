@@ -25,14 +25,14 @@ export interface SeoRouteResult {
 
 const INDEXABLE_PAGES: Record<string, SeoPage> = {
   "/": {
-    title: "Representantes Comerciais e Campanhas de Leads B2B | RepMatch",
-    description: "Encontre representantes comerciais ou monte uma campanha B2B segmentada por setor, CNAE e região. Base nacional para prospecção comercial organizada.",
+    title: "Busque Leads B2B e Representantes Comerciais | RepMatch",
+    description: "Busque seus leads B2B por segmento, CNAE e região ou encontre representantes comerciais para sua empresa. Prospecção organizada e lista pronta para CRM.",
     canonicalPath: "/",
     fallbackHtml: renderStaticFallback({
       eyebrow: "RepMatch",
-      heading: "Representantes comerciais e campanhas de leads B2B",
+      heading: "Busque leads B2B e representantes comerciais",
       paragraphs: [
-        "Encontre representantes comerciais por região e segmento ou organize uma campanha de prospecção B2B para sua operação comercial.",
+        "Encontre representantes comerciais por região e segmento ou busque seus leads B2B para a sua operação comercial.",
         "A plataforma reúne busca de representantes, vagas, listas empresariais e conteúdos para apoiar empresas e profissionais de vendas no Brasil.",
       ],
       links: [
@@ -140,14 +140,14 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     canonicalPath: "/parcerias",
   },
   "/pacotes-leads": {
-    title: "Leads B2B e B2C para Campanhas | Empresas Ativas por Segmento | RepMatch",
-    description: "Monte uma campanha com empresas B2B ou B2C, com recorte por segmento e região. Escolha os registros individualmente e exporte sua lista para CRM.",
+    title: "Busque Leads B2B e B2C | Lista de Empresas por Segmento | RepMatch",
+    description: "Busque seus leads B2B ou B2C por segmento e região. Escolha empresas individualmente, mantenha sua lista na conta e exporte para CRM.",
     canonicalPath: "/pacotes-leads",
     fallbackHtml: renderStaticFallback({
       eyebrow: "Prospecção organizada",
-      heading: "Leads B2B e B2C para campanhas comerciais",
+      heading: "Busque seus leads B2B e B2C para campanhas comerciais",
       paragraphs: [
-        "Monte uma lista comercial com recorte por segmento e região. Escolha os registros individualmente, mantenha sua seleção na conta e exporte para o CRM quando precisar.",
+        "Busque leads por segmento e região para montar uma lista comercial. Escolha os registros individualmente, mantenha sua seleção na conta e exporte para o CRM quando precisar.",
         "As campanhas B2B priorizam dados empresariais. A área B2C possui regras próprias de uso responsável, consentimento declarado na origem e seleção individual.",
       ],
       links: [["Ler o guia de lista de empresas B2B", "/blog/como-montar-lista-empresas-b2b-prospeccao"], ["Conhecer contatos B2C", "/contatos-b2c"], ["Buscar representantes", "/buscar"]],
@@ -155,7 +155,7 @@ const INDEXABLE_PAGES: Record<string, SeoPage> = {
     structuredData: {
       "@context": "https://schema.org",
       "@type": "Service",
-      name: "Listas de empresas B2B para prospecção",
+      name: "Busca de leads B2B e listas de empresas para prospecção",
       provider: { "@type": "Organization", name: "RepMatch", url: BASE_URL },
       areaServed: { "@type": "Country", name: "Brasil" },
       description: "Serviço de listas empresariais para prospecção segmentadas por segmento, CNAE e região.",

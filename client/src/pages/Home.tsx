@@ -158,13 +158,13 @@ function B2BLeadCampaignSection() {
       <div className="mx-auto grid max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_.95fr] lg:gap-14">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-primary">
-            <Target className="h-3.5 w-3.5" /> Campanhas B2B sob medida
+            <Target className="h-3.5 w-3.5" /> Busca de leads B2B por segmento
           </div>
           <h2 className="mt-5 text-balance text-3xl font-black leading-tight text-foreground sm:text-5xl" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-            Encontre empresas para a sua próxima campanha comercial.
+            Busque seus leads B2B para a sua próxima campanha comercial.
           </h2>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Defina segmento, CNAE e região. Escolha um lote de 1.000 ou 2.000 empresas, ou assine pesquisas ilimitadas por 30 dias. Você só recebe acesso após a confirmação do PIX.
+            Defina segmento, CNAE e região. Escolha empresas individualmente, mantenha sua lista na conta e exporte para o CRM quando precisar.
           </p>
 
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
@@ -190,7 +190,7 @@ function B2BLeadCampaignSection() {
             onClick={() => navigate("/pacotes-leads")}
             className="group mt-8 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl sm:w-auto"
           >
-            Montar campanha B2B <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            Buscar meus leads B2B <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </button>
           <button onClick={() => navigate("/contatos-b2c")} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-6 py-3 text-sm font-bold text-indigo-800 transition hover:bg-indigo-100 sm:ml-3 sm:w-auto">
             Contatos B2C PF · 50, 100 ou ilimitado <ArrowRight className="h-4 w-4" />
@@ -604,10 +604,10 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <SEO
-        title="Representantes Comerciais e Campanhas de Leads B2B | RepMatch"
-        description="Encontre representantes comerciais ou monte uma campanha B2B segmentada por setor, CNAE e região. Base nacional e pacote de 2.000 empresas para prospecção."
+        title="Busque Leads B2B e Representantes Comerciais | RepMatch"
+        description="Busque seus leads B2B por segmento, CNAE e região ou encontre representantes comerciais para sua empresa. Organize a prospecção e exporte sua lista para CRM."
         canonical="/"
-        keywords="contratar representante comercial, leads B2B, lista de empresas, campanha B2B, prospecção B2B, pacote de leads, representantes comerciais, vagas representante comercial, buscar representante, representação comercial"
+        keywords="buscar leads B2B, comprar leads B2B, lista de empresas, empresas por CNAE, prospecção B2B, campanha B2B, contratar representante comercial, representantes comerciais, vagas representante comercial, buscar representante"
       />
 
       {/* ─── Navbar ─────────────────────────────────────────────────────────── */}
@@ -619,7 +619,7 @@ export default function Home() {
             <a href="/vagas" className="font-medium transition-colors hover:text-white">Vagas</a>
             <a href="/buscar" className="font-medium transition-colors hover:text-white">Buscar Reps</a>
             <a href="/oportunidades-reps" className="font-medium transition-colors hover:text-white">Reps Disponíveis</a>
-            <a href="/pacotes-leads" className="font-medium transition-colors hover:text-white">Leads B2B/B2C</a>
+            <a href="/pacotes-leads" className="font-medium transition-colors hover:text-white">Buscar leads</a>
             <a href="/parcerias" className="font-semibold text-emerald-300 transition-colors hover:text-white">Parcerias</a>
             <a href="/blog" className="font-medium transition-colors hover:text-white">Blog</a>
             <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
@@ -718,7 +718,7 @@ export default function Home() {
             </h1>
 
             <p className="impact-hero__reveal mt-7 max-w-2xl text-pretty text-base leading-relaxed text-emerald-50/75 sm:text-lg">
-              Encontre representantes por região e segmento ou crie uma lista empresarial para prospectar. Tudo organizado para o seu time começar a agir.
+              Encontre representantes por região e segmento ou busque seus leads B2B por setor, CNAE e região. Tudo organizado para o seu time começar a agir.
             </p>
 
             <div className="impact-hero__reveal mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -735,7 +735,7 @@ export default function Home() {
                 className="group inline-flex min-h-14 items-center justify-center gap-3 border border-emerald-100/35 bg-white/8 px-6 py-4 text-sm font-bold text-white backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-emerald-200/70 hover:bg-white/14"
               >
                 <Target className="h-5 w-5 text-emerald-300" />
-                Montar lista B2B
+                Buscar meus leads B2B
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
             </div>

@@ -92,7 +92,7 @@ export default function LeadPackages() {
 
   const packageCopy = audience === "b2b"
     ? {
-        title: "Campanha B2B sob medida",
+        title: "Busque seus leads B2B",
         subtitle: "Empresas ativas para abrir novas conversas comerciais.",
         icon: Building2,
         label: "Empresas B2B",
@@ -256,9 +256,9 @@ export default function LeadPackages() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f5f8f7] text-slate-950">
       <SEO
-        title="Leads B2B e B2C para Campanhas | Empresas Ativas por Segmento"
-        description="Monte uma campanha com 1.000 ou 2.000 empresas B2B ou B2C, com recorte por segmento e região. Pagamento por PIX ou cartão, análise e entrega assistida."
-        keywords="comprar leads B2B, lista de empresas ativas, leads atacado, prospecção B2B, empresas por CNAE, campanha B2C"
+        title="Busque Leads B2B e B2C | Lista de Empresas por Segmento"
+        description="Busque seus leads B2B ou B2C por segmento e região. Escolha empresas individualmente, mantenha sua lista na conta e exporte para o CRM."
+        keywords="buscar leads B2B, comprar leads B2B, lista de empresas, lista de empresas por segmento, empresas por CNAE, prospecção B2B, leads B2C"
         canonical="/pacotes-leads"
         structuredData={leadStructuredData}
       />
@@ -279,8 +279,8 @@ export default function LeadPackages() {
           <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-[1.08fr_.92fr] lg:items-center lg:py-20">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-white/10 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[.14em] text-emerald-100"><Sparkles className="h-3.5 w-3.5" />Base comercial para crescer</span>
-              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">Sua próxima campanha começa com o público certo.</h1>
-              <p className="mt-5 max-w-2xl text-base leading-relaxed text-emerald-50/90 sm:text-lg">Escolha empresas B2B ou empresas com atuação B2C, defina o recorte comercial e receba um lote de 1.000 ou 2.000 registros preparado para sua estratégia.</p>
+              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">Busque seus leads e comece a próxima campanha com o público certo.</h1>
+              <p className="mt-5 max-w-2xl text-base leading-relaxed text-emerald-50/90 sm:text-lg">Busque empresas B2B ou B2C, defina segmento e região e selecione os registros que fazem sentido para a sua estratégia comercial.</p>
               <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-emerald-50">
                 <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />Segmentação assistida</span>
                 <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />Empresas com CNPJ</span>
@@ -307,7 +307,7 @@ export default function LeadPackages() {
             </div>
             <button onClick={() => navigate("/contatos-b2c")} className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-extrabold text-white transition hover:bg-indigo-700"><Users className="h-4 w-4" />Ver contatos B2C</button>
           </div>
-          <div className="mb-6 max-w-2xl"><p className="text-sm font-extrabold uppercase tracking-[.14em] text-emerald-700">Monte sua campanha</p><h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Qual público você quer alcançar?</h2><p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">A seleção abaixo serve de briefing. Antes da entrega, a equipe revisa a disponibilidade e o recorte solicitado.</p></div>
+          <div className="mb-6 max-w-2xl"><p className="text-sm font-extrabold uppercase tracking-[.14em] text-emerald-700">Busque seus leads</p><h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Qual público você quer alcançar?</h2><p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">Use segmento e região para montar uma lista comercial alinhada ao seu objetivo. Você escolhe os registros antes de salvar na sua conta.</p></div>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_14px_45px_-30px_rgba(15,23,42,.45)] sm:p-7">

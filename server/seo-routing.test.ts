@@ -26,7 +26,7 @@ describe("SEO por rota", () => {
 
     const html = renderSeoHtml(htmlTemplate, route.page);
     expect(html).toContain("https://repmatch.com.br/pacotes-leads");
-    expect(html).toContain("Leads B2B e B2C para Campanhas");
+    expect(html).toContain("Busque Leads B2B e B2C");
     expect(html).not.toContain('"@type":"FAQPage"');
     expect(html).toContain('"@type":"Service"');
     expect(html).toContain('"@graph"');
@@ -88,13 +88,16 @@ describe("SEO por rota", () => {
   });
 
   it("entrega conteúdo próprio e links internos nas páginas comerciais sem JavaScript", () => {
+    const homeHtml = renderSeoHtml(htmlTemplate, getSeoRoute("/").page);
     const searchHtml = renderSeoHtml(htmlTemplate, getSeoRoute("/buscar").page);
     const leadsHtml = renderSeoHtml(htmlTemplate, getSeoRoute("/pacotes-leads").page);
     const blogHtml = renderSeoHtml(htmlTemplate, getSeoRoute("/blog").page);
 
+    expect(homeHtml).toContain("Busque leads B2B e representantes comerciais");
+    expect(homeHtml).toContain('href="/pacotes-leads"');
     expect(searchHtml).toContain("Buscar representantes comerciais por região e segmento");
     expect(searchHtml).toContain('href="/oportunidades-reps"');
-    expect(leadsHtml).toContain("Leads B2B e B2C para campanhas comerciais");
+    expect(leadsHtml).toContain("Busque seus leads B2B e B2C para campanhas comerciais");
     expect(leadsHtml).toContain('href="/blog/como-montar-lista-empresas-b2b-prospeccao"');
     expect(blogHtml).toContain("Guias recentes");
     expect(blogHtml).toContain("Como Montar uma Lista de Empresas B2B para Prospecção");
