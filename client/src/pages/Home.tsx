@@ -274,23 +274,23 @@ function MonthlyPlansOverview() {
           <div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">Planos mensais</p><h2 className="mt-4 text-3xl font-black tracking-tight text-foreground sm:text-5xl" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>Comece pequeno.<br />Aumente com intenção.</h2></div>
           <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">Escolha o caminho que resolve sua demanda agora. O checkout acontece com PIX ou cartão, no fluxo certo para cada público.</p>
         </div>
-        <div className="mt-4 grid divide-y divide-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+        <div className="home-plan-grid mt-4 grid divide-y divide-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
           {columns.map((column) => {
             const Icon = column.icon;
             return (
-              <article key={column.title} aria-busy={column.isLoading} className="py-8 lg:px-7 lg:first:pl-0 lg:last:pr-0">
+              <article key={column.title} aria-busy={column.isLoading} className="home-plan-column py-8 lg:px-7 lg:first:pl-0 lg:last:pr-0">
                 <Icon className={`h-5 w-5 ${column.color}`} />
                 <h3 className="mt-4 text-2xl font-black text-foreground">{column.title}</h3>
                 <p className="mt-1 min-h-10 text-sm leading-relaxed text-muted-foreground">{column.subtitle}</p>
                 <div className="mt-6 divide-y divide-border border-y border-border">
                   {column.isLoading ? [0, 1, 2].map((item) => <div key={item} className="py-4"><HomeSkeleton className="h-4 w-24" /><HomeSkeleton className="mt-2 h-3 w-36" /></div>) : column.plans?.map((plan) => (
-                    <div key={plan.selectionLimit} className="flex items-start justify-between gap-4 py-4">
+                    <div key={plan.selectionLimit} className="home-plan-row group flex items-start justify-between gap-4 py-4">
                       <div><p className="font-bold text-foreground">{plan.label}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{column.description(plan)}</p></div>
-                      <p className="shrink-0 text-right text-xl font-black tracking-tight text-foreground">{plan.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="block text-[11px] font-semibold tracking-normal text-muted-foreground">por mês</span></p>
+                      <p className="home-plan-price shrink-0 text-right text-xl font-black tracking-tight text-foreground">{plan.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="block text-[11px] font-semibold tracking-normal text-muted-foreground">por mês</span></p>
                     </div>
                   )) ?? <div className="py-5 text-sm text-muted-foreground">Planos indisponíveis no momento.</div>}
                 </div>
-                <button disabled={column.isLoading || !column.plans} onClick={column.cta} className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-primary px-4 text-sm font-extrabold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-wait disabled:opacity-60">Ver planos e ir para checkout <ArrowRight className="h-4 w-4" /></button>
+                <button disabled={column.isLoading || !column.plans} onClick={column.cta} className="home-plan-cta group mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-primary px-4 text-sm font-extrabold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-wait disabled:opacity-60">Ver planos e ir para checkout <ArrowRight className="home-plan-cta__arrow h-4 w-4" /></button>
               </article>
             );
           })}

@@ -25,6 +25,7 @@ const seoSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/compon
 const sitemapSource = fs.readFileSync(path.resolve(process.cwd(), "client/public/sitemap.xml"), "utf8");
 const robotsSource = fs.readFileSync(path.resolve(process.cwd(), "client/public/robots.txt"), "utf8");
 const indexHtmlSource = fs.readFileSync(path.resolve(process.cwd(), "client/index.html"), "utf8");
+const indexCssSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/index.css"), "utf8");
 const brazilMapSource = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/BrazilMapSection.tsx"), "utf8");
 const publicPageSources = Object.fromEntries(
   ["BuscarRepresentantes", "OportunidadesReps", "Blog", "BlogPost", "BaseCNPJ", "Planos", "ManagerPlans", "Parcerias", "Onboarding", "Login", "Register", "RedefinirSenha", "Perfil", "VerificacaoKYC"]
@@ -125,6 +126,16 @@ describe("AdminDashboard mobile layout", () => {
     expect(homeSource).toContain("function SectionLoadingSkeleton");
     expect(homeSource).toContain('fallback={<SectionLoadingSkeleton label="calculadora de retorno" />}');
     expect(homeSource).toContain('fallback={<SectionLoadingSkeleton label="mapa de cobertura" />}');
+  });
+
+  it("adds subtle interactive plan motion without ignoring reduced-motion preferences", () => {
+    expect(homeSource).toContain("home-plan-column");
+    expect(homeSource).toContain("home-plan-row group");
+    expect(homeSource).toContain("home-plan-cta__arrow");
+    expect(indexCssSource).toContain("@keyframes home-plan-enter");
+    expect(indexCssSource).toContain(".home-plan-column:hover");
+    expect(indexCssSource).toContain(".home-plan-cta:active:not(:disabled)");
+    expect(indexCssSource).toContain(".home-plan-column,");
   });
 
   it("uses overlay drawers and compact content on every member dashboard", () => {

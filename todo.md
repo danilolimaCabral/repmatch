@@ -1011,3 +1011,4 @@
 - [x] Criar menu mobile acessível, FAQ com estados ARIA e preferência de movimento reduzido nos contadores
 - [x] Remover contagens provisórias e duplicadas, além de ajustar contraste do rodapé
 - [x] Validar com TypeScript, 60 testes automatizados, build, checagem de diff e prévia desktop/mobile
+- [x] Adicionar entrada escalonada, hover nas faixas e feedback de clique nos CTAs de planos, com fallback para movimento reduzido

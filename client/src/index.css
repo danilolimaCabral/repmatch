@@ -517,11 +517,104 @@
   animation: impact-hero-scroll 1.6s ease-in-out infinite;
 }
 
+@keyframes home-plan-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-plan-column {
+  position: relative;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms ease;
+  animation: home-plan-enter 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.home-plan-column:nth-child(2) { animation-delay: 80ms; }
+.home-plan-column:nth-child(3) { animation-delay: 160ms; }
+
+.home-plan-column::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: oklch(0.62 0.18 152);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-plan-row {
+  position: relative;
+  transition: background-color 180ms ease, padding-inline 180ms ease, color 180ms ease;
+}
+
+.home-plan-price {
+  transition: color 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-plan-cta {
+  box-shadow: 0 0 0 0 oklch(0.62 0.18 152 / 0);
+  transition: transform 180ms ease, box-shadow 220ms ease, background-color 180ms ease;
+}
+
+.home-plan-cta__arrow {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-plan-column:hover {
+    transform: translateY(-5px);
+  }
+
+  .home-plan-column:hover::after {
+    transform: scaleX(1);
+  }
+
+  .home-plan-row:hover {
+    background: oklch(0.62 0.18 152 / 0.07);
+    padding-inline: 0.75rem;
+  }
+
+  .home-plan-row:hover .home-plan-price {
+    color: oklch(0.50 0.14 152);
+    transform: translateX(-2px);
+  }
+
+  .home-plan-cta:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 22px oklch(0.42 0.13 152 / 0.28);
+  }
+
+  .home-plan-cta:hover:not(:disabled) .home-plan-cta__arrow {
+    transform: translateX(4px);
+  }
+}
+
+.home-plan-cta:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .impact-hero__reveal,
   .impact-hero__panel,
   .impact-hero__orb,
-  .impact-hero__scroll svg {
+  .impact-hero__scroll svg,
+  .home-plan-column {
     animation: none;
+  }
+
+  .home-plan-column,
+  .home-plan-row,
+  .home-plan-price,
+  .home-plan-cta,
+  .home-plan-cta__arrow {
+    transition: none;
   }
 }
