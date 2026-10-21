@@ -90,6 +90,26 @@ function normalizeMarketSearchUnlimitedPrice(value: string | null | undefined): 
     : DEFAULT_MARKET_SEARCH_UNLIMITED_PRICE;
 }
 
+/**
+ * O Analytics do Admin apresenta "Hoje" pelo dia-calendário brasileiro,
+ * e não pelas últimas 24 horas. O banco persiste timestamps em UTC;
+ * por isso, 00:00 de São Paulo corresponde a 03:00 UTC (o Brasil não usa
+ * horário de verão desde 2019).
+ */
+function getAnalyticsPeriodStart(days: number): Date {
+  if (days !== 0) return new Date(Date.now() - days * 24 * 3600 * 1000);
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((item) => item.type === type)?.value);
+
+  return new Date(Date.UTC(part("year"), part("month") - 1, part("day"), 3, 0, 0));
+}
+
 const MARKET_LEAD_STATE_CODES: Record<string, string> = {
   "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM", "Bahia": "BA", "Ceará": "CE",
   "Distrito Federal": "DF", "Espírito Santo": "ES", "Goiás": "GO", "Maranhão": "MA", "Mato Grosso": "MT",
@@ -2058,12 +2078,12 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
     }),
     // Admin: cliques em cards de representantes com intenção de comprar contato
     purchaseInterest: protectedProcedure
-      .input(z.object({ days: z.number().min(1).max(90).default(30) }))
+      .input(z.object({ days: z.number().int().min(0).max(90).default(30) }))
       .query(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const since = new Date(Date.now() - input.days * 24 * 3600 * 1000);
+        const since = getAnalyticsPeriodStart(input.days);
 
         const [totals] = await db.select({
           clicks: sql<number>`count(*)`,
@@ -2104,12 +2124,12 @@ Representante: ${rep.fullName} - Região: ${rep.region} - Segmento: ${rep.segmen
       }),
     // Admin: analytics de visitas (dados reais do banco)
     siteAnalytics: protectedProcedure
-      .input(z.object({ days: z.number().min(1).max(90).default(30) }))
+      .input(z.object({ days: z.number().int().min(0).max(90).default(30) }))
       .query(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         const db = await getDb();
         if (!db) return { pageviews: 0, visitors: 0, newUsers: 0, dailyViews: [] as { date: string; pageviews: number; visitors: number; newUsers: number }[] };
-        const since = new Date(Date.now() - input.days * 24 * 3600 * 1000);
+        const since = getAnalyticsPeriodStart(input.days);
         try {
           // Total pageviews e visitantes únicos no período
           const [totals] = await db.select({

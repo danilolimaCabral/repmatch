@@ -35,6 +35,15 @@ const ADMIN_NAV_ITEMS = [
   { id: "representantes", label: "Representantes", icon: UserCheck },
 ] as const;
 
+const ANALYTICS_PERIODS = [
+  { value: 0, label: "Hoje" },
+  { value: 7, label: "7 dias" },
+  { value: 30, label: "30 dias" },
+  { value: 90, label: "90 dias" },
+] as const;
+
+type AnalyticsPeriod = (typeof ANALYTICS_PERIODS)[number]["value"];
+
 function normalizePhone(raw: string): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D/g, "");
@@ -185,7 +194,7 @@ export default function AdminDashboard() {
     onError: (e) => toast.error(e.message),
   });
 
-  const [analyticsDays, setAnalyticsDays] = useState(30);
+  const [analyticsDays, setAnalyticsDays] = useState<AnalyticsPeriod>(30);
   const { data: siteAnalytics, isLoading: analyticsLoading } = trpc.admin.siteAnalytics.useQuery(
     { days: analyticsDays },
     { enabled: activeTab === "analytics" }
@@ -651,17 +660,17 @@ export default function AdminDashboard() {
                 <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="font-bold text-sm uppercase tracking-wide text-muted-foreground">Visitas ao Site</h2>
-                    <p className="text-xs text-muted-foreground/60 mt-0.5">Pageviews e visitantes únicos</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">{analyticsDays === 0 ? "Dados acumulados desde 0h de hoje (horário de Brasília)" : "Pageviews e visitantes únicos"}</p>
                   </div>
-                  <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto">
-                    {[7, 30, 90].map(d => (
-                      <button key={d} onClick={() => setAnalyticsDays(d)}
+                  <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+                    {ANALYTICS_PERIODS.map((period) => (
+                      <button key={period.value} onClick={() => setAnalyticsDays(period.value)}
                         className={`w-full whitespace-nowrap rounded-full border px-2 py-2 text-xs transition-colors sm:w-auto sm:px-3 sm:py-1 ${
-                          analyticsDays === d
+                          analyticsDays === period.value
                             ? "bg-primary text-primary-foreground border-primary"
                             : "border-border text-muted-foreground hover:border-primary/50"
                         }`}>
-                        {d === 7 ? "7 dias" : d === 30 ? "30 dias" : "90 dias"}
+                        {period.label}
                       </button>
                     ))}
                   </div>

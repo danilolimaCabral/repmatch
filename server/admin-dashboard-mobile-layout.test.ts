@@ -40,9 +40,13 @@ describe("AdminDashboard mobile layout", () => {
   });
 
   it("keeps Analytics controls and KPI cards responsive on narrow viewports", () => {
-    expect(dashboardSource).toContain("grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto");
+    expect(dashboardSource).toContain('label: "Hoje"');
+    expect(dashboardSource).toContain("grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto");
+    expect(dashboardSource).toContain("Dados acumulados desde 0h de hoje (horário de Brasília)");
     expect(dashboardSource).toContain("mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4");
     expect(dashboardSource).toContain("min-w-0 rounded-lg border border-border p-3 sm:p-4");
+    expect(routersSource).toContain("function getAnalyticsPeriodStart(days: number)");
+    expect(routersSource).toContain("getAnalyticsPeriodStart(input.days)");
   });
 
   it("turns general indicators into accessible navigation shortcuts", () => {

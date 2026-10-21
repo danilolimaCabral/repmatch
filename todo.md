@@ -997,3 +997,9 @@
 - [x] Publicar guia original sobre lista de empresas B2B, segmentação, CRM e prospecção responsável
 - [x] Incluir o novo guia no sitemap, destacá-lo no blog e validar schemas, 57 testes, build e HTML em modo produção
 - [x] Entregar texto, títulos e links internos próprios no HTML inicial das páginas de busca, vagas, oportunidades, campanhas, contatos B2C e blog
+
+## Analytics diário no painel Admin (20/10/2026)
+- [x] Incluir o período Hoje junto aos filtros de 7, 30 e 90 dias
+- [x] Calcular Hoje desde 0h no horário de Brasília para visitas, visitantes, cadastros e interesse de compra
+- [x] Manter os quatro filtros acessíveis no celular em duas colunas e em linha no desktop
+- [x] Validar com TypeScript, 59 testes automatizados, build e checagem de diff
