@@ -1,5 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LogOut, LayoutDashboard, ChevronDown as ChevronDownSmall } from "lucide-react";
+import { LogOut, LayoutDashboard, ChevronDown as ChevronDownSmall, Menu, X } from "lucide-react";
 import SEO from "@/components/SEO";
 import { lazy, Suspense } from "react";
 const ROICalculator = lazy(() => import("@/components/ROICalculator"));
@@ -18,6 +18,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Moon, Sun } from "lucide-react";
+import { REPRESENTATIVE_MONTHLY_PLANS } from "@shared/representativeMonthly";
 
 function maskCompanyName(name: string): string {
   const words = name.trim().split(" ");
@@ -25,16 +26,48 @@ function maskCompanyName(name: string): string {
   return words[0] + " " + words.slice(1).map(() => "●●●").join(" ");
 }
 
+function HomeSkeleton({ className = "" }: { className?: string }) {
+  return <div aria-hidden="true" className={`animate-pulse rounded bg-foreground/10 ${className}`} />;
+}
+
+function SectionLoadingSkeleton({ label }: { label: string }) {
+  return (
+    <section aria-busy="true" aria-label={`Carregando ${label}`} className="border-y border-border bg-card px-4 py-16 sm:px-6 sm:py-24">
+      <div className="mx-auto max-w-6xl">
+        <HomeSkeleton className="h-3 w-28" />
+        <HomeSkeleton className="mt-5 h-10 max-w-md" />
+        <HomeSkeleton className="mt-3 h-5 max-w-xl" />
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {[0, 1, 2].map((item) => <HomeSkeleton key={item} className="h-56" />)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    updatePreference();
+    mediaQuery.addEventListener("change", updatePreference);
+    return () => mediaQuery.removeEventListener("change", updatePreference);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
 function VagasDestaque() {
   const [, navigate] = useLocation();
-  const { data } = trpc.jobs.listPublic.useQuery({ page: 1, limit: 3 });
+  const { data, isLoading } = trpc.jobs.listPublic.useQuery({ page: 1, limit: 3 });
   const jobs = data?.jobs ?? [];
-  if (!jobs.length) return null;
   return (
     <section className="py-24 px-6 border-t border-border">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Vagas abertas agora</Badge>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Vagas em movimento</p>
           <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
             Empresas buscando<br />
             <span className="text-gradient-green">representantes hoje</span>
@@ -43,8 +76,13 @@ function VagasDestaque() {
             Crie sua conta gratuita para ver os detalhes e se candidatar. Sem taxa de cadastro.
           </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-5 mb-10">
-          {jobs.map((job) => (
+        {isLoading ? (
+          <div aria-busy="true" aria-label="Carregando vagas em destaque" className="grid md:grid-cols-3 gap-5 mb-10">
+            {[0, 1, 2].map((item) => <HomeSkeleton key={item} className="h-64" />)}
+          </div>
+        ) : jobs.length > 0 ? (
+          <div className="grid md:grid-cols-3 gap-5 mb-10">
+            {jobs.map((job) => (
             <div key={job.id} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4">
               <div>
                 <h3 className="font-bold text-base leading-snug mb-1">{job.title}</h3>
@@ -71,8 +109,14 @@ function VagasDestaque() {
                 Candidatar-se <ArrowRight className="w-4 h-4" />
               </button>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mb-10 border-y border-border py-10 text-center">
+            <p className="text-base font-bold text-foreground">Ainda não há vagas abertas para mostrar.</p>
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">Crie seu perfil para receber oportunidades compatíveis ou publique uma vaga para começar a encontrar representantes.</p>
+          </div>
+        )}
         <div className="text-center">
           <button
             onClick={() => navigate("/vagas")}
@@ -91,52 +135,38 @@ const HERO_BACKGROUND_URL = "/manus-storage/Banner-Moderno_6a9f2769.gif";
 
 // ─── Live Counter Section ────────────────────────────────────────────────────
 function LiveCounterSection() {
-  const { data: baseStats } = trpc.cnpjBase.stats.useQuery();
-  const { data: jobsData } = trpc.jobs.listPublic.useQuery({ page: 1, limit: 1 });
-  const totalReps = baseStats?.total ?? 173987;
-  const totalJobs = jobsData?.total ?? 0;
-  const [pulse, setPulse] = useState(false);
-  useEffect(() => {
-    const t = setInterval(() => setPulse(p => !p), 2000);
-    return () => clearInterval(t);
-  }, []);
-
+  const { data: baseStats, isLoading: isLoadingBaseStats } = trpc.cnpjBase.stats.useQuery();
+  const { data: jobsData, isLoading: isLoadingJobs } = trpc.jobs.listPublic.useQuery({ page: 1, limit: 1 });
+  const isLoading = isLoadingBaseStats || isLoadingJobs;
   const stats = [
-    { value: totalReps, suffix: "+", label: "Representantes na base", sublabel: "Base comercial nacional", icon: Users, pulsed: pulse },
-    { value: totalJobs, suffix: "", label: "Vagas abertas agora", sublabel: "Atualizado em tempo real", icon: Briefcase, pulsed: !pulse },
-    { value: 12, suffix: "", label: "Segmentos cobertos", sublabel: "Do agro ao tech", icon: BarChart3, pulsed: pulse },
-    { value: 27, suffix: "", label: "Estados atendidos", sublabel: "Cobertura nacional", icon: MapPin, pulsed: !pulse },
-  ];
+    { value: baseStats?.total ?? null, suffix: "+", label: "Representantes na base", detail: "Base comercial nacional", icon: Users },
+    { value: jobsData?.total ?? null, suffix: "", label: "Vagas abertas agora", detail: "Atualizado quando a página abre", icon: Briefcase },
+    { value: "Brasil", label: "Cobertura comercial", detail: "Busca por região e segmento", icon: MapPin },
+    { value: "CRM", label: "Lista pronta para ação", detail: "Exportação quando disponível", icon: BarChart3 },
+  ] as const;
 
   return (
-    <section className="py-14 border-y border-border" style={{ background: "linear-gradient(180deg, oklch(0.62 0.18 152 / 0.04) 0%, transparent 100%)" }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-widest">
-            <span className={`w-2 h-2 rounded-full bg-primary transition-opacity duration-1000 ${pulse ? "opacity-100" : "opacity-30"}`}
-              style={{ boxShadow: "0 0 6px oklch(0.62 0.18 152 / 0.9)" }} />
-            Dados em tempo real
-          </div>
+    <section aria-busy={isLoading} className="border-y border-border bg-emerald-950 px-4 py-8 text-white sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 flex items-center gap-3">
+          <span className="h-px w-8 bg-emerald-300/75" />
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-200">A plataforma em uma leitura</p>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
-          {stats.map((stat, i) => (
-            <div key={i} className="group relative min-w-0 overflow-hidden rounded-2xl border border-border bg-card/60 p-3 text-center sm:p-6">
-              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{ background: "radial-gradient(ellipse at 50% 0%, oklch(0.62 0.18 152 / 0.08) 0%, transparent 70%)" }} />
-              <div className="flex justify-center mb-4">
-                <div className="relative">
-                  <stat.icon className="w-6 h-6 text-primary" />
-                  <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary transition-opacity duration-1000 ${stat.pulsed ? "opacity-100" : "opacity-20"}`}
-                    style={{ boxShadow: "0 0 5px oklch(0.62 0.18 152 / 0.9)" }} />
+        <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-y border-white/10 md:grid-cols-4 md:divide-y-0">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            const numericValue = typeof stat.value === "number" ? stat.value : null;
+            const suffix = "suffix" in stat ? stat.suffix : "";
+            return (
+              <div key={stat.label} className="min-w-0 px-4 py-5 first:pl-0 odd:border-l-0 md:px-6 md:py-2 md:first:pl-0">
+                <div className="flex items-center gap-2 text-emerald-200"><Icon className="h-4 w-4" /><span className="text-xs font-semibold uppercase tracking-wide">{stat.label}</span></div>
+                <div className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                  {isLoading && (numericValue !== null || stat.value === null) ? <HomeSkeleton className="h-9 w-24 bg-white/15" /> : numericValue !== null ? <AnimatedCounter end={numericValue} suffix={suffix} /> : stat.value}
                 </div>
+                <p className="mt-1 text-xs leading-relaxed text-emerald-100/80">{stat.detail}</p>
               </div>
-              <div className="text-3xl font-black text-foreground mb-1 sm:text-4xl" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-                <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-              </div>
-              <div className="text-sm font-semibold text-foreground/80 mb-1">{stat.label}</div>
-              <div className="text-xs text-muted-foreground">{stat.sublabel}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -146,20 +176,18 @@ function LiveCounterSection() {
 // ─── Campanhas B2B ───────────────────────────────────────────────────────────
 function B2BLeadCampaignSection() {
   const [, navigate] = useLocation();
-  const { data: catalog } = trpc.leadPackages.catalog.useQuery();
+  const { data: catalog, isLoading } = trpc.leadPackages.catalog.useQuery();
   const price = catalog?.b2b.price;
   const priceLabel = typeof price === "number"
     ? price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-    : "valor sob consulta";
-  const unlimitedPrice = catalog?.unlimitedMonthly?.price ?? 499;
+    : null;
+  const unlimitedPrice = catalog?.unlimitedMonthly?.price;
 
   return (
-    <section id="leads-b2b" className="border-t border-border bg-secondary/35 px-4 py-16 sm:px-6 sm:py-24">
+    <section id="leads-b2b" aria-busy={isLoading} className="border-t border-border bg-secondary/35 px-4 py-16 sm:px-6 sm:py-24">
       <div className="mx-auto grid max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_.95fr] lg:gap-14">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-primary">
-            <Target className="h-3.5 w-3.5" /> Busca de leads B2B por segmento
-          </div>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-primary"><span className="h-px w-7 bg-primary" /><Target className="h-3.5 w-3.5" /> Busca de leads B2B por segmento</p>
           <h2 className="mt-5 text-balance text-3xl font-black leading-tight text-foreground sm:text-5xl" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
             Busque seus leads B2B para a sua próxima campanha comercial.
           </h2>
@@ -167,23 +195,23 @@ function B2BLeadCampaignSection() {
             Defina segmento, CNAE e região. Escolha empresas individualmente, mantenha sua lista na conta e exporte para o CRM quando precisar.
           </p>
 
-          <div className="mt-7 grid gap-3 sm:grid-cols-3">
+          <div className="mt-8 grid border-y border-border sm:grid-cols-3 sm:divide-x sm:divide-border">
             {[
               { icon: Filter, title: "Recorte certo", text: "Setor, região e perfil da empresa" },
               { icon: Building2, title: "Base empresarial", text: "Empresas ativas para trabalhar" },
               { icon: Shield, title: "Entrega assistida", text: "Análise antes da liberação" },
             ].map(({ icon: Icon, title, text }) => (
-              <div key={title} className="rounded-2xl border border-border bg-card p-4">
+              <div key={title} className="border-b border-border px-0 py-4 last:border-b-0 sm:border-b-0 sm:px-5 sm:first:pl-0 sm:last:pr-0">
                 <Icon className="h-5 w-5 text-primary" />
-                <p className="mt-3 text-sm font-bold text-foreground">{title}</p>
+                <p className="mt-2 text-sm font-bold text-foreground">{title}</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{text}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <button onClick={() => navigate("/pacotes-leads")} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md"><p className="text-sm font-black text-foreground">Concessionárias e automotivo</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Empresas para veículos, peças, serviços e novas parcerias comerciais.</p></button>
-            <button onClick={() => navigate("/pacotes-leads")} className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md"><p className="text-sm font-black text-foreground">Imobiliárias e construção</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Empresas para imóveis, construtoras, fornecedores e parcerias regionais.</p></button>
+          <div className="mt-6 flex flex-col gap-3 text-sm sm:flex-row sm:gap-6">
+            <button onClick={() => navigate("/pacotes-leads")} className="group inline-flex items-center justify-between border-b border-border pb-3 text-left font-bold text-foreground transition hover:border-primary hover:text-primary sm:flex-1"><span>Concessionárias e automotivo</span><ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></button>
+            <button onClick={() => navigate("/pacotes-leads")} className="group inline-flex items-center justify-between border-b border-border pb-3 text-left font-bold text-foreground transition hover:border-primary hover:text-primary sm:flex-1"><span>Imobiliárias e construção</span><ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></button>
           </div>
 
           <button
@@ -197,30 +225,30 @@ function B2BLeadCampaignSection() {
           </button>
         </div>
 
-        <aside className="overflow-hidden rounded-3xl border border-emerald-800 bg-emerald-950 p-5 text-white shadow-2xl sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">Pacote de prospecção B2B</p>
+        <aside className="overflow-hidden border border-emerald-800 bg-emerald-950 p-5 text-white shadow-[0_24px_60px_rgba(3,31,19,0.25)] sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-300">Pacote de prospecção B2B</p>
           <div className="mt-5 flex items-end justify-between gap-4">
             <div>
               <p className="text-5xl font-black sm:text-6xl">1k ou 2k</p>
               <p className="mt-1 text-sm text-emerald-100">empresas por campanha</p>
             </div>
-            <div className="rounded-2xl bg-white/10 p-3"><Building2 className="h-7 w-7 text-emerald-300" /></div>
+            <Building2 className="h-7 w-7 text-emerald-300" />
           </div>
           <div className="mt-7 space-y-3 border-y border-white/15 py-5 text-sm text-emerald-50">
             <div className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />CNPJ, razão social, setor e localização</div>
             <div className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Canais empresariais quando disponíveis na fonte</div>
             <div className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Briefing de segmento e região incluído no pedido</div>
           </div>
-          <div className="mt-5 rounded-2xl bg-white/10 p-4">
+          <div className="mt-5 border-t border-white/15 pt-5">
             <p className="text-xs text-emerald-100">Investimento do pacote</p>
-            <p className="mt-1 text-3xl font-black">{priceLabel}</p>
-            <p className="mt-1 text-xs leading-relaxed text-emerald-100">Pagamento via PIX. Pedido analisado antes da entrega.</p>
+            {isLoading ? <HomeSkeleton className="mt-2 h-9 w-32 bg-white/15" /> : <p className="mt-1 text-3xl font-black">{priceLabel ?? "Indisponível"}</p>}
+            <p className="mt-1 text-xs leading-relaxed text-emerald-100">Pagamento via PIX ou cartão. Pedido analisado antes da entrega.</p>
           </div>
           <button onClick={() => navigate("/pacotes-leads")} className="mt-5 inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-extrabold text-emerald-950 transition hover:bg-emerald-50">
             Configurar meu público B2B <ArrowRight className="h-4 w-4" />
           </button>
-          <button onClick={() => navigate("/pacotes-leads")} className="mt-3 inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-300/40 bg-emerald-400/10 px-4 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-400/20">
-            Pesquisa ilimitada · {unlimitedPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/mês <ArrowRight className="h-4 w-4" />
+          <button disabled={isLoading || typeof unlimitedPrice !== "number"} onClick={() => navigate("/pacotes-leads")} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 border border-emerald-300/40 bg-emerald-400/10 px-4 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-400/20 disabled:cursor-wait disabled:opacity-60">
+            {isLoading ? <><HomeSkeleton className="h-4 w-40 bg-white/20" /></> : <>Pesquisa ilimitada · {unlimitedPrice?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/mês <ArrowRight className="h-4 w-4" /></>}
           </button>
         </aside>
       </div>
@@ -230,29 +258,46 @@ function B2BLeadCampaignSection() {
 
 function MonthlyPlansOverview() {
   const [, navigate] = useLocation();
-  const { data: b2bCatalog } = trpc.leadPackages.catalog.useQuery();
-  const { data: b2cCatalog } = trpc.consumerLeadPackages.catalog.useQuery();
-  const b2bPlans = b2bCatalog?.monthlyPlans ?? [
-    { label: "Essencial", selectionLimit: 100, price: 99 },
-    { label: "Profissional", selectionLimit: 250, price: 299 },
-    { label: "Ilimitado", selectionLimit: 0, price: b2bCatalog?.unlimitedMonthly?.price ?? 499 },
-  ];
-  const b2cPlans = (b2cCatalog?.monthlyPlans ?? [
-    { name: "Essencial", selectionLimit: 100, price: 99 },
-    { name: "Profissional", selectionLimit: 250, price: 299 },
-    { name: "Escala", selectionLimit: 500, price: 499 },
-  ]).map((plan) => ({ label: plan.name, selectionLimit: plan.selectionLimit, price: plan.price }));
+  const { data: b2bCatalog, isLoading: isLoadingB2B } = trpc.leadPackages.catalog.useQuery();
+  const { data: b2cCatalog, isLoading: isLoadingB2C } = trpc.consumerLeadPackages.catalog.useQuery();
+  const b2bPlans = b2bCatalog?.monthlyPlans;
+  const b2cPlans = b2cCatalog?.monthlyPlans?.map((plan) => ({ label: plan.name, selectionLimit: plan.selectionLimit, price: plan.price }));
   const columns = [
-    { title: "Empresas B2B", subtitle: "Para prospecção comercial", icon: Building2, color: "emerald" as const, plans: b2bPlans, description: (plan: { selectionLimit: number }) => plan.selectionLimit ? `Até ${plan.selectionLimit} empresas salvas` : "Pesquisa e exportação sem limite", cta: () => navigate("/pacotes-leads") },
-    { title: "Contatos B2C", subtitle: "Para imobiliário, automotivo e digital", icon: Users, color: "indigo" as const, plans: b2cPlans, description: (plan: { selectionLimit: number }) => `Até ${plan.selectionLimit} contatos salvos`, cta: () => navigate("/contatos-b2c") },
-    { title: "Representantes", subtitle: "Para montar seu time comercial", icon: Target, color: "violet" as const, plans: [{ label: "Essencial", selectionLimit: 20, price: 99 }, { label: "Profissional", selectionLimit: 50, price: 299 }, { label: "Escala", selectionLimit: 100, price: 499 }], description: (plan: { selectionLimit: number }) => `Até ${plan.selectionLimit} desbloqueios`, cta: () => navigate("/register?purchase=representatives&returnTo=/dashboard/company") },
+    { title: "Empresas B2B", subtitle: "Prospecção por setor, CNAE e região", icon: Building2, color: "text-emerald-700", plans: b2bPlans, isLoading: isLoadingB2B, description: (plan: { selectionLimit: number }) => plan.selectionLimit ? `Até ${plan.selectionLimit} empresas salvas` : "Pesquisa e exportação sem limite", cta: () => navigate("/pacotes-leads") },
+    { title: "Contatos B2C", subtitle: "Imobiliário, automotivo e digital", icon: Users, color: "text-slate-700", plans: b2cPlans, isLoading: isLoadingB2C, description: (plan: { selectionLimit: number }) => `Até ${plan.selectionLimit} contatos salvos`, cta: () => navigate("/contatos-b2c") },
+    { title: "Representantes", subtitle: "Desbloqueios para o time comercial", icon: Target, color: "text-emerald-700", plans: REPRESENTATIVE_MONTHLY_PLANS.map((plan) => ({ label: plan.label, selectionLimit: plan.unlockLimit, price: plan.price })), isLoading: false, description: (plan: { selectionLimit: number }) => `Até ${plan.selectionLimit} desbloqueios`, cta: () => navigate("/register?purchase=representatives&returnTo=/dashboard/company") },
   ];
-  const palette = {
-    emerald: { label: "text-emerald-700", card: "border-emerald-200 bg-emerald-50/45", button: "bg-emerald-600 hover:bg-emerald-700", price: "text-emerald-800" },
-    indigo: { label: "text-indigo-700", card: "border-indigo-200 bg-indigo-50/45", button: "bg-indigo-600 hover:bg-indigo-700", price: "text-indigo-800" },
-    violet: { label: "text-violet-700", card: "border-violet-200 bg-violet-50/45", button: "bg-violet-700 hover:bg-violet-800", price: "text-violet-800" },
-  };
-  return <section className="border-t border-border bg-card px-4 py-16 sm:px-6 sm:py-24"><div className="mx-auto max-w-7xl"><div className="mx-auto max-w-3xl text-center"><Badge className="border-primary/20 bg-primary/10 text-primary">Planos mensais</Badge><h2 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-5xl" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>Escolha o plano certo para o ritmo do seu time.</h2><p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">Comece pequeno, aumente quando precisar. Cada card leva você ao checkout seguro por PIX ou cartão.</p></div><div className="mt-10 grid gap-5 lg:grid-cols-3">{columns.map((column) => { const Icon = column.icon; const theme = palette[column.color]; return <article key={column.title} className={`rounded-3xl border p-5 shadow-sm sm:p-6 ${theme.card}`}><div className="inline-flex rounded-xl bg-white p-2.5"><Icon className={`h-5 w-5 ${theme.label}`} /></div><h3 className="mt-4 text-2xl font-black text-foreground">{column.title}</h3><p className="mt-1 text-sm text-muted-foreground">{column.subtitle}</p><div className="mt-5 grid gap-3">{column.plans.map((plan) => <div key={plan.selectionLimit} className="rounded-2xl border border-white/80 bg-white p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-foreground">{plan.label}</p><p className="mt-1 text-xs text-muted-foreground">{column.description(plan)}</p></div><p className={`text-xl font-black ${theme.price}`}>{plan.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="text-xs font-semibold text-muted-foreground">/mês</span></p></div></div>)}</div><button onClick={column.cta} className={`mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold text-white transition ${theme.button}`}>Ver planos e ir para checkout <ArrowRight className="h-4 w-4" /></button></article>; })}</div></div></section>;
+  return (
+    <section className="border-t border-border bg-card px-4 py-16 sm:px-6 sm:py-24">
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-5 border-b border-border pb-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+          <div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">Planos mensais</p><h2 className="mt-4 text-3xl font-black tracking-tight text-foreground sm:text-5xl" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>Comece pequeno.<br />Aumente com intenção.</h2></div>
+          <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">Escolha o caminho que resolve sua demanda agora. O checkout acontece com PIX ou cartão, no fluxo certo para cada público.</p>
+        </div>
+        <div className="mt-4 grid divide-y divide-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+          {columns.map((column) => {
+            const Icon = column.icon;
+            return (
+              <article key={column.title} aria-busy={column.isLoading} className="py-8 lg:px-7 lg:first:pl-0 lg:last:pr-0">
+                <Icon className={`h-5 w-5 ${column.color}`} />
+                <h3 className="mt-4 text-2xl font-black text-foreground">{column.title}</h3>
+                <p className="mt-1 min-h-10 text-sm leading-relaxed text-muted-foreground">{column.subtitle}</p>
+                <div className="mt-6 divide-y divide-border border-y border-border">
+                  {column.isLoading ? [0, 1, 2].map((item) => <div key={item} className="py-4"><HomeSkeleton className="h-4 w-24" /><HomeSkeleton className="mt-2 h-3 w-36" /></div>) : column.plans?.map((plan) => (
+                    <div key={plan.selectionLimit} className="flex items-start justify-between gap-4 py-4">
+                      <div><p className="font-bold text-foreground">{plan.label}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{column.description(plan)}</p></div>
+                      <p className="shrink-0 text-right text-xl font-black tracking-tight text-foreground">{plan.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}<span className="block text-[11px] font-semibold tracking-normal text-muted-foreground">por mês</span></p>
+                    </div>
+                  )) ?? <div className="py-5 text-sm text-muted-foreground">Planos indisponíveis no momento.</div>}
+                </div>
+                <button disabled={column.isLoading || !column.plans} onClick={column.cta} className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-primary px-4 text-sm font-extrabold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-wait disabled:opacity-60">Ver planos e ir para checkout <ArrowRight className="h-4 w-4" /></button>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 // ─── Match Simulator ─────────────────────────────────────────────────────────
@@ -540,7 +585,13 @@ function AnimatedCounter({ end, suffix = "", duration = 2000 }: { end: number; s
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const started = useRef(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   useEffect(() => {
+    if (prefersReducedMotion) {
+      setCount(end);
+      return;
+    }
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && !started.current) {
         started.current = true;
@@ -557,7 +608,7 @@ function AnimatedCounter({ end, suffix = "", duration = 2000 }: { end: number; s
     }, { threshold: 0.3 });
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, [end, duration]);
+  }, [end, duration, prefersReducedMotion]);
   return <span ref={ref}>{count.toLocaleString("pt-BR")}{suffix}</span>;
 }
 
@@ -578,6 +629,7 @@ function ThemeToggleButton() {
 export default function Home() {
   const { isAuthenticated, user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [, navigate] = useLocation();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -589,6 +641,14 @@ export default function Home() {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   const handleCTA = (type: "company" | "rep" | "manager") => {
@@ -625,6 +685,15 @@ export default function Home() {
             <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
           </nav>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setMobileNavOpen((open) => !open)}
+              aria-label={mobileNavOpen ? "Fechar menu de navegação" : "Abrir menu de navegação"}
+              aria-controls="home-mobile-navigation"
+              aria-expanded={mobileNavOpen}
+              className="inline-flex h-10 w-10 items-center justify-center border border-emerald-100/25 text-emerald-50 transition hover:bg-white/10 md:hidden"
+            >
+              {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
             <div className="hidden sm:block"><ThemeToggleButton /></div>
             {isAuthenticated ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
@@ -686,6 +755,13 @@ export default function Home() {
             )}
           </div>
         </div>
+        <nav id="home-mobile-navigation" aria-label="Navegação principal" className={`absolute left-0 right-0 top-full border-b border-emerald-100/15 bg-emerald-950/98 px-4 py-4 shadow-2xl backdrop-blur-xl transition-all duration-200 md:hidden ${mobileNavOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"}`}>
+          <div className="grid grid-cols-2 gap-x-5 gap-y-1 text-sm font-semibold text-emerald-50/85">
+            {[
+              ["Como funciona", "#como-funciona"], ["Vagas", "/vagas"], ["Buscar representantes", "/buscar"], ["Leads B2B", "/pacotes-leads"], ["Contatos B2C", "/contatos-b2c"], ["Blog", "/blog"], ["FAQ", "#faq"], ["Parcerias", "/parcerias"],
+            ].map(([label, href]) => <a key={href} href={href} onClick={() => setMobileNavOpen(false)} className="border-b border-emerald-100/10 py-3 transition hover:text-white">{label}</a>)}
+          </div>
+        </nav>
       </header>
 
       {/* ─── Hero ───────────────────────────────────────────────────────────── */}
@@ -773,108 +849,12 @@ export default function Home() {
       {/* ─── Planos mensais ───────────────────────────────────────────────────────── */}
       <MonthlyPlansOverview />
 
-      {/* ─── Selos de Segurança e Certificações ─────────────────────────────────────────────────── */}
-      <section className="py-16 px-6 border-t border-border bg-card">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <p className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-2">Plataforma segura e confiável</p>
-            <h2 className="text-2xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-              Plataforma segura, dados protegidos
-            </h2>
-          </div>
-          {/* Grid de selos */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-            {/* SSL */}
-            <div className="flex flex-col items-center gap-3 p-5 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
-              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                <Lock className="w-6 h-6 text-green-500" />
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-foreground text-sm">SSL 256-bit</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Conexão criptografada</p>
-              </div>
-              <span className="text-xs font-semibold text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full">✔ Ativo</span>
-            </div>
-            {/* LGPD */}
-            <div className="flex flex-col items-center gap-3 p-5 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
-              <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <Shield className="w-6 h-6 text-blue-500" />
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-foreground text-sm">LGPD Compliant</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Lei 13.709/2018</p>
-              </div>
-              <span className="text-xs font-semibold text-blue-600 bg-blue-500/10 px-2 py-0.5 rounded-full">✔ Conformidade</span>
-            </div>
-            {/* KYC */}
-            <div className="flex flex-col items-center gap-3 p-5 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
-              <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                <Award className="w-6 h-6 text-purple-500" />
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-foreground text-sm">KYC Verificado</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Identidade confirmada</p>
-              </div>
-              <span className="text-xs font-semibold text-purple-600 bg-purple-500/10 px-2 py-0.5 rounded-full">✔ Face Match IA</span>
-            </div>
-            {/* Dados Seguros */}
-            <div className="flex flex-col items-center gap-3 p-5 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
-              <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
-                <FileText className="w-6 h-6 text-orange-500" />
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-foreground text-sm">Dados Protegidos</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Armazenamento seguro</p>
-              </div>
-              <span className="text-xs font-semibold text-orange-600 bg-orange-500/10 px-2 py-0.5 rounded-full">✔ Criptografado</span>
-            </div>
-          </div>
-          {/* Barra de destaques de segurança */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
-              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-foreground text-sm">Verificação de Identidade com IA</p>
-                <p className="text-xs text-muted-foreground mt-0.5">A verificação de identidade usa análise de documentos e selfie como etapa adicional de segurança.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
-              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-foreground text-sm">Validação de CNPJ e CORE</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Verificamos o CNPJ na Receita Federal via BrasilAPI e o registro CORE (Conselho Regional dos Representantes Comerciais).</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
-              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-foreground text-sm">Direito ao Esquecimento (LGPD)</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Você pode solicitar a exclusão completa dos seus dados a qualquer momento, conforme a Lei Geral de Proteção de Dados.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Footer ─────────────────────────────────────────────────────────────────────── */}      <section className="py-20 border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
-            {[
-              { value: 173987, suffix: "+", label: "Representantes na base", icon: Users },
-              { value: 27, suffix: "", label: "Estados cobertos", icon: Building2 },
-              { value: 12, suffix: "", label: "Segmentos de atuação", icon: Target },
-              { value: 48, suffix: "h", label: "Tempo médio para conexão", icon: Clock },
-            ].map(({ value, suffix, label, icon: Icon }) => (
-              <div key={label} className="text-center group">
-                <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 mb-4 group-hover:bg-primary/20 transition-colors mx-auto">
-                  <Icon className="w-5 h-5 text-primary" />
-                </div>
-                <div className="text-4xl md:text-5xl font-black text-foreground mb-1" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-                  <AnimatedCounter end={value} suffix={suffix} />
-                </div>
-                <div className="text-sm text-muted-foreground">{label}</div>
-              </div>
-            ))}
+      {/* ─── Confiança e privacidade ─────────────────────────────────────────── */}
+      <section className="border-t border-border bg-card px-4 py-14 sm:px-6">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+          <div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">Confiança que acompanha o processo</p><h2 className="mt-4 text-3xl font-black text-foreground sm:text-4xl">Informação útil.<br />Uso responsável.</h2><p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">A plataforma organiza a decisão comercial sem transformar dados em promessa. Saiba como tratamos privacidade, acesso e seleção de contatos.</p><div className="mt-5 flex gap-4 text-sm font-bold"><a className="text-primary underline-offset-4 hover:underline" href="/privacidade">Privacidade</a><a className="text-primary underline-offset-4 hover:underline" href="/termos">Termos de uso</a></div></div>
+          <div className="grid divide-y divide-border border-y border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            {[{ icon: Shield, title: "Privacidade por padrão", text: "Contatos e listas seguem controles de acesso definidos para cada fluxo." }, { icon: FileText, title: "Dados empresariais organizados", text: "Seleção individual e exportação quando os dados estão disponíveis para o pacote." }, { icon: CheckCircle, title: "Decisão transparente", text: "Preços e escopo aparecem antes de seguir para o checkout." }].map(({ icon: Icon, title, text }) => <div key={title} className="px-0 py-5 sm:px-5 sm:first:pl-0 sm:last:pr-0"><Icon className="h-5 w-5 text-primary" /><p className="mt-3 text-sm font-bold text-foreground">{title}</p><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{text}</p></div>)}
           </div>
         </div>
       </section>
@@ -1001,43 +981,22 @@ export default function Home() {
       </section>
 
       {/* ─── Features Grid ──────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-background border-y border-border">
+      <section className="border-y border-border bg-background px-4 py-20 sm:px-6 sm:py-28">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="bg-primary/10 text-primary border-primary/20 mb-5 text-xs font-semibold tracking-widest uppercase px-4 py-1.5">Por que o RepMatch</Badge>
-            <h2 className="text-4xl md:text-5xl font-black text-foreground" style={{ fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
-              Feito para quem<br />
-              <span className="text-gradient-green">leva vendas a sério.</span>
-            </h2>
+          <div className="grid gap-8 border-b border-border pb-10 md:grid-cols-[0.8fr_1.2fr] md:items-end">
+            <div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">Por que o RepMatch</p><h2 className="mt-4 text-4xl font-black text-foreground md:text-5xl">Uma rotina comercial<br /><span className="text-gradient-green">com menos ruído.</span></h2></div>
+            <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">Não é sobre adicionar mais uma ferramenta. É sobre reduzir etapas entre uma busca, uma decisão e a próxima conversa comercial.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="grid divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0">
             {[
-              { icon: Target, title: "Match por perfil real", desc: "Cruzamos região, segmento, experiência e histórico. Você vê apenas candidatos que fazem sentido para a sua vaga.", highlight: true },
-              { icon: Award, title: "Ranking de Empresas", desc: "Empresas classificadas em Bronze, Silver, Gold e Platinum com base em histórico, avaliações e comissão oferecida.", highlight: false },
-              { icon: Shield, title: "Acesso por plano", desc: "Representantes Free acessam vagas Bronze e Silver. Premium acessa Gold. Elite acessa Platinum.", highlight: false },
-              { icon: MessageSquare, title: "Chat dentro da plataforma", desc: "Negocie direto com o candidato sem sair do RepMatch. Contatos só revelados quando ambas as partes concordam.", highlight: false },
-              { icon: BarChart3, title: "Painel de controle", desc: "Dashboard separado para empresas e representantes com histórico de candidaturas, vagas e performance.", highlight: false },
-              { icon: TrendingUp, title: "Cobertura nacional", desc: "Base comercial organizada por região, segmento e experiência para tornar a prospecção mais objetiva.", highlight: false },
-            ].map(({ icon: Icon, title, desc, highlight }) => (
-              <div
-                key={title}
-                className={`relative rounded-2xl p-6 border transition-all duration-200 hover:-translate-y-1 cursor-default ${
-                  highlight
-                    ? "bg-primary/8 border-primary/30 hover:border-primary/50"
-                    : "bg-card border-border hover:border-border/80 hover:bg-card/80"
-                }`}
-              >
-                {highlight && (
-                  <div className="absolute top-4 right-4">
-                    <span className="text-xs font-bold bg-primary text-primary-foreground px-2.5 py-1 rounded-full">Destaque</span>
-                  </div>
-                )}
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-5 ${highlight ? "bg-primary/15" : "bg-secondary"}`}>
-                  <Icon className={`w-5 h-5 ${highlight ? "text-primary" : "text-muted-foreground"}`} />
-                </div>
-                <h3 className="font-bold text-foreground text-base mb-2">{title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+              { icon: Target, title: "Busca com recorte real", desc: "Região, segmento, experiência e perfil ajudam a encontrar o próximo contato com mais contexto." },
+              { icon: MessageSquare, title: "Conversa no lugar certo", desc: "Acompanhe candidaturas e negocie dentro da plataforma, sem depender de listas espalhadas." },
+              { icon: BarChart3, title: "Controle de ponta a ponta", desc: "Painéis organizam vagas, candidaturas, leads salvos e o histórico necessário para agir." },
+              { icon: Shield, title: "Acesso no momento da decisão", desc: "Dados e contatos seguem o plano e a seleção escolhida, com transparência antes do checkout." },
+            ].map(({ icon: Icon, title, desc }, index) => (
+              <div key={title} className="group px-0 py-7 transition-colors md:px-8 md:first:pl-0 md:last:pr-0">
+                <div className="flex items-start gap-4"><span className="mt-0.5 text-xs font-black tracking-[0.14em] text-primary">0{index + 1}</span><Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h3 className="text-lg font-black text-foreground">{title}</h3><p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">{desc}</p></div></div>
               </div>
             ))}
           </div>
@@ -1121,10 +1080,10 @@ export default function Home() {
       <AntesDepois />
 
       {/* ─── Calculadora de ROI ───────────────────────────────────────── */}
-      <Suspense fallback={<div className="py-16 bg-background" />}><ROICalculator /></Suspense>
+      <Suspense fallback={<SectionLoadingSkeleton label="calculadora de retorno" />}><ROICalculator /></Suspense>
 
       {/* ─── Mapa do Brasil ───────────────────────────────────────────────────────────────────────────────────── */}
-      <Suspense fallback={<div className="py-16 bg-background" />}><BrazilMapSection /></Suspense>
+      <Suspense fallback={<SectionLoadingSkeleton label="mapa de cobertura" />}><BrazilMapSection /></Suspense>
 
       {/* ─── Vagas em Destaque ─────────────────────────────────────────── */}
       <VagasDestaque />
@@ -1190,19 +1149,21 @@ export default function Home() {
               { q: "O que é o ranking Bronze, Silver, Gold e Platinum?", a: "É a classificação das empresas dentro da plataforma, baseada em histórico de vagas publicadas, avaliações dos representantes, taxa de resposta e comissão oferecida. Empresas bem ranqueadas atraem representantes mais qualificados e experientes." },
               { q: "Representantes precisam pagar para usar a plataforma?", a: "Não! O cadastro e uso da plataforma é totalmente gratuito para representantes. Você cria seu perfil, aparece nas buscas das empresas e recebe propostas sem pagar nada." },
               { q: "Quanto custa para empresas?", a: "O cadastro é gratuito. Quando quiser ver o contato completo de um representante (telefone, e-mail, LinkedIn), você paga R$ 9,90 por representante — uma única vez, sem mensalidade ou recorrência." },
-              { q: "Como funciona o desbloqueio de contato (R$ 9,90)?", a: "Os contatos dos representantes ficam ocultos para proteger a privacidade. A empresa adiciona os perfis ao carrinho, paga R$ 9,90 por representante via PIX e a liberação é feita pelo administrador após a confirmação do pagamento." },
+              { q: "Como funciona o desbloqueio de contato (R$ 9,90)?", a: "Os contatos dos representantes ficam ocultos para proteger a privacidade. A empresa adiciona os perfis ao carrinho, paga R$ 9,90 por representante via PIX ou cartão e a liberação ocorre automaticamente após a confirmação do Mercado Pago." },
               { q: "Posso importar minha base de clientes/representantes?", a: "Sim. O painel Admin permite importação em massa via planilha Excel. A plataforma valida CNPJs automaticamente via BrasilAPI e normaliza todos os telefones durante a importação." },
             ].map(({ q, a }, i) => (
               <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  aria-expanded={openFaq === i}
+                  aria-controls={`faq-answer-${i}`}
                   className="w-full flex items-center justify-between p-5 text-left hover:bg-secondary/50 transition-colors"
                 >
                   <span className="font-semibold text-foreground pr-4 text-sm md:text-base">{q}</span>
                   <ChevronDown className={`w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${openFaq === i ? "rotate-180" : ""}`} />
                 </button>
                 {openFaq === i && (
-                  <div className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border pt-4">
+                  <div id={`faq-answer-${i}`} role="region" aria-label={`Resposta: ${q}`} className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border pt-4">
                     {a}
                   </div>
                 )}
@@ -1218,24 +1179,24 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">
               <img src={LOGO_URL} alt="RepMatch" className="h-7 object-contain" />
-              <span className="text-muted-foreground/60 text-sm">Conectando empresas e representantes. Gerando resultados.</span>
+              <span className="text-sm text-muted-foreground">Conectando empresas e representantes. Gerando resultados.</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground/60">
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <a href="/termos" className="hover:text-foreground transition-colors">Termos de Uso</a>
               <a href="/privacidade" className="hover:text-foreground transition-colors">Privacidade</a>
               <a href="https://wa.me/5541999499815" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Contato</a>
             </div>
           </div>
-          <div className="pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground/40">
+          <div className="pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>© 2026 RepMatch. Todos os direitos reservados.</span>
             <div className="flex items-center gap-2">
-              <Shield className="w-3 h-3 text-green-500/60" />
+              <Shield className="w-3 h-3 text-primary" />
               <span>Dados protegidos conforme a LGPD (Lei 13.709/2018)</span>
             </div>
           </div>
-          <div className="pt-4 text-center text-xs text-muted-foreground/30">
+          <div className="pt-4 text-center text-xs text-muted-foreground">
             Criado por{" "}
-            <a href="https://techdc.com.br" target="_blank" rel="noopener noreferrer" className="text-primary/50 hover:text-primary transition-colors font-semibold">
+            <a href="https://techdc.com.br" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors font-semibold">
               TechDC.com.br
             </a>
           </div>

@@ -971,7 +971,7 @@
 - [x] Salvar os leads escolhidos permanentemente na conta do comprador
 - [x] Somar os créditos de todos os pacotes liberados e limitar seleções ao saldo disponível
 - [x] Bloquear novas seleções ao esgotar créditos e orientar a compra de outro pacote
-- [x] Exibir uma área Minha Lista de Leads com exportação CSV dos registros salvos
+- [x] Exibir uma área Minha Lista de Leads com exportação Excel dos registros salvos
 - [x] Validar persistência, limite e agregação de créditos com TypeScript e testes automatizados
 
 ## Base especial de contatos B2C PF (19/10/2026)
@@ -1003,3 +1003,11 @@
 - [x] Calcular Hoje desde 0h no horário de Brasília para visitas, visitantes, cadastros e interesse de compra
 - [x] Manter os quatro filtros acessíveis no celular em duas colunas e em linha no desktop
 - [x] Validar com TypeScript, 59 testes automatizados, build e checagem de diff
+
+## Home v0 — padrão Impeccable (21/10/2026)
+- [x] Preservar a identidade verde/grafite, vídeo principal, GIF lateral, SEO e CTAs comerciais existentes
+- [x] Trocar planos, benefícios e confiança em cards aninhados por comparações editoriais com divisores e hierarquia clara
+- [x] Exibir apenas dados e preços reais; usar skeletons acessíveis enquanto catálogos, vagas e blocos lazy carregam
+- [x] Criar menu mobile acessível, FAQ com estados ARIA e preferência de movimento reduzido nos contadores
+- [x] Remover contagens provisórias e duplicadas, além de ajustar contraste do rodapé
+- [x] Validar com TypeScript, 60 testes automatizados, build, checagem de diff e prévia desktop/mobile

@@ -114,6 +114,19 @@ describe("AdminDashboard mobile layout", () => {
     expect(homeSource).toContain("<UserCog className=\"h-4 w-4 sm:hidden\"");
   });
 
+  it("uses honest loading states and an accessible mobile navigation on the landing page", () => {
+    expect(homeSource).toContain("function HomeSkeleton");
+    expect(homeSource).toContain('aria-busy={isLoading}');
+    expect(homeSource).toContain("isLoading: isLoadingB2B");
+    expect(homeSource).toContain("isLoading: isLoadingB2C");
+    expect(homeSource).toContain("REPRESENTATIVE_MONTHLY_PLANS");
+    expect(homeSource).toContain("const [mobileNavOpen, setMobileNavOpen]");
+    expect(homeSource).toContain('aria-controls="home-mobile-navigation"');
+    expect(homeSource).toContain("function SectionLoadingSkeleton");
+    expect(homeSource).toContain('fallback={<SectionLoadingSkeleton label="calculadora de retorno" />}');
+    expect(homeSource).toContain('fallback={<SectionLoadingSkeleton label="mapa de cobertura" />}');
+  });
+
   it("uses overlay drawers and compact content on every member dashboard", () => {
     for (const source of [companyDashboardSource, repDashboardSource, managerDashboardSource]) {
       expect(source).toContain("const [mobileMenuOpen, setMobileMenuOpen]");
